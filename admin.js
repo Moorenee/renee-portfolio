@@ -127,7 +127,7 @@ async function initAdmin() {
   // Initial gate check
   checkAdminAuth();
 
-  /* ================= ADMIN LOGOUT MODAL CONTROLLER ================= */
+  /* ================= ADMIN LOGOUT & EXIT CONTROLLER ================= */
   const adminLogoutModal = document.getElementById('admin-logout-modal');
   const adminLogoutConfirm = document.getElementById('admin-logout-confirm-screen');
   const adminLogoutSuccess = document.getElementById('admin-logout-success-screen');
@@ -150,12 +150,30 @@ async function initAdmin() {
     adminLogoutModal.classList.remove('active');
   }
 
-  // Attach to both header logout button and sidebar logout button
-  document.querySelectorAll('#btn-admin-logout, #btn-sidebar-logout, .sidebar-logout-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      openAdminLogoutModal();
-    });
+  async function performDirectLogout() {
+    clearTimeout(syncDraftTimer);
+    clearTimeout(autoCommitTimer);
+    sessionStorage.removeItem('renee_admin_authenticated');
+    localStorage.removeItem('renee_admin_authenticated');
+    if (window.PortfolioDB && window.PortfolioDB.channel) {
+      try { window.PortfolioDB.channel.postMessage({ type: 'AUTH_LOGOUT' }); } catch(err) {}
+    }
+    window.location.replace('index.html#home');
+  }
+
+  function handleLogoutClick(e) {
+    if (e) e.preventDefault();
+    const hasPending = hasUnsavedChanges || (window.PortfolioDB && window.PortfolioDB.hasDraft && window.PortfolioDB.hasDraft());
+    if (!hasPending) {
+      performDirectLogout();
+      return;
+    }
+    openAdminLogoutModal();
+  }
+
+  // Attach to header logout button, sidebar logout button, and exit links
+  document.querySelectorAll('#btn-admin-logout, #btn-sidebar-logout, .sidebar-logout-btn, .admin-exit-btn').forEach(btn => {
+    btn.addEventListener('click', handleLogoutClick);
   });
 
   if (btnAdminModalCancel) {
@@ -181,6 +199,7 @@ async function initAdmin() {
     btnAdminModalDiscard.addEventListener('click', async (e) => {
       e.preventDefault();
       clearTimeout(syncDraftTimer);
+      clearTimeout(autoCommitTimer);
       if (window.PortfolioDB && window.PortfolioDB.discardDraft) {
         try {
           await window.PortfolioDB.discardDraft();
@@ -193,7 +212,7 @@ async function initAdmin() {
       if (window.PortfolioDB && window.PortfolioDB.channel) {
         try { window.PortfolioDB.channel.postMessage({ type: 'AUTH_LOGOUT' }); } catch(err) {}
       }
-      window.location.href = 'index.html';
+      window.location.replace('index.html#home');
     });
   }
 
@@ -201,7 +220,12 @@ async function initAdmin() {
     btnAdminModalSave.addEventListener('click', async (e) => {
       e.preventDefault();
       clearTimeout(syncDraftTimer);
+      clearTimeout(autoCommitTimer);
+      if (activeProject) {
+        try { syncActiveProjectLive(false); } catch(err) {}
+      }
       try { collectIdentityData(); } catch(err) {}
+      try { collectAboutHeaderAndProfile(); } catch(err) {}
       try { collectColumnTitles(); } catch(err) {}
       try { collectHeadersData(); } catch(err) {}
       if (window.PortfolioDB && window.PortfolioDB.saveData) {
@@ -216,8 +240,8 @@ async function initAdmin() {
       if (adminLogoutConfirm) adminLogoutConfirm.style.display = 'none';
       if (adminLogoutSuccess) adminLogoutSuccess.style.display = 'block';
       setTimeout(() => {
-        window.location.href = 'index.html';
-      }, 900);
+        window.location.replace('index.html#home');
+      }, 500);
     });
   }
 
@@ -289,7 +313,7 @@ async function initAdmin() {
     try { collectAboutHeaderAndProfile(); } catch(e) {}
     try { collectColumnTitles(); } catch(e) {}
     try { collectHeadersData(); } catch(e) {}
-    try { if (activeProject && typeof syncActiveProjectLive === 'function') syncActiveProjectLive(); } catch(e) {}
+    try { if (activeProject && typeof syncActiveProjectLive === 'function') syncActiveProjectLive(false); } catch(e) {}
   }
 
   function broadcastDraft() {
@@ -333,6 +357,9 @@ async function initAdmin() {
     clearTimeout(syncDraftTimer);
     clearTimeout(autoCommitTimer);
     try {
+      if (activeProject) {
+        try { syncActiveProjectLive(false); } catch(e) {}
+      }
       collectIdentityData();
       collectAboutHeaderAndProfile();
       collectColumnTitles();
@@ -363,11 +390,6 @@ async function initAdmin() {
     btnGlobalSave.addEventListener('click', async () => {
       await executeSave('ALL CHANGES');
     });
-  }
-
-  // Auto-commit any active draft from previous sessions so all views reflect the latest edits immediately
-  if (window.PortfolioDB && window.PortfolioDB.hasDraft && window.PortfolioDB.hasDraft()) {
-    executeSave('ACTIVE DRAFT').catch(() => {});
   }
 
   /* ================= 3. TAB 01: IDENTITY & CONTACT ================= */
@@ -1858,7 +1880,7 @@ async function initAdmin() {
     activeProject = null;
   }
 
-  function syncActiveProjectLive() {
+  function syncActiveProjectLive(shouldBroadcast = true) {
     if (!activeProject) return;
     const tEl = document.getElementById('edit-proj-title');
     if (tEl && tEl.value.trim()) activeProject.title = tEl.value.trim();
@@ -1906,9 +1928,9 @@ async function initAdmin() {
       currentData.projects.push(activeProject);
     }
 
-    // Broadcast live draft update to main page in 0ms!
-    triggerRealtimeSync(120);
-    renderProjectsGrid();
+    if (shouldBroadcast) {
+      triggerRealtimeSync(120);
+    }
   }
 
   if (modalClose) modalClose.addEventListener('click', closeProjectEditor);

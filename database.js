@@ -15,7 +15,7 @@ const CLOUD_DOC = 'live_data';
 
 // Default initial data matching user's exact portfolio sheets
 const DEFAULT_PORTFOLIO_DATA = {
-  _lastUpdated: 1776700000000,
+  _lastUpdated: 1,
   adminAuth: {
     username: "RENEE@MOO081706",
     password: "36987@RENEE6667"
@@ -1008,26 +1008,33 @@ class PortfolioDatabase {
         }
       }
 
-      // 2. Only consider DRAFT if it is strictly newer than current memory data
-      const draftStr = localStorage.getItem(DRAFT_KEY) || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(DRAFT_KEY) : null);
-      if (draftStr) {
-        try {
-          const parsedDraft = JSON.parse(draftStr);
-          if (parsedDraft && parsedDraft.profile && Array.isArray(parsedDraft.projects)) {
-            const draftUp = parsedDraft._lastUpdated || 0;
+      // 2. Read LocalStorage cache if present and newer
+      try {
+        const localStr = localStorage.getItem(DB_KEY);
+        if (localStr) {
+          const parsed = JSON.parse(localStr);
+          if (parsed && parsed.profile && Array.isArray(parsed.projects)) {
+            const locUp = parsed._lastUpdated || 0;
             const curUp = (this.memoryData && this.memoryData._lastUpdated) || 0;
-            if (draftUp > curUp) {
-              this.memoryData = this._ensureSchemaIntegrity(parsedDraft);
+            if (locUp >= curUp) {
+              this.memoryData = this._ensureSchemaIntegrity(parsed);
             }
           }
-        } catch(e) {}
-      }
+        }
+      } catch (e) {}
 
-      // 3. Background non-blocking Firebase Cloud sync (NEVER delays or freezes page load!)
+      // 3. Fast-boot Cloud Sync: Start listener immediately and race cloud fetch with 500ms timeout
+      // This ensures visitors on mobile/other devices see the LATEST saved project on the very first frame!
       if (this.firestore && this.isCloudEnabled) {
-        this.syncCloudInBackground().catch(err => {
-          console.warn('Background cloud sync notice:', err);
-        });
+        this.setupCloudListener();
+        try {
+          await Promise.race([
+            this.syncCloudInBackground(),
+            new Promise(resolve => setTimeout(resolve, 550))
+          ]);
+        } catch (e) {
+          console.warn('Initial cloud sync race notice:', e);
+        }
       }
 
       return this.memoryData;
@@ -1051,12 +1058,12 @@ class PortfolioDatabase {
             ? new Date(cloudPayload.clientTimestamp).getTime()
             : ((cloudPayload.data && cloudPayload.data._lastUpdated) || 0);
 
-          // ONLY update local if cloud is STRICTLY newer than local edits!
-          if (localUpdated && localUpdated > cloudUpdated) {
+          // ONLY push local to cloud if this device explicitly edited/saved from admin!
+          if (this.memoryData && this.memoryData._savedFromAdmin && localUpdated > cloudUpdated) {
             console.info('[PortfolioDB] Local edits are newer than cloud. Syncing local to cloud...');
             await this.saveToCloud(this.memoryData);
-          } else if (cloudUpdated > localUpdated) {
-            console.info('[PortfolioDB] Cloud has newer updates. Updating local view...');
+          } else if (cloudUpdated >= localUpdated || !this.memoryData || !this.memoryData._savedFromAdmin) {
+            console.info('[PortfolioDB] Updating to latest cloud dataset...');
             this.memoryData = cloudData;
             await idbSet('current_portfolio_v3', this.memoryData);
             this.persistToLocal(this.memoryData);
@@ -1071,7 +1078,6 @@ class PortfolioDatabase {
     } catch (cloudErr) {
       console.warn('Cloud fetch notice (falling back to local cache):', cloudErr);
     }
-    this.setupCloudListener();
   }
 
   async getData() {
@@ -1090,17 +1096,6 @@ class PortfolioDatabase {
           }
         }
       }
-      const draftStr = localStorage.getItem(DRAFT_KEY);
-      if (draftStr) {
-        const parsed = JSON.parse(draftStr);
-        if (parsed && parsed.profile && Array.isArray(parsed.projects)) {
-          const draftUpdated = (parsed && parsed._lastUpdated) || 0;
-          const memUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
-          if (draftUpdated > memUpdated) {
-            this.memoryData = this._ensureSchemaIntegrity(parsed);
-          }
-        }
-      }
     } catch(e) {}
     return JSON.parse(JSON.stringify(this.memoryData));
   }
@@ -1109,14 +1104,12 @@ class PortfolioDatabase {
     this.memoryData = this._ensureSchemaIntegrity(JSON.parse(JSON.stringify(draftData)));
     this.memoryData._lastUpdated = Date.now();
     try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(this.memoryData));
-      localStorage.setItem(DB_KEY, JSON.stringify(this.memoryData));
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.setItem(DRAFT_KEY, JSON.stringify(this.memoryData));
       }
     } catch (e) {}
 
-    // Broadcast instant real-time sync across tabs
+    // Broadcast instant real-time sync across open tabs in 0ms!
     if (this.channel) {
       try {
         this.channel.postMessage({ type: 'DATA_UPDATED', payload: this.memoryData });
@@ -1126,7 +1119,7 @@ class PortfolioDatabase {
   }
 
   hasDraft() {
-    return !!(localStorage.getItem(DRAFT_KEY) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(DRAFT_KEY)));
+    return !!(typeof sessionStorage !== 'undefined' && sessionStorage.getItem(DRAFT_KEY));
   }
 
   async saveData(newData) {
@@ -1137,11 +1130,15 @@ class PortfolioDatabase {
     // 1. Immediately persist to LocalStorage (0ms synchronous)
     this.persistToLocal(this.memoryData);
 
-    // 2. Clear draft keys
+    // 2. Clear all drafts so obsolete drafts are never remembered
     try {
       localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem('moo_renee_portfolio_draft_v2');
+      localStorage.removeItem('moo_renee_portfolio_draft_v3');
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.removeItem(DRAFT_KEY);
+        sessionStorage.removeItem('moo_renee_portfolio_draft_v2');
+        sessionStorage.removeItem('moo_renee_portfolio_draft_v3');
       }
     } catch (e) {}
 
@@ -1189,8 +1186,8 @@ class PortfolioDatabase {
               ? new Date(cloudPayload.clientTimestamp).getTime()
               : ((cloudPayload.data && cloudPayload.data._lastUpdated) || 0);
 
-            // NEVER let an older or equal cloud snapshot overwrite local edits!
-            if (cloudUpdated <= localUpdated) {
+            // Don't overwrite if local admin session has strictly newer unsaved local edits
+            if (this.memoryData && this.memoryData._savedFromAdmin && localUpdated > cloudUpdated) {
               return;
             }
             this.memoryData = this._ensureSchemaIntegrity(cloudPayload.data);
@@ -1208,13 +1205,14 @@ class PortfolioDatabase {
     if (!this.firestore || !this.isCloudEnabled) return { success: false, error: 'Firebase Cloud is not connected' };
     try {
       const cleanData = JSON.parse(JSON.stringify(data));
+      // Overwrite completely without { merge: true } so old deleted projects and obsolete fields are fully purged
       await this.firestore.collection(CLOUD_COLLECTION).doc(CLOUD_DOC).set({
         data: cleanData,
         updatedAt: (window.firebase && firebase.firestore && firebase.firestore.FieldValue)
           ? firebase.firestore.FieldValue.serverTimestamp()
           : new Date().toISOString(),
         clientTimestamp: new Date().toISOString()
-      }, { merge: true });
+      });
       return { success: true };
     } catch (err) {
       console.error('Firebase saveToCloud error:', err);
@@ -1498,8 +1496,12 @@ class PortfolioDatabase {
   async discardDraft() {
     try {
       localStorage.removeItem(DRAFT_KEY);
+      localStorage.removeItem('moo_renee_portfolio_draft_v2');
+      localStorage.removeItem('moo_renee_portfolio_draft_v3');
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.removeItem(DRAFT_KEY);
+        sessionStorage.removeItem('moo_renee_portfolio_draft_v2');
+        sessionStorage.removeItem('moo_renee_portfolio_draft_v3');
       }
     } catch (e) {}
 

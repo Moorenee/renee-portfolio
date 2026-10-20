@@ -1,4 +1,4 @@
-﻿/* ===================================================================
+/* ===================================================================
    MOO RENEE — ARCHITECTURAL SPATIAL DESIGN PORTFOLIO
    Design System: Swiss Brutalist / Architectural Blueprint Edition
    Color Palette: Warm Architectural Paper (#f4f3ef), Stark Black (#0a0a0a),
@@ -570,7 +570,13 @@ html {
   font-size: 16px;
   background-color: var(--bg-paper);
   color: var(--text-dark);
-  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 body.site-body {
@@ -585,6 +591,7 @@ body.site-body {
   flex-direction: column;
   position: relative;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 a {
@@ -1026,8 +1033,8 @@ body.on-home .home-center-hero {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 1;
-  opacity: 0.85;
+  z-index: 0;
+  opacity: 0.75;
 }
 
 /* Inset Border Grid Box */
@@ -1037,6 +1044,7 @@ body.on-home .home-center-hero {
   height: 100%;
   border: 1px solid var(--border-hairline);
   position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
 }
@@ -1465,6 +1473,7 @@ body.on-home .home-center-hero {
   margin: 0 auto;
   padding: 1.5rem 2rem;
   position: relative;
+  z-index: 2;
   background-color: var(--bg-paper);
 }
 
@@ -1690,6 +1699,8 @@ body.on-home .home-center-hero {
   background-color: var(--bg-paper);
   border-bottom: 1px solid var(--border-hairline);
   padding: 3.5rem 2rem 4rem 2rem;
+  position: relative;
+  z-index: 2;
 }
 
 .about-upper-inner {
@@ -2102,6 +2113,8 @@ body.on-home .home-center-hero {
   width: 100%;
   background-color: var(--bg-stone);
   padding: 5rem 2.5rem 7.5rem 2.5rem;
+  position: relative;
+  z-index: 2;
 }
 
 .lower-section-header {
@@ -2491,8 +2504,8 @@ body.on-home .home-center-hero {
   width: 100vw;
   height: 100vh;
   pointer-events: none;
-  z-index: 5;
-  opacity: 0.85;
+  z-index: 0;
+  opacity: 0.75;
   display: none;
 }
 
@@ -2725,7 +2738,7 @@ body.on-home .home-center-hero {
   flex-direction: column;
   gap: 2.5rem;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 /* Card Grids */
@@ -3213,6 +3226,8 @@ body.on-home .home-center-hero {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2.5rem 2rem 5rem 2rem;
+  position: relative;
+  z-index: 2;
 }
 
 .detail-top-nav-bar {
@@ -3688,6 +3703,7 @@ body.on-home .home-center-hero {
   border-top: 1px solid var(--border-hairline);
   padding: 4rem 2rem 5rem 2rem;
   position: relative;
+  z-index: 2;
 }
 
 .contact-dark-inner {
@@ -3983,6 +3999,25 @@ html, body {
 
 /* --- Breakpoint 2: Tablet Landscape & Architectural Transition (max-width: 900px) --- */
 @media (max-width: 900px) {
+  html, body {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: auto !important;
+  }
+  body.on-home {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  body.on-home #view-home.page-view.active,
+  body.on-home .home-paper-stage,
+  body.on-home .home-grid-container {
+    height: auto !important;
+    min-height: calc(100dvh - var(--header-height) - 1.5rem) !important;
+    overflow: visible !important;
+  }
+
   /* Subpage Architectural 6-Column Header gracefully converts to stacked cards */
   .subpage-header-stage {
     padding: 1rem 1.25rem;

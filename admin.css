@@ -1192,10 +1192,17 @@ html, body.admin-body {
 
 /* Responsive */
 @media (max-width: 1024px) {
+  html, body {
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 100% !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+  }
   .editor-app-shell {
     flex-direction: column;
-    height: auto;
-    overflow: auto;
+    height: auto !important;
+    overflow: visible !important;
   }
   .editor-sidebar {
     width: 100%;

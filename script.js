@@ -133,6 +133,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     siteLogoutModal.classList.remove('active');
   }
 
+  function performDirectSiteLogout() {
+    sessionStorage.removeItem('renee_admin_authenticated');
+    localStorage.removeItem('renee_admin_authenticated');
+    updateNavAuthVisibility();
+    if (mobileDrawer) mobileDrawer.classList.remove('open');
+    closeSiteLogoutModal();
+    if (window.PortfolioDB && window.PortfolioDB.channel) {
+      try { window.PortfolioDB.channel.postMessage({ type: 'AUTH_LOGOUT' }); } catch(e) {}
+    }
+  }
+
   async function performSiteLogout(saveChanges) {
     if (saveChanges) {
       if (window.PortfolioDB) {
@@ -141,14 +152,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (siteLogoutConfirmScreen) siteLogoutConfirmScreen.style.display = 'none';
       if (siteLogoutSuccessScreen) siteLogoutSuccessScreen.style.display = 'block';
       setTimeout(async () => {
-        sessionStorage.removeItem('renee_admin_authenticated');
-        localStorage.removeItem('renee_admin_authenticated');
-        updateNavAuthVisibility();
-        closeSiteLogoutModal();
-        if (window.PortfolioDB && window.PortfolioDB.channel) {
-          try { window.PortfolioDB.channel.postMessage({ type: 'AUTH_LOGOUT' }); } catch(e) {}
-        }
-      }, 900);
+        performDirectSiteLogout();
+      }, 350);
     } else {
       if (window.PortfolioDB) {
         if (window.PortfolioDB.discardDraft) {
@@ -158,19 +163,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         renderAll();
       }
-      sessionStorage.removeItem('renee_admin_authenticated');
-      localStorage.removeItem('renee_admin_authenticated');
-      updateNavAuthVisibility();
-      closeSiteLogoutModal();
-      if (window.PortfolioDB && window.PortfolioDB.channel) {
-        try { window.PortfolioDB.channel.postMessage({ type: 'AUTH_LOGOUT' }); } catch(e) {}
-      }
+      performDirectSiteLogout();
     }
   }
 
   document.querySelectorAll('.nav-logout-btn, .drawer-logout-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
+      if (mobileDrawer) mobileDrawer.classList.remove('open');
+      const hasDraft = window.PortfolioDB && window.PortfolioDB.hasDraft && window.PortfolioDB.hasDraft();
+      if (!hasDraft) {
+        performDirectSiteLogout();
+        return;
+      }
       openSiteLogoutModal();
     });
   });
@@ -996,7 +1001,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
             link.addEventListener('click', (e) => {
               e.preventDefault();
-              openProjectDetail(p.id);
+              window.location.hash = `project/${p.id}`;
             });
             stack.appendChild(link);
           });
@@ -1373,6 +1378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const nextProjectBtn = document.getElementById('next-project-btn');
 
   function renderProjectDetail(projectId) {
+    if (!portfolioData || !portfolioData.projects) return;
     const projs = portfolioData.projects || [];
     const currentIndex = projs.findIndex(p => p.id === projectId || p.index === projectId);
     const project = projs[currentIndex] || projs[0];
@@ -1381,6 +1387,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.location.hash = 'projects';
       return;
     }
+
+    try {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    } catch(e) {}
 
     if (autoScrollInterval) {
       clearInterval(autoScrollInterval);
@@ -1497,15 +1507,21 @@ document.addEventListener('DOMContentLoaded', async () => {
           scrollGalleryTrack.appendChild(item);
         });
 
-        if (scrollGalleryStage) {
+        if (scrollGalleryStage && project.autoScrollImages !== false) {
+          let isInteracting = false;
+          scrollGalleryStage.addEventListener('pointerdown', () => { isInteracting = true; }, { passive: true });
+          window.addEventListener('pointerup', () => { isInteracting = false; }, { passive: true });
+          scrollGalleryStage.addEventListener('touchstart', () => { isInteracting = true; }, { passive: true });
+          window.addEventListener('touchend', () => { isInteracting = false; }, { passive: true });
+
           autoScrollInterval = setInterval(() => {
-            if (scrollGalleryStage) {
+            if (scrollGalleryStage && !isInteracting) {
               scrollGalleryStage.scrollLeft += 1.2;
               if (scrollGalleryStage.scrollLeft >= (scrollGalleryStage.scrollWidth - scrollGalleryStage.clientWidth - 2)) {
                 scrollGalleryStage.scrollLeft = 0;
               }
             }
-          }, 24);
+          }, 32);
         }
       } else {
         detailScrollGallerySection.style.display = 'none';
@@ -2176,9 +2192,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function draw() {
       // Only animate when on home screen and canvas is visible
-      if (!document.body.classList.contains('on-home') && window.location.hash && window.location.hash !== '#home' && window.location.hash !== '#') {
-        animationFrameId = requestAnimationFrame(draw);
-        return;
+      const isHome = document.body.classList.contains('on-home') || !window.location.hash || window.location.hash === '#home' || window.location.hash === '#';
+      if (!isHome) {
+        animationFrameId = null;
+        return; // Stop animation loop completely when off home!
       }
 
       if (width < 50 || height < 50) {
@@ -2194,17 +2211,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
 
-        // Cursor proximity interaction: gentle spatial repulsion only (pure + symbols, zero beam artifacts)
-        if (mouse.active) {
+        // Cursor proximity interaction: gentle spatial repulsion & hairline connecting beam
+        if (mouse.active && mouse.x > 0 && mouse.y > 0) {
           const dx = node.x - mouse.x;
           const dy = node.y - mouse.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const maxDist = 110;
+          const maxDist = 120;
 
           if (dist < maxDist && dist > 1) {
             const force = (maxDist - dist) / maxDist;
             node.x += (dx / dist) * force * 1.4;
             node.y += (dy / dist) * force * 1.4;
+
+            // Hairline connecting beam between mouse cursor and + symbol
+            const beamAlpha = force * 0.28;
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(${rgbBase}, ${beamAlpha})`;
+            ctx.lineWidth = 0.7;
+            ctx.moveTo(mouse.x, mouse.y);
+            ctx.lineTo(node.x, node.y);
+            ctx.stroke();
           }
         }
 
@@ -2217,6 +2243,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (node.x > width + 15) node.x = -15;
         if (node.y < -15) node.y = height + 15;
         if (node.y > height + 15) node.y = -15;
+
+        // Faint connecting lines between close neighbor + nodes
+        for (let j = i + 1; j < nodes.length; j++) {
+          const other = nodes[j];
+          const ndx = node.x - other.x;
+          const ndy = node.y - other.y;
+          const nDist = Math.sqrt(ndx * ndx + ndy * ndy);
+          if (nDist < 80) {
+            const lineAlpha = (1 - nDist / 80) * 0.07;
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(${rgbBase}, ${lineAlpha})`;
+            ctx.lineWidth = 0.5;
+            ctx.moveTo(node.x, node.y);
+            ctx.lineTo(other.x, other.y);
+            ctx.stroke();
+          }
+        }
 
         // Render + symbol shape
         ctx.save();
@@ -2234,6 +2277,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       animationFrameId = requestAnimationFrame(draw);
     }
+
+    function checkHomeCanvas() {
+      const isHome = document.body.classList.contains('on-home') || !window.location.hash || window.location.hash === '#home' || window.location.hash === '#';
+      if (isHome && !animationFrameId) {
+        draw();
+      }
+    }
+    window.addEventListener('hashchange', checkHomeCanvas, { passive: true });
 
     draw();
   }
@@ -2323,24 +2374,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    function onTouchMove(e) {
-      if (compass.offsetParent === null) return;
-      if (!e.touches || e.touches.length === 0) return;
-      const touch = e.touches[0];
-      onMouseMove({ clientX: touch.clientX, clientY: touch.clientY });
-    }
-
+    let lastOrientationTime = 0;
     function onDeviceOrientation(e) {
-      if (compass.offsetParent === null) return;
+      if (!document.body.classList.contains('on-home') || compass.offsetParent === null) return;
+      const now = Date.now();
+      if (now - lastOrientationTime < 40) return; // Cap at 25fps to save mobile CPU/battery
+      lastOrientationTime = now;
+
       if (e.gamma !== null && e.beta !== null) {
         const normGamma = Math.max(-1, Math.min(1, e.gamma / 30));
         const normBeta = Math.max(-1, Math.min(1, (e.beta - 40) / 30));
 
-        const maxTilt = 16;
+        const maxTilt = 14;
         targetTiltX = -normBeta * maxTilt;
         targetTiltY = normGamma * maxTilt;
-        targetTransX = normGamma * 12;
-        targetTransY = normBeta * 12;
+        targetTransX = normGamma * 8;
+        targetTransY = normBeta * 8;
 
         if (!animRaf) {
           animRaf = requestAnimationFrame(updateCompass);
@@ -2358,14 +2407,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
+    // Only track cursor movement with desktop mouse pointer (never hijack mobile touch scrolling!)
     window.addEventListener('mousemove', onMouseMove, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: true });
-    window.addEventListener('touchstart', onTouchMove, { passive: true });
     if (window.DeviceOrientationEvent) {
       window.addEventListener('deviceorientation', onDeviceOrientation, { passive: true });
     }
     document.addEventListener('mouseleave', onMouseLeave);
-    window.addEventListener('touchend', onMouseLeave, { passive: true });
   }
 
   // 2. Keyboard Shortcut: Ctrl+Shift+A or Cmd+Shift+A to quickly open Admin CMS
@@ -2394,41 +2441,55 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ctx = canvas.getContext('2d');
     let width = window.innerWidth;
     let height = window.innerHeight;
-    let dpr = window.devicePixelRatio || 1;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let animId = null;
+    let isRunning = false;
+
+    // Cache metrics to eliminate 60fps layout thrashing on mobile
+    let cachedPageHeight = window.innerHeight * 1.5;
+    let darkRects = [];
+
+    function updateMetrics() {
+      cachedPageHeight = Math.max(window.innerHeight * 1.5, viewEl.scrollHeight || document.documentElement.scrollHeight || 0);
+      darkRects = [];
+      if (options.detectDark) {
+        const darkEls = viewEl.querySelectorAll('.contact-dark-stage, .dark-stage, [data-dark-bg="true"]');
+        for (let d = 0; d < darkEls.length; d++) {
+          darkRects.push(darkEls[d].getBoundingClientRect());
+        }
+      }
+    }
 
     function resize() {
       width = window.innerWidth;
       height = window.innerHeight;
-      dpr = window.devicePixelRatio || 1;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.floor(width * dpr);
       canvas.height = Math.floor(height * dpr);
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(dpr, dpr);
+      updateMetrics();
     }
 
     resize();
     window.addEventListener('resize', resize, { passive: true });
 
-    function getPageHeight() {
-      return Math.max(window.innerHeight * 1.5, viewEl.scrollHeight || document.documentElement.scrollHeight || 0);
-    }
-
-    // Node count: scaled linearly by page height so there are always ~18-22 visible symbols per screen
-    const baseDensity = options.nodeDensity || 20;
-    let totalHeight = getPageHeight();
-    const screenRatio = Math.max(1, totalHeight / (window.innerHeight || 800));
-    const NODE_COUNT = Math.min(65, Math.max(baseDensity, Math.round(baseDensity * screenRatio)));
+    // Lower density on mobile touch devices to ensure ultra-smooth 60fps scrolling
+    const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    const baseDensity = isTouch ? 12 : (options.nodeDensity || 18);
+    const screenRatio = Math.max(1, cachedPageHeight / (window.innerHeight || 800));
+    const NODE_COUNT = Math.min(isTouch ? 18 : 45, Math.max(baseDensity, Math.round(baseDensity * screenRatio)));
 
     // Architectural micro-nodes in world space (+ symbols)
     const nodes = [];
     for (let i = 0; i < NODE_COUNT; i++) {
       nodes.push({
         x: Math.random() * width,
-        worldY: Math.random() * totalHeight,
-        vx: (Math.random() - 0.5) * 0.28,
-        vy: (Math.random() - 0.5) * 0.28,
+        worldY: Math.random() * cachedPageHeight,
+        vx: (Math.random() - 0.5) * 0.25,
+        vy: (Math.random() - 0.5) * 0.25,
         size: 3.5 + Math.random() * 2,
         baseAlpha: 0.14 + Math.random() * 0.16
       });
@@ -2455,64 +2516,52 @@ document.addEventListener('DOMContentLoaded', async () => {
       mouse.y = -9999;
     });
 
+    // Dynamic color: over dark stage -> light, over paper background -> dark
+    function getColor(x, screenY, alphaMul = 1) {
+      const isNavy = document.body.classList.contains('theme-navy');
+      const lightR = isNavy ? 218 : 11;
+      const lightG = isNavy ? 209 : 11;
+      const lightB = isNavy ? 202 : 10;
+      const darkR = isNavy ? 250 : 255;
+      const darkG = isNavy ? 248 : 255;
+      const darkB = isNavy ? 245 : 255;
+
+      if (!options.detectDark || darkRects.length === 0) {
+        return `rgba(${lightR}, ${lightG}, ${lightB}, ${(0.14 * alphaMul).toFixed(3)})`;
+      }
+      let darkRatio = 0;
+      for (let k = 0; k < darkRects.length; k++) {
+        const r = darkRects[k];
+        if (x >= r.left && x <= r.right) {
+          if (screenY >= r.top && screenY <= r.bottom) {
+            darkRatio = 1;
+            break;
+          }
+          if (screenY >= r.top - 40 && screenY < r.top) {
+            darkRatio = Math.max(darkRatio, 1 - (r.top - screenY) / 40);
+          }
+        }
+      }
+      if (darkRatio > 0.05) {
+        const r = Math.round(lightR + (darkR - lightR) * darkRatio);
+        const g = Math.round(lightG + (darkG - lightG) * darkRatio);
+        const b = Math.round(lightB + (darkB - lightB) * darkRatio);
+        const a = Math.min(1, 0.16 * (1 + 1.2 * darkRatio) * alphaMul).toFixed(3);
+        return `rgba(${r}, ${g}, ${b}, ${a})`;
+      }
+      return `rgba(${lightR}, ${lightG}, ${lightB}, ${(0.14 * alphaMul).toFixed(3)})`;
+    }
+
     function draw() {
       if (!viewEl.classList.contains('active')) {
-        requestAnimationFrame(draw);
-        return;
+        isRunning = false;
+        animId = null;
+        return; // STOP animation loop completely when this subpage is not active!
       }
 
       ctx.clearRect(0, 0, width, height);
 
-      totalHeight = getPageHeight();
       const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
-
-      // Cache dark bounding rects if detectDark is enabled (e.g. for contact-dark-stage)
-      let darkRects = [];
-      if (options.detectDark) {
-        const darkEls = viewEl.querySelectorAll('.contact-dark-stage, .dark-stage, [data-dark-bg="true"]');
-        for (let d = 0; d < darkEls.length; d++) {
-          darkRects.push(darkEls[d].getBoundingClientRect());
-        }
-      }
-
-      // Dynamic color: over dark stage -> light, over paper background -> dark
-      function getColor(x, screenY, alphaMul = 1) {
-        const isNavy = document.body.classList.contains('theme-navy');
-        // Default theme: light is (11, 11, 10), dark is (255, 255, 255)
-        // Navy theme: canvas is deep navy (#112250), so nodes are warm sand (218, 209, 202)
-        const lightR = isNavy ? 218 : 11;
-        const lightG = isNavy ? 209 : 11;
-        const lightB = isNavy ? 202 : 10;
-        const darkR = isNavy ? 250 : 255;
-        const darkG = isNavy ? 248 : 255;
-        const darkB = isNavy ? 245 : 255;
-
-        if (!options.detectDark || darkRects.length === 0) {
-          return `rgba(${lightR}, ${lightG}, ${lightB}, ${(0.14 * alphaMul).toFixed(3)})`;
-        }
-        let darkRatio = 0; // 0 = light, 1 = dark
-        for (let k = 0; k < darkRects.length; k++) {
-          const r = darkRects[k];
-          if (x >= r.left && x <= r.right) {
-            if (screenY >= r.top && screenY <= r.bottom) {
-              darkRatio = 1;
-              break;
-            }
-            // 40px smooth feathering transition right at boundary
-            if (screenY >= r.top - 40 && screenY < r.top) {
-              darkRatio = Math.max(darkRatio, 1 - (r.top - screenY) / 40);
-            }
-          }
-        }
-        if (darkRatio > 0.05) {
-          const r = Math.round(lightR + (darkR - lightR) * darkRatio);
-          const g = Math.round(lightG + (darkG - lightG) * darkRatio);
-          const b = Math.round(lightB + (darkB - lightB) * darkRatio);
-          const a = Math.min(1, 0.16 * (1 + 1.2 * darkRatio) * alphaMul).toFixed(3);
-          return `rgba(${r}, ${g}, ${b}, ${a})`;
-        }
-        return `rgba(${lightR}, ${lightG}, ${lightB}, ${(0.14 * alphaMul).toFixed(3)})`;
-      }
 
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
@@ -2523,28 +2572,57 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (node.x < -15) node.x = width + 15;
         if (node.x > width + 15) node.x = -15;
-        if (node.worldY < -15) node.worldY = totalHeight + 15;
-        if (node.worldY > totalHeight + 15) node.worldY = -15;
+        if (node.worldY < -15) node.worldY = cachedPageHeight + 15;
+        if (node.worldY > cachedPageHeight + 15) node.worldY = -15;
 
         // Screen Y position relative to current viewport scroll (moves 1:1 with scrolling)
         const screenY = node.worldY - scrollY;
         const isVisible = (screenY >= -50 && screenY <= height + 50);
 
-        // Cursor proximity interaction: gentle spatial repulsion only
-        if (mouse.active && isVisible) {
+        // Cursor proximity interaction: gentle spatial repulsion & hairline connecting beam
+        if (mouse.active && isVisible && mouse.x > 0 && mouse.y > 0) {
           const dx = node.x - mouse.x;
           const dy = screenY - mouse.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const maxDist = 110;
+          const maxDist = 120;
 
           if (dist < maxDist && dist > 1) {
             const force = (maxDist - dist) / maxDist;
             node.x += (dx / dist) * force * 1.4;
             node.worldY += (dy / dist) * force * 1.4;
+
+            // Hairline connecting beam
+            const beamAlpha = force * 0.28;
+            ctx.beginPath();
+            ctx.strokeStyle = getColor((node.x + mouse.x) / 2, (screenY + mouse.y) / 2, beamAlpha / 0.14);
+            ctx.lineWidth = 0.7;
+            ctx.moveTo(mouse.x, mouse.y);
+            ctx.lineTo(node.x, screenY);
+            ctx.stroke();
           }
         }
 
         if (isVisible) {
+          // Faint connecting lines between close neighbor + nodes on screen
+          for (let j = i + 1; j < nodes.length; j++) {
+            const other = nodes[j];
+            const otherScreenY = other.worldY - scrollY;
+            if (otherScreenY >= -50 && otherScreenY <= height + 50) {
+              const ndx = node.x - other.x;
+              const ndy = screenY - otherScreenY;
+              const nDist = Math.sqrt(ndx * ndx + ndy * ndy);
+              if (nDist < 80) {
+                const lineAlpha = (1 - nDist / 80) * 0.07;
+                ctx.beginPath();
+                ctx.strokeStyle = getColor((node.x + other.x) / 2, (screenY + otherScreenY) / 2, lineAlpha / 0.14);
+                ctx.lineWidth = 0.5;
+                ctx.moveTo(node.x, screenY);
+                ctx.lineTo(other.x, otherScreenY);
+                ctx.stroke();
+              }
+            }
+          }
+
           // Render + symbol shape
           ctx.save();
           ctx.translate(node.x, screenY);
@@ -2560,10 +2638,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
 
-      requestAnimationFrame(draw);
+      animId = requestAnimationFrame(draw);
     }
 
-    draw();
+    function checkActiveAndRun() {
+      if (viewEl.classList.contains('active')) {
+        if (!isRunning) {
+          isRunning = true;
+          updateMetrics();
+          draw();
+        }
+      } else {
+        isRunning = false;
+        if (animId) {
+          cancelAnimationFrame(animId);
+          animId = null;
+        }
+      }
+    }
+
+    if (window.MutationObserver) {
+      const observer = new MutationObserver(checkActiveAndRun);
+      observer.observe(viewEl, { attributes: true, attributeFilter: ['class'] });
+    }
+    window.addEventListener('hashchange', checkActiveAndRun, { passive: true });
+
+    checkActiveAndRun();
   }
 
   // Initialize Home Animations (+ Symbol Animation & Center Compass)
