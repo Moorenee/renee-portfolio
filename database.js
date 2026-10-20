@@ -15,6 +15,7 @@ const CLOUD_DOC = 'live_data';
 
 // Default initial data matching user's exact portfolio sheets
 const DEFAULT_PORTFOLIO_DATA = {
+  _lastUpdated: 1776700000000,
   adminAuth: {
     username: "RENEE@MOO081706",
     password: "36987@RENEE6667"
@@ -787,29 +788,32 @@ class PortfolioDatabase {
     // This allows getData() and the entire website to render in 0.001 seconds without waiting for the internet!
     try {
       let initialCached = null;
-      // 1. Check DRAFT_KEY first (has the most recent in-progress or saved edits)
-      const draftStr = localStorage.getItem(DRAFT_KEY) || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(DRAFT_KEY) : null);
-      if (draftStr) {
+      // 1. Check DB_KEY first (permanent saved data)
+      const localStr = localStorage.getItem(DB_KEY);
+      if (localStr) {
         try {
-          const parsed = JSON.parse(draftStr);
+          const parsed = JSON.parse(localStr);
           if (parsed && parsed.profile && Array.isArray(parsed.projects)) {
             initialCached = parsed;
           }
         } catch(e) {}
       }
 
-      // 2. Check DB_KEY second (permanent local storage)
-      if (!initialCached) {
-        const localStr = localStorage.getItem(DB_KEY);
-        if (localStr) {
-          try {
-            const parsed = JSON.parse(localStr);
-            if (parsed && parsed.profile && Array.isArray(parsed.projects)) {
-              initialCached = parsed;
+      // 2. Only check DRAFT_KEY if it is strictly newer than saved data
+      const draftStr = localStorage.getItem(DRAFT_KEY) || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(DRAFT_KEY) : null);
+      if (draftStr) {
+        try {
+          const parsedDraft = JSON.parse(draftStr);
+          if (parsedDraft && parsedDraft.profile && Array.isArray(parsedDraft.projects)) {
+            const draftUp = parsedDraft._lastUpdated || 0;
+            const curUp = (initialCached && initialCached._lastUpdated) || DEFAULT_PORTFOLIO_DATA._lastUpdated || 0;
+            if (draftUp > curUp) {
+              initialCached = parsedDraft;
             }
-          } catch(e) {}
-        }
+          }
+        } catch(e) {}
       }
+
       this.memoryData = this._ensureSchemaIntegrity(initialCached || DEFAULT_PORTFOLIO_DATA);
     } catch(e) {
       this.memoryData = this._ensureSchemaIntegrity(DEFAULT_PORTFOLIO_DATA);
@@ -993,20 +997,7 @@ class PortfolioDatabase {
 
   async init() {
     try {
-      // 1. Instant check: If an active draft or updated local store exists, load it immediately
-      const draftStr = localStorage.getItem(DRAFT_KEY) || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(DRAFT_KEY) : null);
-      if (draftStr) {
-        try {
-          const parsedDraft = JSON.parse(draftStr);
-          if (parsedDraft && parsedDraft.profile && Array.isArray(parsedDraft.projects)) {
-            this.memoryData = this._ensureSchemaIntegrity(parsedDraft);
-            this.setupCloudListener();
-            return this.memoryData;
-          }
-        } catch(e) {}
-      }
-
-      // 2. Read IndexedDB (carries high-res images and permanent local database)
+      // 1. Read IndexedDB (carries high-res images and permanent local database)
       const idbData = await idbGet('current_portfolio_v3');
       if (idbData && idbData.profile && Array.isArray(idbData.projects)) {
         const idbUpdated = idbData._lastUpdated || 0;
@@ -1015,6 +1006,21 @@ class PortfolioDatabase {
           this.memoryData = this._ensureSchemaIntegrity(idbData);
           this.persistToLocal(this.memoryData);
         }
+      }
+
+      // 2. Only consider DRAFT if it is strictly newer than current memory data
+      const draftStr = localStorage.getItem(DRAFT_KEY) || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(DRAFT_KEY) : null);
+      if (draftStr) {
+        try {
+          const parsedDraft = JSON.parse(draftStr);
+          if (parsedDraft && parsedDraft.profile && Array.isArray(parsedDraft.projects)) {
+            const draftUp = parsedDraft._lastUpdated || 0;
+            const curUp = (this.memoryData && this.memoryData._lastUpdated) || 0;
+            if (draftUp > curUp) {
+              this.memoryData = this._ensureSchemaIntegrity(parsedDraft);
+            }
+          }
+        } catch(e) {}
       }
 
       // 3. Background non-blocking Firebase Cloud sync (NEVER delays or freezes page load!)
@@ -1073,13 +1079,6 @@ class PortfolioDatabase {
       await this.initPromise;
     }
     try {
-      const draftStr = localStorage.getItem(DRAFT_KEY);
-      if (draftStr) {
-        const parsed = JSON.parse(draftStr);
-        if (parsed && parsed.profile && Array.isArray(parsed.projects)) {
-          return this._ensureSchemaIntegrity(parsed);
-        }
-      }
       const localStr = localStorage.getItem(DB_KEY);
       if (localStr) {
         const parsed = JSON.parse(localStr);
@@ -1087,6 +1086,17 @@ class PortfolioDatabase {
           const localUpdated = (parsed && parsed._lastUpdated) || 0;
           const memUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
           if (localUpdated > memUpdated) {
+            this.memoryData = this._ensureSchemaIntegrity(parsed);
+          }
+        }
+      }
+      const draftStr = localStorage.getItem(DRAFT_KEY);
+      if (draftStr) {
+        const parsed = JSON.parse(draftStr);
+        if (parsed && parsed.profile && Array.isArray(parsed.projects)) {
+          const draftUpdated = (parsed && parsed._lastUpdated) || 0;
+          const memUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
+          if (draftUpdated > memUpdated) {
             this.memoryData = this._ensureSchemaIntegrity(parsed);
           }
         }
@@ -1135,7 +1145,7 @@ class PortfolioDatabase {
       }
     } catch (e) {}
 
-    // 3. Immediately broadcast update to all tabs (0ms)
+    // 3. Immediately broadcast update to all tabs on same domain (0ms)
     if (this.channel) {
       try {
         this.channel.postMessage({ type: 'DATA_UPDATED', payload: this.memoryData });
@@ -1146,14 +1156,21 @@ class PortfolioDatabase {
     // 4. Save to IndexedDB (asynchronous)
     await idbSet('current_portfolio_v3', this.memoryData);
 
-    // 5. Auto-save to Firebase Cloud Firestore in background (instant non-blocking save)
-    if (this.isCloudEnabled) {
-      this.saveToCloud(this.memoryData).catch(err => {
-        console.warn('Background cloud save notice:', err);
-      });
+    // 5. Auto-save to Google Firebase Cloud Firestore (for live worldwide cross-device visitors)
+    let cloudResult = { success: false, reason: 'disabled' };
+    if (this.isCloudEnabled && this.firestore) {
+      try {
+        cloudResult = await this.saveToCloud(this.memoryData);
+      } catch(err) {
+        cloudResult = { success: false, error: err.message };
+      }
     }
 
-    return true;
+    return {
+      success: true,
+      cloudSynced: !!(cloudResult && cloudResult.success),
+      cloudError: cloudResult && cloudResult.error ? cloudResult.error : null
+    };
   }
 
   setupCloudListener() {
@@ -1188,7 +1205,7 @@ class PortfolioDatabase {
   }
 
   async saveToCloud(data) {
-    if (!this.firestore || !this.isCloudEnabled) return false;
+    if (!this.firestore || !this.isCloudEnabled) return { success: false, error: 'Firebase Cloud is not connected' };
     try {
       const cleanData = JSON.parse(JSON.stringify(data));
       await this.firestore.collection(CLOUD_COLLECTION).doc(CLOUD_DOC).set({
@@ -1198,10 +1215,10 @@ class PortfolioDatabase {
           : new Date().toISOString(),
         clientTimestamp: new Date().toISOString()
       }, { merge: true });
-      return true;
+      return { success: true };
     } catch (err) {
       console.error('Firebase saveToCloud error:', err);
-      return false;
+      return { success: false, error: err.message || String(err) };
     }
   }
 

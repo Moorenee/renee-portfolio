@@ -20,14 +20,14 @@ async function initAdmin() {
     }, 3200);
   }
 
-  // Base64 helper for image uploads
-  function fileToBase64(file, maxWidth = 2000) {
+  // Base64 helper for image uploads with high-efficiency automatic compression
+  function fileToBase64(file, maxWidth = 1200) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = error => reject(error);
       reader.onload = (e) => {
         const rawResult = e.target.result;
-        if (file.type === 'image/svg+xml' || (file.size < 500000 && !file.type.includes('image/tiff'))) {
+        if (file.type === 'image/svg+xml') {
           resolve(rawResult);
           return;
         }
@@ -36,10 +36,6 @@ async function initAdmin() {
         img.onload = () => {
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
-          if (w <= maxWidth && file.size < 800000) {
-            resolve(rawResult);
-            return;
-          }
           if (w > maxWidth) {
             h = Math.round((h * maxWidth) / w);
             w = maxWidth;
@@ -48,9 +44,11 @@ async function initAdmin() {
           canvas.width = w;
           canvas.height = h;
           const ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, w, h);
-          const isPng = file.type === 'image/png';
-          resolve(canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', isPng ? undefined : 0.88));
+          // Standardize on JPEG quality 0.80 for compact 30-70KB uploads that easily fit into Firestore
+          resolve(canvas.toDataURL('image/jpeg', 0.80));
         };
         img.src = rawResult;
       };
@@ -291,6 +289,7 @@ async function initAdmin() {
     try { collectAboutHeaderAndProfile(); } catch(e) {}
     try { collectColumnTitles(); } catch(e) {}
     try { collectHeadersData(); } catch(e) {}
+    try { if (activeProject && typeof syncActiveProjectLive === 'function') syncActiveProjectLive(); } catch(e) {}
   }
 
   function broadcastDraft() {
@@ -339,15 +338,22 @@ async function initAdmin() {
       collectColumnTitles();
       collectHeadersData();
       
-      await window.PortfolioDB.saveData(currentData);
+      const saveRes = await window.PortfolioDB.saveData(currentData);
       hasUnsavedChanges = false;
       updateSyncStatusUI();
       updateRawJsonInspector();
-      showToast(`✓ ${label.toUpperCase()} SAVED PERMANENTLY!`);
+
+      if (saveRes && saveRes.cloudSynced) {
+        showToast(`✓ ${label.toUpperCase()} SAVED TO CLOUD & LIVE WEBSITE!`);
+      } else if (saveRes && saveRes.cloudError) {
+        showToast(`⚠️ SAVED LOCALLY, BUT CLOUD FAILED: ${saveRes.cloudError}`, true);
+      } else {
+        showToast(`✓ ${label.toUpperCase()} SAVED PERMANENTLY!`);
+      }
       return true;
     } catch(err) {
       console.error('Save error:', err);
-      showToast('⚠️ ERROR SAVING: ' + err.message);
+      showToast('⚠️ ERROR SAVING: ' + err.message, true);
       return false;
     }
   }
@@ -1852,6 +1858,59 @@ async function initAdmin() {
     activeProject = null;
   }
 
+  function syncActiveProjectLive() {
+    if (!activeProject) return;
+    const tEl = document.getElementById('edit-proj-title');
+    if (tEl && tEl.value.trim()) activeProject.title = tEl.value.trim();
+    const dEl = document.getElementById('edit-proj-date');
+    if (dEl) activeProject.date = dEl.value.trim();
+    const idxEl = document.getElementById('edit-proj-index');
+    if (idxEl) activeProject.index = idxEl.value.trim();
+    const covEl = document.getElementById('edit-proj-cover-url');
+    if (covEl && covEl.value.trim()) activeProject.coverImage = covEl.value.trim();
+    const mSecEl = document.getElementById('edit-proj-main-section');
+    if (mSecEl && mSecEl.value) {
+      activeProject.mainSection = mSecEl.value;
+      activeProject.category = mSecEl.value.toLowerCase();
+      activeProject.categories = [mSecEl.value.toLowerCase()];
+    }
+    activeProject.subLabels = activeSelectedSublabels.length > 0 ? [...activeSelectedSublabels] : [activeProject.discipline || 'PROJECT'];
+    activeProject.discipline = activeProject.subLabels[0] || 'PROJECT';
+    activeProject.disciplines = [...activeProject.subLabels];
+    activeProject.labels = [...activeProject.subLabels];
+
+    const sDescEl = document.getElementById('edit-proj-short-desc');
+    if (sDescEl) activeProject.shortDescription = sDescEl.value.trim();
+    const fDescEl = document.getElementById('edit-proj-full-desc');
+    if (fDescEl) activeProject.fullDescription = fDescEl.value.trim();
+
+    const kwEl = document.getElementById('edit-proj-keywords');
+    if (kwEl) {
+      const parsedKw = kwEl.value.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+      activeProject.keywords = parsedKw;
+      activeProject.aliases = parsedKw.filter(s => s.length > 5);
+    }
+
+    const vidEl = document.getElementById('edit-proj-video');
+    if (vidEl) activeProject.videoUrl = vidEl.value.trim();
+    const gapEl = document.getElementById('edit-proj-gap');
+    if (gapEl) activeProject.hasGap = gapEl.value === 'true';
+    const asEl = document.getElementById('edit-proj-autoscroll');
+    if (asEl) activeProject.autoScrollImages = asEl.value === 'true';
+
+    // Synchronize to currentData.projects immediately!
+    const existingIdx = currentData.projects.findIndex(p => p.id === activeProject.id);
+    if (existingIdx !== -1) {
+      currentData.projects[existingIdx] = activeProject;
+    } else {
+      currentData.projects.push(activeProject);
+    }
+
+    // Broadcast live draft update to main page in 0ms!
+    triggerRealtimeSync(120);
+    renderProjectsGrid();
+  }
+
   if (modalClose) modalClose.addEventListener('click', closeProjectEditor);
   if (btnCancelProj) btnCancelProj.addEventListener('click', closeProjectEditor);
 
@@ -1874,7 +1933,10 @@ async function initAdmin() {
         coverPrevImg.style.display = 'none';
         coverPlaceholder.style.display = 'block';
       }
-      if (activeProject) activeProject.coverImage = url;
+      if (activeProject) {
+        activeProject.coverImage = url;
+        syncActiveProjectLive();
+      }
     });
   }
 
@@ -1883,14 +1945,17 @@ async function initAdmin() {
       const file = e.target.files && e.target.files[0];
       if (file) {
         try {
-          const b64 = await fileToBase64(file, 1600);
+          const b64 = await fileToBase64(file, 1200);
           if (coverUrlInp) coverUrlInp.value = b64;
           if (coverPrevImg) {
             coverPrevImg.src = b64;
             coverPrevImg.style.display = 'block';
           }
           if (coverPlaceholder) coverPlaceholder.style.display = 'none';
-          if (activeProject) activeProject.coverImage = b64;
+          if (activeProject) {
+            activeProject.coverImage = b64;
+            syncActiveProjectLive();
+          }
         } catch (err) {
           alert('Failed to read cover image file.');
         }
@@ -1906,7 +1971,10 @@ async function initAdmin() {
         coverPrevImg.style.display = 'none';
       }
       if (coverPlaceholder) coverPlaceholder.style.display = 'block';
-      if (activeProject) activeProject.coverImage = '';
+      if (activeProject) {
+        activeProject.coverImage = '';
+        syncActiveProjectLive();
+      }
     });
   }
 
@@ -1921,8 +1989,24 @@ async function initAdmin() {
     if (prevTitle) prevTitle.textContent = title.toUpperCase();
   }
 
-  document.getElementById('edit-proj-index').addEventListener('input', updateHoverPreview);
-  document.getElementById('edit-proj-title').addEventListener('input', updateHoverPreview);
+  ['edit-proj-title', 'edit-proj-date', 'edit-proj-index', 'edit-proj-short-desc', 'edit-proj-full-desc', 'edit-proj-keywords', 'edit-proj-video'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => {
+        updateHoverPreview();
+        syncActiveProjectLive();
+      });
+    }
+  });
+
+  ['edit-proj-main-section', 'edit-proj-gap', 'edit-proj-autoscroll'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('change', () => {
+        syncActiveProjectLive();
+      });
+    }
+  });
 
   // Sublabels selection inside project modal (Multi-Select)
   function renderModalSublabels() {
@@ -1962,6 +2046,7 @@ async function initAdmin() {
         }
         renderModalSublabels();
         updateHoverPreview();
+        syncActiveProjectLive();
       });
       wrap.appendChild(pill);
     });
@@ -1991,6 +2076,7 @@ async function initAdmin() {
         inputNewProjSub.value = '';
         renderModalSublabels();
         updateHoverPreview();
+        syncActiveProjectLive();
       }
     });
   }
@@ -2370,38 +2456,11 @@ async function initAdmin() {
   if (projectForm) {
     projectForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      activeProject.title = document.getElementById('edit-proj-title').value.trim();
-      activeProject.date = document.getElementById('edit-proj-date').value.trim();
-      activeProject.index = document.getElementById('edit-proj-index').value.trim();
-      activeProject.coverImage = (document.getElementById('edit-proj-cover-url')?.value || '').trim() || activeProject.coverImage || '';
-      activeProject.mainSection = document.getElementById('edit-proj-main-section').value;
-      activeProject.subLabels = activeSelectedSublabels.length > 0 ? [...activeSelectedSublabels] : [activeProject.discipline || 'PROJECT'];
-      activeProject.discipline = activeProject.subLabels[0] || 'PROJECT';
-      activeProject.disciplines = [...activeProject.subLabels];
-      activeProject.labels = [...activeProject.subLabels];
-      activeProject.shortDescription = document.getElementById('edit-proj-short-desc').value.trim();
-      activeProject.fullDescription = document.getElementById('edit-proj-full-desc').value.trim();
-
-      // Collect Keywords & Aliases
-      const kwVal = document.getElementById('edit-proj-keywords')?.value || '';
-      const parsedKw = kwVal.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
-      activeProject.keywords = parsedKw;
-      activeProject.aliases = parsedKw.filter(s => s.length > 5);
-
-      activeProject.videoUrl = document.getElementById('edit-proj-video').value.trim();
-      activeProject.hasGap = document.getElementById('edit-proj-gap').value === 'true';
-      activeProject.autoScrollImages = document.getElementById('edit-proj-autoscroll').value === 'true';
-
-      const existingIdx = currentData.projects.findIndex(p => p.id === activeProject.id);
-      if (existingIdx !== -1) {
-        currentData.projects[existingIdx] = activeProject;
-      } else {
-        currentData.projects.push(activeProject);
-      }
-
+      syncActiveProjectLive();
+      const titleToSave = (activeProject && activeProject.title) || 'PROJECT';
       closeProjectEditor();
       renderProjectsGrid();
-      await executeSave(`PROJECT "${activeProject.title}"`);
+      await executeSave(`PROJECT "${titleToSave}"`);
     });
   }
 

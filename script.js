@@ -46,6 +46,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
     } else {
+      if (viewId === 'projects' && portfolioData) {
+        try { renderProjectsCatalog(); } catch(e) {}
+      }
       const targetView = document.getElementById('view-' + viewId);
       if (targetView) targetView.classList.add('active');
     }
@@ -1194,7 +1197,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       card.setAttribute('data-id', p.id);
       card.style.setProperty('--card-idx', idx);
 
-      const cover = p.coverImage || (p.images && p.images[0] ? p.images[0].url : 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80');
+      const firstImg = p.images && p.images[0] ? (typeof p.images[0] === 'string' ? p.images[0] : (p.images[0].url || '')) : '';
+      const cover = p.coverImage || firstImg || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80';
       const mainSec = getProjectMainSection(p);
       const subLabels = getProjectSubLabels(p);
       const subLabelStr = subLabels.join(' • ');
@@ -1268,7 +1272,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const tr = document.createElement('tr');
             tr.className = 'spec-row';
             tr.setAttribute('data-id', p.id);
-            const cover = p.coverImage || (p.images && p.images[0] ? p.images[0].url : 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80');
+            const firstImg = p.images && p.images[0] ? (typeof p.images[0] === 'string' ? p.images[0] : (p.images[0].url || '')) : '';
+      const cover = p.coverImage || firstImg || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80';
             const mainSec = getProjectMainSection(p);
             const subLabels = getProjectSubLabels(p);
             const secClass = `sec-${mainSec.toLowerCase()}`;
@@ -1369,7 +1374,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function renderProjectDetail(projectId) {
     const projs = portfolioData.projects || [];
-    const currentIndex = projs.findIndex(p => p.id === projectId);
+    const currentIndex = projs.findIndex(p => p.id === projectId || p.index === projectId);
     const project = projs[currentIndex] || projs[0];
 
     if (!project) {
@@ -1448,11 +1453,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (images.length > 0) {
         images.forEach((img, idx) => {
+          const imgUrl = typeof img === 'string' ? img : (img.url || '');
+          if (!imgUrl) return;
           const card = document.createElement('div');
           card.className = 'portrait-image-card';
           card.innerHTML = `
             <div class="portrait-img-box">
-              <img src="${img.url}" alt="${project.title || 'Project showcase'}" loading="lazy" />
+              <img src="${imgUrl}" alt="${project.title || 'Project showcase'}" loading="lazy" />
             </div>
           `;
           portraitImagesStack.appendChild(card);
@@ -2100,19 +2107,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!canvas || !stage) return;
 
     const ctx = canvas.getContext('2d');
-    let width = 0;
-    let height = 0;
-    let dpr = window.devicePixelRatio || 1;
+    let width = Math.max(stage.clientWidth || window.innerWidth || 1200, 320);
+    let height = Math.max(stage.clientHeight || window.innerHeight || 800, 320);
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
     let animationFrameId = null;
 
     function resize() {
       const rect = stage.getBoundingClientRect();
-      width = rect.width;
-      height = rect.height;
-      if (width === 0 || height === 0) return;
-      dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
+      const w = rect.width > 0 ? rect.width : (stage.clientWidth || window.innerWidth || 1200);
+      const h = rect.height > 0 ? rect.height : (stage.clientHeight || window.innerHeight || 800);
+      width = Math.max(Math.floor(w), 320);
+      height = Math.max(Math.floor(h), 320);
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
@@ -2121,6 +2130,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     resize();
     window.addEventListener('resize', resize, { passive: true });
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => resize());
+      ro.observe(stage);
+    }
 
     // Architectural micro-nodes (+ symbols only)
     const NODE_COUNT = 24;
@@ -2128,10 +2141,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     for (let i = 0; i < NODE_COUNT; i++) {
       nodes.push({
-        x: Math.random() * (width || 800),
-        y: Math.random() * (height || 600),
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
+        x: 20 + Math.random() * Math.max(width - 40, 200),
+        y: 20 + Math.random() * Math.max(height - 40, 200),
+        vx: (Math.random() - 0.5) * 0.28,
+        vy: (Math.random() - 0.5) * 0.28,
         size: 4 + Math.random() * 2,
         baseAlpha: 0.15 + Math.random() * 0.18
       });
@@ -2141,13 +2154,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     stage.addEventListener('mousemove', (e) => {
       const rect = stage.getBoundingClientRect();
-      mouse.x = e.clientX - rect.left;
-      mouse.y = e.clientY - rect.top;
-      mouse.active = true;
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      // Only active if genuinely within the stage bounds (never along 0px edge)
+      if (mx > 5 && my > 5 && mx < width - 5 && my < height - 5) {
+        mouse.x = mx;
+        mouse.y = my;
+        mouse.active = true;
+      } else {
+        mouse.active = false;
+        mouse.x = -9999;
+        mouse.y = -9999;
+      }
     }, { passive: true });
 
     stage.addEventListener('mouseleave', () => {
       mouse.active = false;
+      mouse.x = -9999;
+      mouse.y = -9999;
     }, { passive: true });
 
     function draw() {
@@ -2155,6 +2179,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!document.body.classList.contains('on-home') && window.location.hash && window.location.hash !== '#home' && window.location.hash !== '#') {
         animationFrameId = requestAnimationFrame(draw);
         return;
+      }
+
+      if (width < 50 || height < 50) {
+        resize();
       }
 
       ctx.clearRect(0, 0, width, height);
@@ -2166,26 +2194,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
 
-        // Cursor proximity interaction: gentle spatial repulsion & hairline connection
+        // Cursor proximity interaction: gentle spatial repulsion only (pure + symbols, zero beam artifacts)
         if (mouse.active) {
           const dx = node.x - mouse.x;
           const dy = node.y - mouse.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const maxDist = 130;
+          const maxDist = 110;
 
-          if (dist < maxDist && dist > 0) {
+          if (dist < maxDist && dist > 1) {
             const force = (maxDist - dist) / maxDist;
-            node.x += (dx / dist) * force * 1.3;
-            node.y += (dy / dist) * force * 1.3;
-
-            // Hairline connecting beam
-            const alpha = force * 0.3;
-            ctx.beginPath();
-            ctx.strokeStyle = `rgba(${rgbBase}, ${alpha})`;
-            ctx.lineWidth = 0.7;
-            ctx.moveTo(mouse.x, mouse.y);
-            ctx.lineTo(node.x, node.y);
-            ctx.stroke();
+            node.x += (dx / dist) * force * 1.4;
+            node.y += (dy / dist) * force * 1.4;
           }
         }
 
@@ -2193,28 +2212,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         node.x += node.vx;
         node.y += node.vy;
 
-        // Wrap around bounds
-        if (node.x < 0) node.x = width;
-        if (node.x > width) node.x = 0;
-        if (node.y < 0) node.y = height;
-        if (node.y > height) node.y = 0;
-
-        // Faint connecting lines between close neighbor + nodes
-        for (let j = i + 1; j < nodes.length; j++) {
-          const other = nodes[j];
-          const dx = node.x - other.x;
-          const dy = node.y - other.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 80) {
-            const lineAlpha = (1 - dist / 80) * 0.08;
-            ctx.beginPath();
-            ctx.strokeStyle = `rgba(${rgbBase}, ${lineAlpha})`;
-            ctx.lineWidth = 0.5;
-            ctx.moveTo(node.x, node.y);
-            ctx.lineTo(other.x, other.y);
-            ctx.stroke();
-          }
-        }
+        // Wrap around bounds with smooth margin
+        if (node.x < -15) node.x = width + 15;
+        if (node.x > width + 15) node.x = -15;
+        if (node.y < -15) node.y = height + 15;
+        if (node.y > height + 15) node.y = -15;
 
         // Render + symbol shape
         ctx.save();
@@ -2436,6 +2438,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.addEventListener('mousemove', (e) => {
       if (!viewEl.classList.contains('active')) return;
+      if (e.clientX <= 5 || e.clientY <= 5 || e.clientX >= width - 5 || e.clientY >= height - 5) {
+        mouse.active = false;
+        mouse.x = -9999;
+        mouse.y = -9999;
+        return;
+      }
       mouse.x = e.clientX;
       mouse.y = e.clientY;
       mouse.active = true;
@@ -2443,6 +2451,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.addEventListener('mouseleave', () => {
       mouse.active = false;
+      mouse.x = -9999;
+      mouse.y = -9999;
     });
 
     function draw() {
@@ -2511,59 +2521,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         node.x += node.vx;
         node.worldY += node.vy;
 
-        if (node.x < 0) node.x = width;
-        if (node.x > width) node.x = 0;
-        if (node.worldY < 0) node.worldY = totalHeight;
-        if (node.worldY > totalHeight) node.worldY = 0;
+        if (node.x < -15) node.x = width + 15;
+        if (node.x > width + 15) node.x = -15;
+        if (node.worldY < -15) node.worldY = totalHeight + 15;
+        if (node.worldY > totalHeight + 15) node.worldY = -15;
 
         // Screen Y position relative to current viewport scroll (moves 1:1 with scrolling)
         const screenY = node.worldY - scrollY;
         const isVisible = (screenY >= -50 && screenY <= height + 50);
 
-        // Cursor proximity interaction
+        // Cursor proximity interaction: gentle spatial repulsion only
         if (mouse.active && isVisible) {
           const dx = node.x - mouse.x;
           const dy = screenY - mouse.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const maxDist = 130;
+          const maxDist = 110;
 
-          if (dist < maxDist && dist > 0) {
+          if (dist < maxDist && dist > 1) {
             const force = (maxDist - dist) / maxDist;
-            node.x += (dx / dist) * force * 1.3;
-            node.worldY += (dy / dist) * force * 1.3;
-
-            // Hairline connecting beam
-            const beamAlpha = force * 0.28;
-            ctx.beginPath();
-            ctx.strokeStyle = getColor((node.x + mouse.x) / 2, (screenY + mouse.y) / 2, beamAlpha / 0.14);
-            ctx.lineWidth = 0.7;
-            ctx.moveTo(mouse.x, mouse.y);
-            ctx.lineTo(node.x, screenY);
-            ctx.stroke();
+            node.x += (dx / dist) * force * 1.4;
+            node.worldY += (dy / dist) * force * 1.4;
           }
         }
 
         if (isVisible) {
-          // Faint connecting lines between close neighbor + nodes on screen
-          for (let j = i + 1; j < nodes.length; j++) {
-            const other = nodes[j];
-            const otherScreenY = other.worldY - scrollY;
-            if (otherScreenY >= -50 && otherScreenY <= height + 50) {
-              const dx = node.x - other.x;
-              const dy = screenY - otherScreenY;
-              const dist = Math.sqrt(dx * dx + dy * dy);
-              if (dist < 75) {
-                const lineAlpha = (1 - dist / 75) * 0.08;
-                ctx.beginPath();
-                ctx.strokeStyle = getColor((node.x + other.x) / 2, (screenY + otherScreenY) / 2, lineAlpha / 0.14);
-                ctx.lineWidth = 0.5;
-                ctx.moveTo(node.x, screenY);
-                ctx.lineTo(other.x, otherScreenY);
-                ctx.stroke();
-              }
-            }
-          }
-
           // Render + symbol shape
           ctx.save();
           ctx.translate(node.x, screenY);
