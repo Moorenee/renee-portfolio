@@ -1300,17 +1300,31 @@ body.on-home .home-center-hero {
   100% { transform: translateY(0) rotate(0deg) scale(1); }
 }
 
-/* Dynamic Animation 4: Cyber Glitch Burst (Honeydew, Soft Peach, Coral Glow palette) */
+/* Dynamic Animation 4: Cyber Glitch Burst (Blue Palette for Normal Mode) */
 .hero-letter.anim-glitch {
   animation: letterGlitch 0.55s ease both;
   z-index: 15;
 }
 @keyframes letterGlitch {
   0% { transform: translate(0); text-shadow: none; }
-  18% { transform: translate(-5px, 3px); text-shadow: -3px 0 rgba(250, 133, 90, 0.85), 3px 0 rgba(255, 222, 150, 0.85), 0 -2px rgba(246, 255, 234, 0.95); }
-  36% { transform: translate(5px, -3px); text-shadow: 3px 0 rgba(250, 133, 90, 0.85), -3px 0 rgba(255, 222, 150, 0.85), 0 2px rgba(246, 255, 234, 0.95); }
-  54% { transform: translate(-3px, -2px); text-shadow: -2px 0 rgba(250, 133, 90, 0.85), 2px 0 rgba(255, 222, 150, 0.85), 0 -1px rgba(246, 255, 234, 0.95); }
-  72% { transform: translate(3px, 1px); text-shadow: 1px 0 rgba(250, 133, 90, 0.85), -1px 0 rgba(255, 222, 150, 0.85), 0 1px rgba(246, 255, 234, 0.95); }
+  18% { transform: translate(-5px, 3px); text-shadow: -3px 0 rgba(26, 86, 219, 0.85), 3px 0 rgba(56, 140, 255, 0.85), 0 -2px rgba(17, 34, 80, 0.75); }
+  36% { transform: translate(5px, -3px); text-shadow: 3px 0 rgba(26, 86, 219, 0.85), -3px 0 rgba(56, 140, 255, 0.85), 0 2px rgba(17, 34, 80, 0.75); }
+  54% { transform: translate(-3px, -2px); text-shadow: -2px 0 rgba(26, 86, 219, 0.85), 2px 0 rgba(56, 140, 255, 0.85), 0 -1px rgba(17, 34, 80, 0.75); }
+  72% { transform: translate(3px, 1px); text-shadow: 1px 0 rgba(26, 86, 219, 0.85), -1px 0 rgba(56, 140, 255, 0.85), 0 1px rgba(17, 34, 80, 0.75); }
+  100% { transform: translate(0); text-shadow: none; }
+}
+
+/* Dynamic Animation 4 in Blue Mode: Cyber Glitch Burst in Stark Black */
+body.theme-navy .hero-letter.anim-glitch,
+html[data-theme="navy"] .hero-letter.anim-glitch {
+  animation: letterGlitchNavy 0.55s ease both;
+}
+@keyframes letterGlitchNavy {
+  0% { transform: translate(0); text-shadow: none; }
+  18% { transform: translate(-5px, 3px); text-shadow: -3px 0 rgba(0, 0, 0, 0.95), 3px 0 rgba(10, 10, 10, 0.85), 0 -2px rgba(0, 0, 0, 0.75); }
+  36% { transform: translate(5px, -3px); text-shadow: 3px 0 rgba(0, 0, 0, 0.95), -3px 0 rgba(10, 10, 10, 0.85), 0 2px rgba(0, 0, 0, 0.75); }
+  54% { transform: translate(-3px, -2px); text-shadow: -2px 0 rgba(0, 0, 0, 0.95), 2px 0 rgba(10, 10, 10, 0.85), 0 -1px rgba(0, 0, 0, 0.75); }
+  72% { transform: translate(3px, 1px); text-shadow: 1px 0 rgba(0, 0, 0, 0.95), -1px 0 rgba(10, 10, 10, 0.85), 0 1px rgba(0, 0, 0, 0.75); }
   100% { transform: translate(0); text-shadow: none; }
 }
 
@@ -1473,8 +1487,7 @@ body.on-home .home-center-hero {
   margin: 0 auto;
   padding: 1.5rem 2rem;
   position: relative;
-  z-index: 2;
-  background-color: var(--bg-paper);
+  background-color: transparent;
 }
 
 /* Corner Crosshair Registration Marks outside the Inset Box */
@@ -1514,11 +1527,12 @@ body.on-home .home-center-hero {
 .arch-header-box {
   width: 100%;
   border: 1px solid var(--border-hairline);
-  background-color: var(--bg-paper);
+  background-color: transparent;
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   min-height: 220px;
   position: relative;
+  z-index: 2;
 }
 
 /* Individual Vertical Box Column */
@@ -1696,16 +1710,17 @@ body.on-home .home-center-hero {
 /* ================= 5. VIEW 2: ABOUT PAGE ================= */
 .about-upper-section {
   width: 100%;
-  background-color: var(--bg-paper);
+  background-color: transparent;
   border-bottom: 1px solid var(--border-hairline);
   padding: 3.5rem 2rem 4rem 2rem;
   position: relative;
-  z-index: 2;
 }
 
 .about-upper-inner {
   max-width: 1540px;
   margin: 0 auto;
+  position: relative;
+  z-index: 2;
 }
 
 .about-upper-grid {
@@ -2114,6 +2129,14 @@ body.on-home .home-center-hero {
   background-color: var(--bg-stone);
   padding: 5rem 2.5rem 7.5rem 2.5rem;
   position: relative;
+}
+
+.lower-section-header,
+.about-lower-inner,
+.about-section-group,
+.software-grid-block,
+.arch-spec-card {
+  position: relative;
   z-index: 2;
 }
 
@@ -2504,17 +2527,19 @@ body.on-home .home-center-hero {
   width: 100vw;
   height: 100vh;
   pointer-events: none;
-  z-index: 0;
-  opacity: 0.75;
+  z-index: 1;
+  opacity: 0.95;
   display: none;
 }
 
+.page-view.active .projects-spatial-canvas,
+.page-view.active .subpage-spatial-canvas,
 #view-projects.active .projects-spatial-canvas,
 #view-projects.active #projects-spatial-canvas,
 #view-about.active #about-spatial-canvas,
 #view-contact.active #contact-spatial-canvas,
 #view-project-detail.active #detail-spatial-canvas {
-  display: block;
+  display: block !important;
 }
 
 /* Primary Multi-Tier Catalog Filter Bar: Main Section & Sub Label */
@@ -2738,7 +2763,6 @@ body.on-home .home-center-hero {
   flex-direction: column;
   gap: 2.5rem;
   position: relative;
-  z-index: 2;
 }
 
 /* Card Grids */
@@ -3227,6 +3251,15 @@ body.on-home .home-center-hero {
   margin: 0 auto;
   padding: 2.5rem 2rem 5rem 2rem;
   position: relative;
+}
+
+.detail-top-nav-bar,
+.detail-title-banner,
+.detail-portrait-container,
+.detail-custom-section-block,
+.scroll-gallery-section,
+.detail-related-links-section {
+  position: relative;
   z-index: 2;
 }
 
@@ -3702,6 +3735,12 @@ body.on-home .home-center-hero {
   color: #ffffff;
   border-top: 1px solid var(--border-hairline);
   padding: 4rem 2rem 5rem 2rem;
+  position: relative;
+}
+
+.contact-dark-inner,
+.contact-form-box,
+.contact-quick-form {
   position: relative;
   z-index: 2;
 }

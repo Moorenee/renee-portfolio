@@ -2151,8 +2151,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       ro.observe(stage);
     }
 
-    // Architectural micro-nodes (+ symbols only)
-    const NODE_COUNT = 24;
+    // Subtle architectural micro-nodes (+ symbols) - clean, minimalist density
+    const isTouchHome = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    const NODE_COUNT = isTouchHome ? 6 : 10;
     const nodes = [];
 
     for (let i = 0; i < NODE_COUNT; i++) {
@@ -2453,9 +2454,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       cachedPageHeight = Math.max(window.innerHeight * 1.5, viewEl.scrollHeight || document.documentElement.scrollHeight || 0);
       darkRects = [];
       if (options.detectDark) {
+        const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
         const darkEls = viewEl.querySelectorAll('.contact-dark-stage, .dark-stage, [data-dark-bg="true"]');
         for (let d = 0; d < darkEls.length; d++) {
-          darkRects.push(darkEls[d].getBoundingClientRect());
+          const rect = darkEls[d].getBoundingClientRect();
+          darkRects.push({
+            left: rect.left,
+            right: rect.right,
+            worldTop: rect.top + scrollY,
+            worldBottom: rect.bottom + scrollY
+          });
         }
       }
     }
@@ -2476,22 +2484,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     resize();
     window.addEventListener('resize', resize, { passive: true });
 
-    // Lower density on mobile touch devices to ensure ultra-smooth 60fps scrolling
+    // Balanced architectural density for subpages ("more a little" as requested)
     const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
-    const baseDensity = isTouch ? 12 : (options.nodeDensity || 18);
+    const baseDensity = isTouch ? 7 : (options.nodeDensity || 11);
     const screenRatio = Math.max(1, cachedPageHeight / (window.innerHeight || 800));
-    const NODE_COUNT = Math.min(isTouch ? 18 : 45, Math.max(baseDensity, Math.round(baseDensity * screenRatio)));
+    const maxNodes = isTouch ? 14 : 26;
+    const minNodes = isTouch ? 8 : 18;
+    const NODE_COUNT = Math.min(maxNodes, Math.max(minNodes, Math.round(baseDensity * Math.min(screenRatio, 3.5))));
 
     // Architectural micro-nodes in world space (+ symbols)
     const nodes = [];
+    // Ensure 3-4 nodes are immediately placed inside the top header stage (top 30px - 250px)
+    const headerNodeCount = Math.min(4, Math.max(2, Math.floor(NODE_COUNT * 0.18)));
     for (let i = 0; i < NODE_COUNT; i++) {
+      let initY;
+      if (i < headerNodeCount) {
+        initY = 35 + Math.random() * 220; // Direct within the top header stage
+      } else {
+        initY = Math.random() * cachedPageHeight;
+      }
       nodes.push({
-        x: Math.random() * width,
-        worldY: Math.random() * cachedPageHeight,
-        vx: (Math.random() - 0.5) * 0.25,
-        vy: (Math.random() - 0.5) * 0.25,
+        x: 25 + Math.random() * Math.max(width - 50, 200),
+        worldY: initY,
+        vx: (Math.random() - 0.5) * 0.26,
+        vy: (Math.random() - 0.5) * 0.26,
         size: 3.5 + Math.random() * 2,
-        baseAlpha: 0.14 + Math.random() * 0.16
+        baseAlpha: 0.18 + Math.random() * 0.16
       });
     }
 
@@ -2516,7 +2534,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       mouse.y = -9999;
     });
 
-    // Dynamic color: over dark stage -> light, over paper background -> dark
+    // Dynamic color: over dark stage -> light, over paper/navy background -> contrast
     function getColor(x, screenY, alphaMul = 1) {
       const isNavy = document.body.classList.contains('theme-navy');
       const lightR = isNavy ? 218 : 11;
@@ -2525,20 +2543,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       const darkR = isNavy ? 250 : 255;
       const darkG = isNavy ? 248 : 255;
       const darkB = isNavy ? 245 : 255;
+      const baseAlpha = isNavy ? 0.32 : 0.22;
 
       if (!options.detectDark || darkRects.length === 0) {
-        return `rgba(${lightR}, ${lightG}, ${lightB}, ${(0.14 * alphaMul).toFixed(3)})`;
+        return `rgba(${lightR}, ${lightG}, ${lightB}, ${(baseAlpha * alphaMul).toFixed(3)})`;
       }
       let darkRatio = 0;
+      const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
       for (let k = 0; k < darkRects.length; k++) {
         const r = darkRects[k];
         if (x >= r.left && x <= r.right) {
-          if (screenY >= r.top && screenY <= r.bottom) {
+          const screenTop = r.worldTop - scrollY;
+          const screenBottom = r.worldBottom - scrollY;
+          if (screenY >= screenTop && screenY <= screenBottom) {
             darkRatio = 1;
             break;
           }
-          if (screenY >= r.top - 40 && screenY < r.top) {
-            darkRatio = Math.max(darkRatio, 1 - (r.top - screenY) / 40);
+          if (screenY >= screenTop - 40 && screenY < screenTop) {
+            darkRatio = Math.max(darkRatio, 1 - (screenTop - screenY) / 40);
           }
         }
       }
@@ -2546,10 +2568,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const r = Math.round(lightR + (darkR - lightR) * darkRatio);
         const g = Math.round(lightG + (darkG - lightG) * darkRatio);
         const b = Math.round(lightB + (darkB - lightB) * darkRatio);
-        const a = Math.min(1, 0.16 * (1 + 1.2 * darkRatio) * alphaMul).toFixed(3);
+        const a = Math.min(1, baseAlpha * (1 + 1.2 * darkRatio) * alphaMul).toFixed(3);
         return `rgba(${r}, ${g}, ${b}, ${a})`;
       }
-      return `rgba(${lightR}, ${lightG}, ${lightB}, ${(0.14 * alphaMul).toFixed(3)})`;
+      return `rgba(${lightR}, ${lightG}, ${lightB}, ${(baseAlpha * alphaMul).toFixed(3)})`;
     }
 
     function draw() {
@@ -2562,6 +2584,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       ctx.clearRect(0, 0, width, height);
 
       const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+      const isNavy = document.body.classList.contains('theme-navy');
 
       for (let i = 0; i < nodes.length; i++) {
         const node = nodes[i];
@@ -2592,10 +2615,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             node.worldY += (dy / dist) * force * 1.4;
 
             // Hairline connecting beam
-            const beamAlpha = force * 0.28;
+            const beamAlpha = force * (isNavy ? 0.40 : 0.28);
             ctx.beginPath();
-            ctx.strokeStyle = getColor((node.x + mouse.x) / 2, (screenY + mouse.y) / 2, beamAlpha / 0.14);
-            ctx.lineWidth = 0.7;
+            ctx.strokeStyle = getColor((node.x + mouse.x) / 2, (screenY + mouse.y) / 2, beamAlpha / (isNavy ? 0.32 : 0.22));
+            ctx.lineWidth = 0.75;
             ctx.moveTo(mouse.x, mouse.y);
             ctx.lineTo(node.x, screenY);
             ctx.stroke();
@@ -2611,11 +2634,11 @@ document.addEventListener('DOMContentLoaded', async () => {
               const ndx = node.x - other.x;
               const ndy = screenY - otherScreenY;
               const nDist = Math.sqrt(ndx * ndx + ndy * ndy);
-              if (nDist < 80) {
-                const lineAlpha = (1 - nDist / 80) * 0.07;
+              if (nDist < 90) {
+                const lineAlpha = (1 - nDist / 90) * (isNavy ? 0.16 : 0.10);
                 ctx.beginPath();
-                ctx.strokeStyle = getColor((node.x + other.x) / 2, (screenY + otherScreenY) / 2, lineAlpha / 0.14);
-                ctx.lineWidth = 0.5;
+                ctx.strokeStyle = getColor((node.x + other.x) / 2, (screenY + otherScreenY) / 2, lineAlpha / (isNavy ? 0.32 : 0.22));
+                ctx.lineWidth = 0.55;
                 ctx.moveTo(node.x, screenY);
                 ctx.lineTo(other.x, otherScreenY);
                 ctx.stroke();
@@ -2626,8 +2649,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           // Render + symbol shape
           ctx.save();
           ctx.translate(node.x, screenY);
-          ctx.strokeStyle = getColor(node.x, screenY, node.baseAlpha / 0.14);
-          ctx.lineWidth = 0.85;
+          ctx.strokeStyle = getColor(node.x, screenY, node.baseAlpha / 0.20);
+          ctx.lineWidth = 0.9;
           ctx.beginPath();
           ctx.moveTo(-node.size, 0);
           ctx.lineTo(node.size, 0);
@@ -2645,8 +2668,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (viewEl.classList.contains('active')) {
         if (!isRunning) {
           isRunning = true;
-          updateMetrics();
+          resize();
           draw();
+        } else {
+          updateMetrics();
         }
       } else {
         isRunning = false;
@@ -2671,10 +2696,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   initCenterCompass();
 
   // Initialize Subpage Spatial Canvases (+ Symbol Animation with Dynamic Contrast & Scroll Sync)
-  createSpatialCanvasEngine('projects-spatial-canvas', 'view-projects', { detectDark: false, nodeDensity: 22 });
-  createSpatialCanvasEngine('about-spatial-canvas', 'view-about', { detectDark: true, nodeDensity: 21 });
-  createSpatialCanvasEngine('contact-spatial-canvas', 'view-contact', { detectDark: true, nodeDensity: 20 });
-  createSpatialCanvasEngine('detail-spatial-canvas', 'view-project-detail', { detectDark: false, nodeDensity: 18 });
+  createSpatialCanvasEngine('projects-spatial-canvas', 'view-projects', { detectDark: false, nodeDensity: 12 });
+  createSpatialCanvasEngine('about-spatial-canvas', 'view-about', { detectDark: true, nodeDensity: 11 });
+  createSpatialCanvasEngine('contact-spatial-canvas', 'view-contact', { detectDark: true, nodeDensity: 11 });
+  createSpatialCanvasEngine('detail-spatial-canvas', 'view-project-detail', { detectDark: false, nodeDensity: 9 });
 
   // Initial execution
   renderAll();
