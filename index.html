@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Google tag (gtag.js) — Google Analytics 4 Realtime Tracking -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-L3RMZZSKTZ"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-L3RMZZSKTZ');
+  </script>
+
+  <!-- Instant Route Pre-activation: Prevents flash/glitch of home screen on page refresh -->
+  <script>
+    (function() {
+      var h = (window.location.hash || '').replace('#', '') || 'home';
+      var v = 'home';
+      if (h.startsWith('project/')) {
+        v = 'project-detail';
+      } else if (['about', 'projects', 'contact'].indexOf(h) !== -1) {
+        v = h;
+      }
+      if (v !== 'home') {
+        var style = document.createElement('style');
+        style.id = 'early-route-style';
+        style.textContent = '#view-home { display: none !important; opacity: 0 !important; } #view-' + v + ' { display: block !important; opacity: 1 !important; }';
+        document.head.appendChild(style);
+      }
+    })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moo Renee — Interactive Spatial Design Portfolio 2024–2026</title>
+  
+  <!-- High-End Editorial & Architectural Fonts from Figma -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@800;900&family=JetBrains+Mono:wght@400;500;700&family=Anton&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Primary SEO Meta Tags for Search Engines & Discovery -->
+  <meta name="title" content="Moo Renee — Interactive Spatial Design Portfolio 2024–2026" />
+  <meta name="description" content="Official design portfolio of Moo Renee — Bachelor in Interactive Spatial Design (Hons) at Taylor's University. Showcasing 17 works across spatial installations, AR/VR, UI/UX, and physical computing including 'Where the Demon Breathes' (When the Ocean Breathes), PIZ DI, QuickSight, and immersive environments." />
+  <meta name="keywords" content="Moo Renee, Renee Moo, Interactive Spatial Design, Where the Demon Breathes, when the ocean breath, ocean breath, Taylor's University, Spatial Installation, Physical Computing, Sound Sculpture, AR VR, UI UX, Game Design, Design Portfolio, Kuala Lumpur Malaysia" />
+  <meta name="author" content="Moo Renee" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+  <!-- Open Graph / Facebook / LinkedIn / WhatsApp Social Sharing -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="./" />
+  <meta property="og:title" content="Moo Renee — Interactive Spatial Design Portfolio 2024–2026" />
+  <meta property="og:description" content="Interactive Spatial Design portfolio of Moo Renee. Featuring 17 works across spatial installations, AR/VR, UI/UX, and physical computing including 'Where the Demon Breathes' (When the Ocean Breathes)." />
+  <meta property="og:image" content="https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=1200&auto=format&fit=crop&q=80" />
+  <meta property="og:site_name" content="Moo Renee Portfolio" />
+
+  <!-- Twitter Card Meta -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Moo Renee — Interactive Spatial Design Portfolio" />
+  <meta name="twitter:description" content="17 interactive spatial design works including 'Where the Demon Breathes' (When the Ocean Breathes), physical computing, AR/VR, and generative media." />
+  <meta name="twitter:image" content="https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=1200&auto=format&fit=crop&q=80" />
+
+  <!-- Schema.org JSON-LD Structured Data for Google Search Indexing -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Person",
+        "@id": "#person",
+        "name": "Moo Renee",
+        "alternateName": ["Renee Moo", "Moo Renee Design"],
+        "jobTitle": "Interactive Spatial Designer",
+        "description": "Design student specialising in UI/UX, Visual Design, 3D Modeling, and Interactive Spatial Installations.",
+        "alumniOf": {
+          "@type": "CollegeOrUniversity",
+          "name": "Taylor's University"
+        },
+        "sameAs": [
+          "https://behance.net/reneemoo",
+          "https://linktr.ee/reneemoo"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "#website",
+        "name": "Moo Renee — Interactive Spatial Design Portfolio",
+        "url": "./",
+        "author": { "@id": "#person" },
+        "description": "Portfolio of 17 works across academic study, competitions, and professional practice."
+      },
+      {
+        "@type": "ItemList",
+        "name": "Featured Design Projects",
+        "description": "Curated catalog of 17 interactive spatial, 3D, AR/VR, and UI/UX design projects.",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "Where the Demon Breathes",
+              "alternateName": "When the Ocean Breathes",
+              "artform": "Interactive Spatial Installation",
+              "artMedium": "Physical Computing, Responsive Lighting, Sound Sculptures",
+              "dateCreated": "2025",
+              "creator": { "@id": "#person" },
+              "description": "Interactive spatial installation exploring the threshold between darkness and breath dynamics through responsive lighting sensors and sound sculptures.",
+              "keywords": "Where the Demon Breathes, when the ocean breath, ocean breath, breath dynamics, sound sculpture, spatial installation, physical computing"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "QuickSight",
+              "artform": "Product & Spatial Computing Prototype",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "Spatial computing accessory for rapid eye-tracking interaction and micro-gesture navigation.",
+              "keywords": "QuickSight, eye-tracking, spatial computing, product design"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "Quest for the Scattered Crystal",
+              "artform": "3D Adventure & Virtual Environment",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "Immersive narrative 3D environment designed in Unreal Engine and Blender with dynamic spatial audio.",
+              "keywords": "Quest for the Scattered Crystal, 3D environment, Unreal Engine, Blender"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 4,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "MOJAY",
+              "artform": "Mobile Application & Brand Experience",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "End-to-end design system and mobile application for interactive spatial event wayfinding.",
+              "keywords": "MOJAY, UI/UX, mobile app, wayfinding"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 5,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "Deline Album",
+              "artform": "Generative Spatial Media Installation",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "TouchDesigner and sensor-driven audio-visual performance piece translating biometric audio data.",
+              "keywords": "Deline Album, TouchDesigner, generative spatial media"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 6,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "Entangled World",
+              "artform": "Interactive Projection Mapping Chamber",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "Four-wall immersive projection environment reacting to multi-user presence.",
+              "keywords": "Entangled World, projection mapping, immersive chamber"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 7,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "Aura Gallery",
+              "artform": "Virtual Reality Spatial Exhibition",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "WebXR multi-user virtual art gallery designed for browser and headset exploration.",
+              "keywords": "Aura Gallery, WebXR, virtual reality, virtual gallery"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 8,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "Physiotherapy Center",
+              "artform": "Spatial Interior Architecture & Wayfinding",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "Human-centric rehabilitation clinic layout optimizing patient recovery journeys.",
+              "keywords": "Physiotherapy Center, interior architecture, healthcare wayfinding"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 9,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "Illustration & Visual Narrative",
+              "artform": "Visual Storytelling & Character Design",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "Editorial illustration series investigating urban solitude and emotional geography.",
+              "keywords": "Illustration, visual narrative, character design"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 10,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "Wonder Window",
+              "artform": "Public Interactive Storefront Installation",
+              "dateCreated": "2025",
+              "creator": { "@id": "#person" },
+              "description": "Terang Competition 2025 Finalist. Transparent OLED display interface.",
+              "keywords": "Wonder Window, Terang Competition 2025, storefront installation"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 11,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "PIZ DI",
+              "artform": "Mixed Reality Cognitive Game",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "XR Jam 2024 Mental Health mixed reality game with meditative spatial coordination and breathing exercises.",
+              "keywords": "PIZ DI, XR Jam 2024, Mixed Reality, mental health, breathing exercises"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 12,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "RE : AD",
+              "artform": "Augmented Reality Heritage Wayfinding",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "AR Fest KL Top 5 Finalist. Location-based mobile AR application reviving heritage architectural facades.",
+              "keywords": "RE : AD, AR Fest KL, augmented reality heritage"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 13,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "City 37°C",
+              "artform": "Urban Climate Speculative Exhibition",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "Superior Culture Competition Silver Award. Climate simulation and interactive tactile landscape.",
+              "keywords": "City 37°C, climate speculative exhibition, Silver Award"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 14,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "Cheer Mori Cheer",
+              "artform": "Pre-U Mascot & Spatial Experience Identity",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "Pre-U Logo Proposal Top 10. Modular brand identity and pop-up architectural booth.",
+              "keywords": "Cheer Mori Cheer, spatial experience identity"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 15,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "Illustration Compilation",
+              "artform": "Cross-Strait Distinction Gallery",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "Cross-Strait Pin Art Distinction Award. Anthology of speculative architectural drawings.",
+              "keywords": "Illustration Compilation, Cross-Strait Distinction Award"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 16,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "MOS Mythictolspace",
+              "artform": "Virtual Production Stage & 3D Assets",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "Studio internship lead 3D modeling and lighting for real-time virtual production.",
+              "keywords": "MOS Mythictolspace, virtual production, 3D modeling"
+            }
+          },
+          {
+            "@type": "ListItem",
+            "position": 17,
+            "item": {
+              "@type": "VisualArtwork",
+              "name": "AUK Technical Training 2024",
+              "artform": "Real-time Unreal Engine Stage & Lighting Pipeline",
+              "dateCreated": "2024",
+              "creator": { "@id": "#person" },
+              "description": "Technical artist residency focusing on Unreal Engine 5 virtual production stages.",
+              "keywords": "AUK Technical Training, Unreal Engine 5, virtual production stage"
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="site-body">
+
+  <!-- ================= TOP HEADER ================= -->
+  <header class="site-header" id="site-header">
+    <div class="header-inner">
+      <div class="header-portfolio-brand">
+        <a href="#home" class="brand-link" id="header-brand-link" title="PORTFOLIO">
+          <div class="header-compass-mini" id="header-compass-mini" aria-hidden="true" title="Compass">
+            <svg viewBox="0 0 100 100" class="header-compass-mini-svg">
+              <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 3" />
+              <circle cx="50" cy="50" r="39" fill="none" stroke="currentColor" stroke-width="0.8" />
+              <line x1="50" y1="4" x2="50" y2="96" stroke="currentColor" stroke-width="0.7" stroke-dasharray="3 3" />
+              <line x1="4" y1="50" x2="96" y2="50" stroke="currentColor" stroke-width="0.7" stroke-dasharray="3 3" />
+              <g class="header-compass-needle" id="header-compass-needle">
+                <polygon points="50,14 46,50 50,55" fill="none" stroke="currentColor" stroke-width="1" />
+                <polygon points="50,14 54,50 50,55" fill="currentColor" opacity="0.3" stroke="currentColor" stroke-width="1" />
+                <polygon points="50,86 47,52 50,45" fill="none" stroke="currentColor" stroke-width="0.8" stroke-dasharray="2 2" />
+                <circle cx="50" cy="50" r="4.5" fill="none" stroke="currentColor" stroke-width="1" />
+                <circle cx="50" cy="50" r="1.5" fill="currentColor" />
+              </g>
+            </svg>
+          </div>
+          <div class="brand-text-col">
+            <span class="mono-line"><span class="secret-p-trigger" id="brand-p-trigger">P</span>ORTFOLIO</span>
+            <span class="mono-line">2024–26</span>
+          </div>
+        </a>
+      </div>
+
+      <nav class="header-nav" id="main-nav" aria-label="Main Navigation">
+        <a href="#home" class="nav-tab active" data-view="home">HOME</a>
+        <a href="#about" class="nav-tab" data-view="about">ABOUT</a>
+        <a href="#projects" class="nav-tab" data-view="projects">PROJECTS</a>
+        <a href="#contact" class="nav-tab" data-view="contact">CONTACT</a>
+        <button type="button" class="nav-tab nav-theme-toggle" id="nav-theme-toggle" aria-label="Toggle Blueprint Navy Theme" title="Toggle Blue Theme">
+          <svg viewBox="0 0 100 100" class="theme-compass-icon" aria-hidden="true">
+            <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="3 4" />
+            <circle cx="50" cy="50" r="36" fill="none" stroke="currentColor" stroke-width="1.6" />
+            <line x1="50" y1="8" x2="50" y2="92" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 3" />
+            <line x1="8" y1="50" x2="92" y2="50" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 3" />
+            <g class="theme-compass-needle" id="nav-compass-needle">
+              <polygon points="50,16 43,50 50,55" fill="currentColor" />
+              <polygon points="50,16 57,50 50,55" fill="currentColor" opacity="0.3" />
+              <polygon points="50,84 43,50 50,45" fill="none" stroke="currentColor" stroke-width="1.4" />
+              <polygon points="50,84 57,50 50,45" fill="none" stroke="currentColor" stroke-width="1.4" />
+              <circle cx="50" cy="50" r="4" fill="currentColor" />
+            </g>
+          </svg>
+        </button>
+        <a href="admin.html" class="nav-tab nav-edit-link" id="nav-edit-tab" style="display: none;">EDITOR &nearr;</a>
+        <button type="button" class="nav-tab nav-logout-btn" id="nav-logout-btn" style="display: none;" title="Exit editing mode">LOG OUT</button>
+      </nav>
+
+      <div class="header-right-action" aria-hidden="true"></div>
+
+      <!-- Mobile Hamburger Button -->
+      <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle navigation menu" aria-expanded="false">
+        <span class="menu-line"></span>
+        <span class="menu-line"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer Overlay -->
+  <div class="mobile-drawer" id="mobile-drawer">
+    <div class="drawer-header">
+      <span class="drawer-title">PORTFOLIO 2024–26</span>
+      <button class="drawer-close-btn" id="drawer-close-btn" aria-label="Close menu">&times;</button>
+    </div>
+    <div class="drawer-body">
+      <a href="#home" class="drawer-link" data-view="home"><span>01</span> Home</a>
+      <a href="#about" class="drawer-link" data-view="about"><span>02</span> About</a>
+      <a href="#projects" class="drawer-link" data-view="projects"><span>03</span> Projects</a>
+      <a href="#contact" class="drawer-link" data-view="contact"><span>04</span> Contact</a>
+      <button type="button" class="drawer-link drawer-theme-btn" id="drawer-theme-btn"><span>✦</span> Switch Blue Theme</button>
+      <a href="admin.html" class="drawer-link drawer-edit-link" id="drawer-edit-tab" style="display: none;"><span>05</span> Editor &nearr;</a>
+      <button type="button" class="drawer-link drawer-logout-btn" id="drawer-logout-btn" style="display: none;"><span>06</span> Log Out</button>
+    </div>
+    <div class="drawer-footer">
+      <p class="drawer-inst-text" id="drawer-institution">Taylor's University • Interactive Spatial Design</p>
+    </div>
+  </div>
+
+  <!-- ================= MAIN VIEWPORT CONTAINER ================= -->
+  <main class="app-viewport" id="app-viewport">
+
+    <!-- ================= VIEW 1: HOME (ARCHITECTURAL 100VH GRID) ================= -->
+    <section class="page-view active" id="view-home">
+      <div class="home-paper-stage">
+        
+        <!-- Inset Architectural Grid Container -->
+        <div class="home-grid-container" id="home-interactive-stage">
+          
+          <!-- Background Interactive Canvas (Plus Symbol Animation Only) -->
+          <canvas class="home-spatial-canvas" id="home-spatial-canvas" aria-hidden="true"></canvas>
+
+          <!-- Background Grid Columns Overlay: 1fr 1fr 2fr 1fr 1fr (Center 2 merged into 1) -->
+          <div class="home-grid-columns" aria-hidden="true">
+            <div class="grid-line-col"></div>
+            <div class="grid-line-col"></div>
+            <div class="grid-line-col"></div>
+            <div class="grid-line-col"></div>
+            <div class="grid-line-col"></div>
+          </div>
+
+          <!-- Main Hero Content Stage -->
+          <div class="home-grid-content">
+            
+            <!-- Left Info Column -->
+            <div class="home-left-col">
+              <span class="home-des-by" id="home-des-by-label">DES. BY</span>
+              <div class="home-designer-title" id="home-designer-name">
+                <span class="d-line">MOO</span>
+                <span class="d-line">RENEE</span>
+              </div>
+              <div class="home-meta-lines" id="home-discipline-sub">
+                INTERACTIVE SPATIAL<br />
+                DESIGN<br />
+                TAYLOR'S UNIVERSITY
+              </div>
+              <div class="home-year-copyright" id="home-copyright-text">©2026</div>
+            </div>
+
+            <!-- Central Monumental Typography: PORT / FOLIO -->
+            <div class="home-center-hero" id="home-center-hero">
+              <!-- Big Architectural Compass Watermark Centered with Low Opacity -->
+              <div class="hero-center-compass" id="hero-center-compass" aria-hidden="true">
+                <svg class="compass-circle-svg" viewBox="0 0 300 300">
+                  <!-- Outer Architectural Drafting Dial & Calibration Rings -->
+                  <g class="compass-rings-group">
+                    <!-- Outer framing rings -->
+                    <circle cx="150" cy="150" r="147" fill="none" stroke="currentColor" stroke-width="0.35" stroke-dasharray="3 5" />
+                    <circle cx="150" cy="150" r="142" fill="none" stroke="currentColor" stroke-width="0.55" />
+                    <circle cx="150" cy="150" r="139" fill="none" stroke="currentColor" stroke-width="0.28" />
+                    <circle cx="150" cy="150" r="130" fill="none" stroke="currentColor" stroke-width="0.45" />
+
+                    <!-- Degree Calibration Radial Ticks (72 ticks: 30° major, 15° intermediate, 5° minor) -->
+                    <g class="compass-ticks" stroke="currentColor">
+                      <!-- Major 30° Ticks (12) -->
+                      <line x1="150" y1="8" x2="150" y2="20" stroke-width="0.5" transform="rotate(0 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="20" stroke-width="0.5" transform="rotate(30 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="20" stroke-width="0.5" transform="rotate(60 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="20" stroke-width="0.5" transform="rotate(90 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="20" stroke-width="0.5" transform="rotate(120 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="20" stroke-width="0.5" transform="rotate(150 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="20" stroke-width="0.5" transform="rotate(180 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="20" stroke-width="0.5" transform="rotate(210 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="20" stroke-width="0.5" transform="rotate(240 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="20" stroke-width="0.5" transform="rotate(270 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="20" stroke-width="0.5" transform="rotate(300 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="20" stroke-width="0.5" transform="rotate(330 150 150)" />
+
+                      <!-- Intermediate 15° Ticks (12) -->
+                      <line x1="150" y1="8" x2="150" y2="16" stroke-width="0.36" transform="rotate(15 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="16" stroke-width="0.36" transform="rotate(45 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="16" stroke-width="0.36" transform="rotate(75 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="16" stroke-width="0.36" transform="rotate(105 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="16" stroke-width="0.36" transform="rotate(135 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="16" stroke-width="0.36" transform="rotate(165 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="16" stroke-width="0.36" transform="rotate(195 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="16" stroke-width="0.36" transform="rotate(225 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="16" stroke-width="0.36" transform="rotate(255 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="16" stroke-width="0.36" transform="rotate(285 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="16" stroke-width="0.36" transform="rotate(315 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="16" stroke-width="0.36" transform="rotate(345 150 150)" />
+
+                      <!-- Minor 5° Ticks (48) -->
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(5 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(10 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(20 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(25 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(35 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(40 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(50 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(55 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(65 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(70 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(80 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(85 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(95 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(100 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(110 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(115 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(125 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(130 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(140 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(145 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(155 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(160 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(170 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(175 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(185 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(190 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(200 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(205 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(215 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(220 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(230 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(235 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(245 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(250 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(260 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(265 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(275 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(280 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(290 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(295 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(305 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(310 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(320 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(325 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(335 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(340 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(350 150 150)" />
+                      <line x1="150" y1="8" x2="150" y2="13" stroke-width="0.25" transform="rotate(355 150 150)" />
+                    </g>
+
+                    <!-- Concentric Inner Geometry Rings -->
+                    <circle cx="150" cy="150" r="118" fill="none" stroke="currentColor" stroke-width="0.3" stroke-dasharray="2 4" />
+                    <circle cx="150" cy="150" r="98" fill="none" stroke="currentColor" stroke-width="0.45" />
+                    <circle cx="150" cy="150" r="94" fill="none" stroke="currentColor" stroke-width="0.26" stroke-dasharray="2 3" />
+                    <circle cx="150" cy="150" r="68" fill="none" stroke="currentColor" stroke-width="0.32" stroke-dasharray="4 5" />
+                    <circle cx="150" cy="150" r="42" fill="none" stroke="currentColor" stroke-width="0.4" />
+                    <circle cx="150" cy="150" r="28" fill="none" stroke="currentColor" stroke-width="0.28" stroke-dasharray="2 2" />
+
+                    <!-- Cardinal Axis Lines -->
+                    <line x1="150" y1="4" x2="150" y2="296" stroke="currentColor" stroke-width="0.38" stroke-dasharray="8 4" />
+                    <line x1="4" y1="150" x2="296" y2="150" stroke="currentColor" stroke-width="0.38" stroke-dasharray="8 4" />
+
+                    <!-- Diagonal 45° Crosshairs -->
+                    <line x1="46" y1="46" x2="254" y2="254" stroke="currentColor" stroke-width="0.26" stroke-dasharray="3 5" />
+                    <line x1="254" y1="46" x2="46" y2="254" stroke="currentColor" stroke-width="0.26" stroke-dasharray="3 5" />
+
+                    <!-- Metric Graduation Ticks along Vertical Axis -->
+                    <line x1="146" y1="35" x2="154" y2="35" stroke="currentColor" stroke-width="0.35" />
+                    <line x1="147" y1="50" x2="153" y2="50" stroke="currentColor" stroke-width="0.26" />
+                    <line x1="146" y1="65" x2="154" y2="65" stroke="currentColor" stroke-width="0.35" />
+                    <line x1="147" y1="80" x2="153" y2="80" stroke="currentColor" stroke-width="0.26" />
+                    <line x1="146" y1="95" x2="154" y2="95" stroke="currentColor" stroke-width="0.35" />
+                    <line x1="147" y1="110" x2="153" y2="110" stroke="currentColor" stroke-width="0.26" />
+                    <line x1="146" y1="125" x2="154" y2="125" stroke="currentColor" stroke-width="0.35" />
+                    <line x1="146" y1="175" x2="154" y2="175" stroke="currentColor" stroke-width="0.35" />
+                    <line x1="147" y1="190" x2="153" y2="190" stroke="currentColor" stroke-width="0.26" />
+                    <line x1="146" y1="205" x2="154" y2="205" stroke="currentColor" stroke-width="0.35" />
+                    <line x1="147" y1="220" x2="153" y2="220" stroke="currentColor" stroke-width="0.26" />
+                    <line x1="146" y1="235" x2="154" y2="235" stroke="currentColor" stroke-width="0.35" />
+                    <line x1="147" y1="250" x2="153" y2="250" stroke="currentColor" stroke-width="0.26" />
+                    <line x1="146" y1="265" x2="154" y2="265" stroke="currentColor" stroke-width="0.35" />
+
+                    <!-- Metric Graduation Ticks along Horizontal Axis -->
+                    <line x1="35" y1="146" x2="35" y2="154" stroke="currentColor" stroke-width="0.35" />
+                    <line x1="50" y1="147" x2="50" y2="153" stroke="currentColor" stroke-width="0.26" />
+                    <line x1="65" y1="146" x2="65" y2="154" stroke="currentColor" stroke-width="0.35" />
+                    <line x1="80" y1="147" x2="80" y2="153" stroke="currentColor" stroke-width="0.26" />
+                    <line x1="95" y1="146" x2="95" y2="154" stroke="currentColor" stroke-width="0.35" />
+                    <line x1="110" y1="147" x2="110" y2="153" stroke="currentColor" stroke-width="0.26" />
+                    <line x1="125" y1="146" x2="125" y2="154" stroke="currentColor" stroke-width="0.35" />
+                    <line x1="175" y1="146" x2="175" y2="154" stroke="currentColor" stroke-width="0.35" />
+                    <line x1="190" y1="147" x2="190" y2="153" stroke="currentColor" stroke-width="0.26" />
+                    <line x1="205" y1="146" x2="205" y2="154" stroke="currentColor" stroke-width="0.35" />
+                    <line x1="220" y1="147" x2="220" y2="153" stroke="currentColor" stroke-width="0.26" />
+                    <line x1="235" y1="146" x2="235" y2="154" stroke="currentColor" stroke-width="0.35" />
+                    <line x1="250" y1="147" x2="250" y2="153" stroke="currentColor" stroke-width="0.26" />
+                    <line x1="265" y1="146" x2="265" y2="154" stroke="currentColor" stroke-width="0.35" />
+
+                    <!-- Cardinal Diamond Accent Nodes -->
+                    <polygon points="150,42 147,45 150,48 153,45" fill="currentColor" />
+                    <polygon points="150,252 147,255 150,258 153,255" fill="currentColor" />
+                    <polygon points="42,150 45,147 48,150 45,153" fill="currentColor" />
+                    <polygon points="252,150 255,147 258,150 255,153" fill="currentColor" />
+
+                    <!-- 4 Corner Architectural Drafting Registration Brackets -->
+                    <path d="M 12 30 L 12 12 L 30 12" fill="none" stroke="currentColor" stroke-width="0.45" />
+                    <path d="M 288 30 L 288 12 L 270 12" fill="none" stroke="currentColor" stroke-width="0.45" />
+                    <path d="M 12 270 L 12 288 L 30 288" fill="none" stroke="currentColor" stroke-width="0.45" />
+                    <path d="M 288 270 L 288 288 L 270 288" fill="none" stroke="currentColor" stroke-width="0.45" />
+                    <circle cx="21" cy="21" r="2.5" fill="none" stroke="currentColor" stroke-width="0.3" />
+                    <circle cx="279" cy="21" r="2.5" fill="none" stroke="currentColor" stroke-width="0.3" />
+                    <circle cx="21" cy="279" r="2.5" fill="none" stroke="currentColor" stroke-width="0.3" />
+                    <circle cx="279" cy="279" r="2.5" fill="none" stroke="currentColor" stroke-width="0.3" />
+                  </g>
+
+                  <!-- Architectural Drafting Needle Pointer (Rotates with Cursor) -->
+                  <g class="compass-needle-group" id="compass-needle">
+                    <!-- North Pointer: Faceted Wireframe Diamond -->
+                    <polygon points="150,20 144,116 150,134" fill="none" stroke="currentColor" stroke-width="0.5" />
+                    <polygon points="150,20 156,116 150,134" fill="currentColor" opacity="0.22" stroke="currentColor" stroke-width="0.5" />
+                    <line x1="150" y1="20" x2="150" y2="134" stroke="currentColor" stroke-width="0.35" />
+                    <polygon points="150,20 146,38 154,38" fill="none" stroke="currentColor" stroke-width="0.4" />
+
+                    <!-- South Pointer: Dashed Drafting Counterbalance -->
+                    <polygon points="150,280 145,184 150,166" fill="none" stroke="currentColor" stroke-width="0.38" stroke-dasharray="3 2" />
+                    <polygon points="150,280 155,184 150,166" fill="none" stroke="currentColor" stroke-width="0.38" stroke-dasharray="3 2" />
+                    <line x1="150" y1="166" x2="150" y2="280" stroke="currentColor" stroke-width="0.28" stroke-dasharray="2 2" />
+
+                    <!-- Transverse Crossbar & Stabilizers -->
+                    <line x1="114" y1="150" x2="186" y2="150" stroke="currentColor" stroke-width="0.42" />
+                    <circle cx="114" cy="150" r="1.8" fill="currentColor" />
+                    <circle cx="186" cy="150" r="1.8" fill="currentColor" />
+                    <line x1="132" y1="140" x2="168" y2="160" stroke="currentColor" stroke-width="0.26" />
+                    <line x1="132" y1="160" x2="168" y2="140" stroke="currentColor" stroke-width="0.26" />
+
+                    <!-- Central Bearing & Pivot Jewel -->
+                    <circle cx="150" cy="150" r="14" fill="none" stroke="currentColor" stroke-width="0.5" />
+                    <circle cx="150" cy="150" r="10" fill="none" stroke="currentColor" stroke-width="0.3" stroke-dasharray="2 2" />
+                    <circle cx="150" cy="150" r="5" fill="none" stroke="currentColor" stroke-width="0.45" />
+                    <circle cx="150" cy="150" r="2.2" fill="currentColor" />
+                  </g>
+                </svg>
+              </div>
+
+              <div class="hero-wordmark-top" id="wordmark-top"><span class="hero-letter secret-p-trigger" id="hero-p-trigger" data-letter="P" data-note="do" title="Do (Click me!)">P</span><span class="hero-letter" data-letter="O" data-note="re" title="Re (Click me!)">O</span><span class="hero-letter" data-letter="R" data-note="mi" title="Mi (Click me!)">R</span><span class="hero-letter" data-letter="T" data-note="fa" title="Fa (Click me!)">T</span></div>
+              <div class="hero-wordmark-bottom" id="wordmark-bottom"><span class="hero-letter" data-letter="F" data-note="so" title="So (Click me!)">F</span><span class="hero-letter" data-letter="O" data-note="la" title="La (Click me!)">O</span><span class="hero-letter" data-letter="L" data-note="si" title="Si (Click me!)">L</span><span class="hero-letter" data-letter="I" data-note="do8" title="Do (Click me!)">I</span><span class="hero-letter" data-letter="O" data-note="do8" title="Do (Click me!)">O</span></div>
+            </div>
+
+            <!-- Right Meta Column -->
+            <div class="home-right-col">
+              <div class="home-right-discipline" id="home-right-discipline">INTERACTIVE SPATIAL DESIGN</div>
+              <div class="home-right-years" id="home-right-years">2024 &mdash; 2026</div>
+            </div>
+
+          </div>
+
+          <!-- Bottom Grid Info Bar (Connected Even Cells) -->
+          <div class="home-bottom-grid-bar" id="home-bottom-bar">
+            <div class="bottom-cell cell-email" id="home-email-box">
+              <span class="dash">&mdash;</span>
+              <a href="mailto:moorenee481@gmail.com" id="home-email-text">MOORENEE481@GMAIL.COM</a>
+            </div>
+            <div class="bottom-cell cell-phone" id="home-phone-box">
+              <a href="tel:+06103687393" id="home-phone-text">+06 10-3687393</a>
+            </div>
+            <div class="bottom-cell cell-behance" id="home-behance-box">
+              <a href="https://behance.net/reneemoo" target="_blank" rel="noopener" id="home-behance-text">BEHANCE.NET/RENEEMOO</a>
+            </div>
+            <div class="bottom-cell cell-enter" id="home-enter-box">
+              <a href="#projects" class="enter-portfolio-link" id="home-enter-link">
+                <span class="dash">&mdash;</span> <span id="home-enter-text">ENTER PORTFOLIO &rarr;</span>
+              </a>
+            </div>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ================= VIEW 2: ABOUT (ACCORDING TO SHEET 01) ================= -->
+    <section class="page-view" id="view-about">
+      <!-- Background Interactive Canvas (+ Symbol Animation mirroring Homepage) -->
+      <canvas class="subpage-spatial-canvas" id="about-spatial-canvas" aria-hidden="true"></canvas>
+      
+      <!-- Top Title Stage (Architectural 6-Column Header) -->
+      <div class="subpage-header-stage">
+        <!-- Inset Architectural Grid Container (6 Vertical Columns) -->
+        <div class="arch-header-box arch-layout-about">
+          <!-- Merged Box 1 & 2: 01 / ABOUT ME & Giant Title ABOUT -->
+          <div class="arch-box arch-box-title">
+            <div class="arch-box-top">
+              <span class="arch-meta-index subpage-index" id="about-top-index">01 / ABOUT ME</span>
+            </div>
+            <div class="arch-box-bottom">
+              <h1 class="subpage-giant-title" id="about-top-title">ABOUT</h1>
+            </div>
+          </div>
+
+          <!-- Empty Column 3 -->
+          <div class="arch-box-empty arch-col-3" aria-hidden="true"></div>
+
+          <!-- Empty Column 4 -->
+          <div class="arch-box-empty arch-col-4" aria-hidden="true"></div>
+
+          <!-- Merged Box 5 & 6: INTERACTIVE SPATIAL DESIGN & Description in the boxes near right -->
+          <div class="arch-box arch-box-desc">
+            <div class="arch-box-top align-right">
+              <span class="arch-meta-discipline subpage-discipline" id="about-top-discipline">INTERACTIVE SPATIAL DESIGN</span>
+            </div>
+            <div class="arch-box-bottom">
+              <p class="subpage-intro-desc" id="about-top-desc">
+                Background, education, capabilities and the experiences driving my practice.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upper Content Section (Paper Tone #f4f3ef) -->
+      <div class="about-upper-section">
+        <div class="about-upper-inner">
+          <div class="about-upper-grid">
+            
+            <!-- Left Column: Designing & Experiences + Bio + Tags -->
+            <div class="about-bio-col">
+              <h2 class="about-headline" id="about-headline-title">
+                DESIGNING<br />
+                SYSTEMS &<br />
+                EXPERIENCES
+              </h2>
+              <p class="about-bio-paragraph" id="about-bio-text">
+                Hi, I'm Renee &mdash; a Design student specialising in UI/UX, Visual Design, and 3D Modeling. Passionate about visual storytelling and problem-solving through design, I focus on enhancing user interactions with thoughtful storytelling techniques and intuitive digital experiences.
+              </p>
+              <div class="about-tags-row" id="about-skills-tags">
+                <span class="pill-tag">UI/UX</span>
+                <span class="pill-tag">AR/VR</span>
+                <span class="pill-tag">GAME DESIGN</span>
+                <span class="pill-tag">3D MODELING</span>
+                <span class="pill-tag">PROJECTION MAPPING</span>
+                <span class="pill-tag">ILLUSTRATION</span>
+              </div>
+            </div>
+
+            <!-- Right Column: Profile Box + Education + Software -->
+            <div class="about-creds-col">
+              
+              <!-- Profile Card -->
+              <div class="about-profile-card">
+                <div class="profile-thumb-wrap">
+                  <img 
+                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80" 
+                    alt="Moo Renee" 
+                    class="profile-thumb-img" 
+                    id="about-portrait-img"
+                  />
+                </div>
+                <div class="profile-info-wrap">
+                  <div class="profile-name" id="about-profile-name">MOO RENEE</div>
+                  <div class="profile-contact-list">
+                    <div class="contact-entry" id="about-phone-entry">+06 10-3687393</div>
+                    <div class="contact-entry" id="about-email-entry">MOORENEE481@GMAIL.COM</div>
+                    <div class="contact-entry" id="about-behance-wrap"><a href="https://behance.net/reneemoo" target="_blank" rel="noopener" id="about-behance-entry">BEHANCE.NET/RENEEMOO</a></div>
+                    <div class="contact-entry" id="about-linktree-wrap"><a href="https://linktr.ee/reneemoo" target="_blank" rel="noopener" id="about-linktree-entry">LINKTR.EE/RENEEMOO</a></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Education Block -->
+              <div class="about-education-block" id="about-block-education">
+                <div class="block-mini-title">EDUCATION</div>
+                <div class="education-entries" id="about-education-list">
+                  <!-- Injected via JavaScript from database -->
+                </div>
+              </div>
+
+              <!-- Dual Row: Software + Language (Moved up to same section as education) -->
+              <div class="about-creds-dual-row">
+                <!-- Software Grid -->
+                <div class="about-software-block" id="about-block-software">
+                  <div class="block-mini-title">SOFTWARE</div>
+                  <div class="software-squares-grid" id="about-software-grid">
+                    <!-- Injected via JavaScript from database -->
+                  </div>
+                </div>
+
+                <!-- Language Block -->
+                <div class="about-language-block" id="group-languages">
+                  <div class="block-mini-title">LANGUAGE</div>
+                  <div class="matrix-lang-table" id="about-languages-table">
+                    <!-- Injected via JavaScript from database -->
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- 4-Column Stat Counters -->
+          <div class="about-stats-grid" id="about-stats-container">
+            <div class="stat-cell">
+              <span class="stat-number">6+</span>
+              <span class="stat-label">YEARS STUDYING DESIGN</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-number">17+</span>
+              <span class="stat-label">PROJECTS COMPLETED</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-number">10</span>
+              <span class="stat-label">COMPETITIONS ENTERED</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-number">7</span>
+              <span class="stat-label">AWARDS & RECOGNITIONS</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lower Content Section (Stone Tone #eae8e2) -->
+      <div class="about-lower-section">
+        <div class="lower-section-header">
+          <span class="lower-index">01</span>
+          <span class="lower-title">SKILLS, EXPERIENCE & ACHIEVEMENTS</span>
+        </div>
+
+        <div class="about-four-column-matrix">
+          
+          <!-- Column 1: Technical Skills -->
+          <div class="matrix-column" id="matrix-col-1">
+            <div class="matrix-section-group" id="group-technical">
+              <div class="matrix-subheading">TECHNICAL</div>
+              <div class="matrix-pills-wrap" id="about-technical-pills"></div>
+            </div>
+          </div>
+
+          <!-- Column 2: Personal Skills (Moved up beside Technical) -->
+          <div class="matrix-column" id="matrix-col-2">
+            <div class="matrix-section-group" id="group-personal">
+              <div class="matrix-subheading">PERSONAL</div>
+              <div class="matrix-pills-wrap" id="about-personal-pills"></div>
+            </div>
+          </div>
+
+          <!-- Column 3: Experience & Achievements -->
+          <div class="matrix-column" id="matrix-col-3">
+            <div class="matrix-section-group" id="group-experience">
+              <div class="matrix-subheading">EXPERIENCE</div>
+              <div class="matrix-exp-list" id="about-experience-list"></div>
+            </div>
+
+            <div class="matrix-section-group" id="group-achievements">
+              <div class="matrix-subheading">ACHIEVEMENTS</div>
+              <div class="matrix-achieve-list" id="about-achievements-list"></div>
+            </div>
+          </div>
+
+          <!-- Column 4: Competitions & Extracurricular -->
+          <div class="matrix-column" id="matrix-col-4">
+            <div class="matrix-section-group" id="group-competitions">
+              <div class="matrix-subheading">COMPETITIONS & EXTRACURRICULAR</div>
+              <div class="matrix-comp-list" id="about-competitions-list"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Lower Custom Matrix Grid (Auto-Flows into 4 Columns and Multiple Rows) -->
+        <div class="about-custom-matrix-row" id="about-custom-matrix-row">
+          <!-- Populated dynamically via script.js -->
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= VIEW 3: PROJECTS (ACCORDING TO SHEET 02) ================= -->
+    <section class="page-view" id="view-projects">
+      <!-- Background Interactive Canvas (+ Symbol Animation mirroring Homepage) -->
+      <canvas class="projects-spatial-canvas" id="projects-spatial-canvas" aria-hidden="true"></canvas>
+      
+      <!-- Top Title Stage (Architectural 6-Column Header) -->
+      <div class="subpage-header-stage">
+        <!-- Inset Architectural Grid Container (6 Vertical Columns) -->
+        <div class="arch-header-box arch-layout-projects">
+          <!-- Merged Box 1, 2, 3: 02 / VIEW PROJECT & Giant Title PROJECTS -->
+          <div class="arch-box arch-box-title">
+            <div class="arch-box-top">
+              <span class="arch-meta-index subpage-index" id="projects-top-index">02 / VIEW PROJECT</span>
+            </div>
+            <div class="arch-box-bottom">
+              <h1 class="subpage-giant-title" id="projects-top-title">PROJECTS</h1>
+            </div>
+          </div>
+
+          <!-- Empty Column 4 -->
+          <div class="arch-box-empty arch-col-4" aria-hidden="true"></div>
+
+          <!-- Merged Box 5 & 6: INTERACTIVE SPATIAL DESIGN & Description in the boxes near right -->
+          <div class="arch-box arch-box-desc">
+            <div class="arch-box-top align-right">
+              <span class="arch-meta-discipline subpage-discipline" id="projects-top-discipline">INTERACTIVE SPATIAL DESIGN</span>
+            </div>
+            <div class="arch-box-bottom">
+              <p class="subpage-intro-desc" id="projects-top-desc">
+                Seventeen works across academic study, competitions and professional practice.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Primary Multi-Tier Catalog Filter Bar: Main Section & Sub Label -->
+      <div class="projects-filter-bar">
+        <!-- Tier 1: Main Section Filter (Competition / Internship / Academic) -->
+        <div class="filter-tier-row main-section-row">
+          <div class="filter-tier-label">MAIN SECTION</div>
+          <div class="section-pills-row" id="section-pills-row">
+            <button class="sec-pill-btn active" data-section="all">
+              ALL SECTIONS <span class="count">17</span>
+            </button>
+            <button class="sec-pill-btn" data-section="competition">
+              COMPETITION <span class="count">06</span>
+            </button>
+            <button class="sec-pill-btn" data-section="internship">
+              INTERNSHIP <span class="count">02</span>
+            </button>
+            <button class="sec-pill-btn" data-section="academic">
+              ACADEMIC <span class="count">09</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tier 2: Sub-Label / Discipline Filter + Search + View Layout Switcher -->
+        <div class="filter-tier-row sub-label-row">
+          <div class="filter-tier-label">SUB LABEL</div>
+          <div class="disc-pills-row" id="disc-pills-row">
+            <button class="disc-pill-btn active" data-sublabel="all">
+              ALL <span class="count">17</span>
+            </button>
+            <button class="disc-pill-btn" data-sublabel="ILLUSTRATION">
+              ILLUSTRATION <span class="count">02</span>
+            </button>
+            <button class="disc-pill-btn" data-sublabel="3D">
+              3D <span class="count">09</span>
+            </button>
+            <button class="disc-pill-btn" data-sublabel="UI/UX">
+              UI/UX <span class="count">04</span>
+            </button>
+            <button class="disc-pill-btn" data-sublabel="INSTALLATION">
+              INSTALLATION <span class="count">04</span>
+            </button>
+            <button class="disc-pill-btn" data-sublabel="AR / VR">
+              AR / VR <span class="count">04</span>
+            </button>
+            <button class="disc-pill-btn" data-sublabel="GAME">
+              GAME <span class="count">02</span>
+            </button>
+            <button class="disc-pill-btn" data-sublabel="PROJECTION">
+              PROJECTION <span class="count">03</span>
+            </button>
+            <button class="disc-pill-btn" data-sublabel="PRODUCT">
+              PRODUCT <span class="count">01</span>
+            </button>
+          </div>
+
+          <!-- Utility Tools (Search & View Toggle) directly in the sub-label row -->
+          <div class="filter-utility-tools">
+            <!-- Inline Quick Search -->
+            <div class="quick-search-box">
+              <span class="search-icon-symbol" aria-hidden="true">&#x2315;</span>
+              <input 
+                type="text" 
+                id="project-search-input" 
+                class="clean-search-input" 
+                placeholder="SEARCH CATALOG..." 
+                autocomplete="off"
+              />
+              <button class="search-clear-btn" id="search-clear-btn" title="Clear">&times;</button>
+            </div>
+
+            <!-- View Layout Toggle: Grid Cards vs Spec Table -->
+            <div class="view-layout-toggle" id="view-layout-toggle">
+              <button class="layout-toggle-btn active" data-layout="grid" title="Visual Cards View">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                  <rect x="1" y="1" width="6" height="6" rx="1"/>
+                  <rect x="9" y="1" width="6" height="6" rx="1"/>
+                  <rect x="1" y="9" width="6" height="6" rx="1"/>
+                  <rect x="9" y="9" width="6" height="6" rx="1"/>
+                </svg>
+                <span>GRID</span>
+              </button>
+              <button class="layout-toggle-btn" data-layout="table" title="Architectural Spec Table View">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                  <rect x="1" y="2" width="14" height="2" rx="0.5"/>
+                  <rect x="1" y="7" width="14" height="2" rx="0.5"/>
+                  <rect x="1" y="12" width="14" height="2" rx="0.5"/>
+                </svg>
+                <span>SPEC TABLE</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Unified Projects Catalog Container -->
+      <div class="projects-grouped-stage" id="projects-grouped-stage">
+        <!-- Visual Grid of Cards -->
+        <div class="group-cards-grid grid-3col projects-unified-grid" id="projects-unified-grid">
+          <!-- All Project Cards injected dynamically in one unified grid -->
+        </div>
+
+        <!-- Architectural Spec Sheet Table View (Toggled via layout button) -->
+        <div class="projects-spec-table-stage" id="projects-spec-table-stage" style="display: none;">
+          <div class="spec-table-container">
+            <table class="spec-table" id="spec-table">
+              <thead>
+                <tr>
+                  <th class="th-ref">REF</th>
+                  <th class="th-title">PROJECT SPECIFICATION</th>
+                  <th class="th-disc">SUB LABEL</th>
+                  <th class="th-cat">MAIN SECTION</th>
+                  <th class="th-year">YEAR</th>
+                  <th class="th-action">ACTION</th>
+                </tr>
+              </thead>
+              <tbody id="spec-table-body">
+                <!-- Dynamically injected rows -->
+              </tbody>
+            </table>
+          </div>
+
+
+        <!-- Empty Results Message -->
+        <div class="no-projects-msg" id="no-projects-msg" style="display: none;">
+          <p class="no-proj-title">NO MATCHING PROJECTS FOUND</p>
+          <p class="no-proj-sub">Try selecting another filter or clearing your search query.</p>
+          <button class="reset-filter-btn" id="reset-filter-btn">VIEW ALL PROJECTS</button>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ================= VIEW 4: PROJECT DETAIL (CASE STUDY) ================= -->
+    <section class="page-view" id="view-project-detail">
+      <!-- Background Interactive Canvas (+ Symbol Animation mirroring Homepage) -->
+      <canvas class="subpage-spatial-canvas" id="detail-spatial-canvas" aria-hidden="true"></canvas>
+      
+      <div class="detail-case-study-stage">
+        
+        <!-- Detail Header -->
+        <div class="detail-top-nav-bar">
+          <a href="#projects" class="back-projects-btn">
+            &larr; BACK TO ALL PROJECTS
+          </a>
+          <span class="detail-index-indicator" id="detail-index-tag">01 / 17</span>
+        </div>
+
+        <div class="detail-title-banner">
+          <div class="banner-title-col">
+            <div class="detail-cat-pill" id="detail-category-badge">ACADEMIC PROJECT</div>
+            <h1 class="detail-project-title" id="detail-title">PROJECT TITLE</h1>
+            <div class="detail-project-date" id="detail-date">2025</div>
+          </div>
+          <div class="banner-tags-col">
+            <span class="tag-label">DISCIPLINE & TOOLS</span>
+            <div class="detail-tags-row" id="detail-tags-row"></div>
+          </div>
+        </div>
+
+        <!-- Overview & Concept Description -->
+        <div class="detail-overview-block">
+          <p class="detail-full-desc" id="detail-full-description">
+            Project concept and overview...
+          </p>
+        </div>
+
+        <!-- Related Links Row -->
+        <div class="detail-links-section" id="detail-links-section">
+          <div class="related-links-grid" id="detail-related-links-grid"></div>
+        </div>
+
+        <!-- 1. MAIN SHOWCASE: SEAMLESS CONTINUOUS ROLL (0px Gap) -->
+        <div class="detail-media-section" id="detail-main-showcase-section">
+          <div class="portrait-static-container" id="detail-portrait-container">
+            <div class="portrait-images-stack" id="portrait-images-stack">
+              <!-- Slices injected seamlessly here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. VIDEO SECTION (IF AVAILABLE) -->
+        <div class="detail-video-section" id="detail-video-section">
+          <div class="section-label-bar">
+            <span>VIDEO &amp; INTERACTIVE DEMONSTRATION</span>
+          </div>
+          <div class="video-player-container" id="video-player-container"></div>
+        </div>
+
+        <!-- 3. SUPPLEMENTARY GALLERY -->
+        <div class="detail-scroll-gallery-section" id="detail-scroll-gallery-section">
+          <div class="section-label-bar">
+            <span>SUPPLEMENTARY EXHIBITS</span>
+          </div>
+          <div class="scroll-gallery-stage" id="scroll-gallery-stage">
+            <div class="scroll-gallery-track" id="scroll-gallery-track"></div>
+          </div>
+        </div>
+
+        <!-- 4. CUSTOM PROJECT SECTIONS (LOWER PAGE NARRATIVE, IMAGES & LINKS) -->
+        <div class="detail-custom-sections-container" id="detail-custom-sections-container">
+          <!-- Dynamically populated via script.js -->
+        </div>
+
+        <!-- Bottom Case Study Navigation -->
+        <div class="detail-bottom-nav">
+          <div class="detail-center-btns">
+            <a href="#projects" class="nav-case-btn return-btn" id="btn-return-archive">RETURN TO ARCHIVE</a>
+            <button type="button" class="nav-case-btn top-btn" id="btn-back-to-top">BACK TO TOP &uarr;</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ================= VIEW 5: CONTACT (ACCORDING TO SHEET 03) ================= -->
+    <section class="page-view" id="view-contact">
+      <!-- Background Interactive Canvas (+ Symbol Animation with Dynamic Contrast) -->
+      <canvas class="subpage-spatial-canvas" id="contact-spatial-canvas" aria-hidden="true"></canvas>
+      
+      <!-- Top Title Stage (Architectural 6-Column Header) -->
+      <div class="subpage-header-stage">
+        <!-- Inset Architectural Grid Container (6 Vertical Columns) -->
+        <div class="arch-header-box arch-layout-contact">
+          <!-- Merged Box 1 & 2: 03 / GET IN TOUCH & Giant Title CONTACT -->
+          <div class="arch-box arch-box-title">
+            <div class="arch-box-top">
+              <span class="arch-meta-index subpage-index" id="contact-top-index">03 / GET IN TOUCH</span>
+            </div>
+            <div class="arch-box-bottom">
+              <h1 class="subpage-giant-title" id="contact-top-title">CONTACT</h1>
+            </div>
+          </div>
+
+          <!-- Empty Column 3 -->
+          <div class="arch-box-empty arch-col-3" aria-hidden="true"></div>
+
+          <!-- Empty Column 4 -->
+          <div class="arch-box-empty arch-col-4" aria-hidden="true"></div>
+
+          <!-- Merged Box 5 & 6: INTERACTIVE SPATIAL DESIGN & Description in the boxes near right -->
+          <div class="arch-box arch-box-desc">
+            <div class="arch-box-top align-right">
+              <span class="arch-meta-discipline subpage-discipline" id="contact-top-discipline">INTERACTIVE SPATIAL DESIGN</span>
+            </div>
+            <div class="arch-box-bottom">
+              <p class="subpage-intro-desc" id="contact-top-desc">
+                Available for collaborations, internships and thoughtful creative opportunities.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Black Panel (Stark Black #0a0a0a) -->
+      <div class="contact-dark-stage">
+        <div class="contact-dark-inner">
+          
+          <div class="contact-sub-code">03 &mdash; CONTACT</div>
+
+          <div class="contact-duo-grid">
+            
+            <!-- Left Top: START A PROJECT & Callout -->
+            <div class="contact-callout-top">
+              <h2 class="contact-huge-heading" id="contact-stage-heading">
+                START A<br />
+                PROJECT
+              </h2>
+              <p class="contact-callout-text" id="contact-stage-callout">
+                Available for collaborations, freelance projects, and full-time opportunities. Let's build something meaningful together.
+              </p>
+            </div>
+
+            <!-- Right Top: Direct Info Table -->
+            <div class="contact-table-rows">
+              <div class="table-row">
+                <span class="row-label">EMAIL</span>
+                <a href="mailto:moorenee481@gmail.com" class="row-val email-val" id="contact-email-link">moorenee481@gmail.com</a>
+              </div>
+              <div class="table-row">
+                <span class="row-label">PHONE</span>
+                <a href="tel:+06103687393" class="row-val phone-val" id="contact-phone-link">+06 10-3687393</a>
+              </div>
+              <div class="table-row">
+                <span class="row-label">BEHANCE</span>
+                <a href="https://behance.net/reneemoo" target="_blank" rel="noopener" class="row-val link-val" id="contact-behance-link">behance.net/reneemoo</a>
+              </div>
+              <div class="table-row">
+                <span class="row-label">LINKTREE</span>
+                <a href="https://linktr.ee/reneemoo" target="_blank" rel="noopener" class="row-val link-val" id="contact-linktree-link">linktr.ee/ReneeMoo</a>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ================= GLOBAL SITE FOOTER (ALWAYS AT BOTTOM) ================= -->
+  <footer class="site-footer" id="site-footer">
+    <div class="footer-inner">
+      <div class="footer-left" id="footer-left-text">
+        MOO RENEE &bull; <span class="secret-p-trigger">P</span>ORTFOLIO 2024–26
+      </div>
+      <div class="footer-right" id="footer-right-text">
+        TAYLOR'S UNIVERSITY &bull; KUALA LUMPUR
+      </div>
+    </div>
+  </footer>
+
+  <!-- ================= ADMIN AUTHENTICATION MODAL (6-TAP P TRIGGER) ================= -->
+  <div class="auth-modal-backdrop" id="site-auth-modal" style="display: none;">
+    <div class="auth-modal-card">
+      <div class="auth-modal-header">
+        <div class="auth-modal-tag">AUTHENTICATION REQUIRED</div>
+        <button type="button" class="auth-modal-close" id="site-auth-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="auth-modal-body">
+        <h2 class="auth-modal-title">PORTFOLIO<br>STUDIO ACCESS</h2>
+        <p class="auth-modal-desc">Enter authorized credentials to open the content management workspace and enable editing mode.</p>
+
+        <form id="site-auth-form" class="auth-form-group">
+          <div class="auth-field">
+            <label for="auth-input-user">USER NAME</label>
+            <input type="text" id="auth-input-user" class="auth-input" placeholder="User Name" autocomplete="username" required />
+          </div>
+          <div class="auth-field">
+            <label for="auth-input-pass">PASSWORD</label>
+            <input type="password" id="auth-input-pass" class="auth-input" placeholder="Password" autocomplete="current-password" required />
+          </div>
+          <div class="auth-error-msg" id="site-auth-error" style="display: none;">Incorrect username or password. Please try again.</div>
+
+          <div class="auth-form-actions">
+            <button type="submit" class="auth-btn-enter">ENTER STUDIO &rarr;</button>
+            <button type="button" class="auth-btn-cancel" id="site-auth-cancel">CANCEL</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= LOGOUT CONFIRMATION MODAL ================= -->
+  <div class="logout-modal-backdrop" id="site-logout-modal" style="display: none;">
+    <div class="logout-modal-card">
+      <div class="logout-modal-header">
+        <span class="logout-modal-tag">SESSION EXIT &bull; PREVIEW MODE</span>
+        <button type="button" class="logout-modal-close" id="btn-site-logout-cancel-x" aria-label="Close modal">&times;</button>
+      </div>
+      <div id="site-logout-confirm-screen">
+        <h3 class="logout-modal-title">SAVE CHANGES BEFORE EXITING?</h3>
+        <p class="logout-modal-desc">
+          You are currently in editing preview mode. Would you like to permanently commit and save your updates to the local database, or discard unsaved changes and log out?
+        </p>
+        <div class="logout-modal-actions">
+          <button type="button" class="btn-logout-action save-btn" id="btn-site-logout-save">
+            <span>✓</span> SAVE &amp; LOG OUT
+          </button>
+          <button type="button" class="btn-logout-action discard-btn" id="btn-site-logout-discard">
+            LOG OUT WITHOUT SAVING
+          </button>
+          <button type="button" class="btn-logout-cancel" id="btn-site-logout-cancel">
+            CANCEL (CONTINUE EDITING)
+          </button>
+        </div>
+      </div>
+      <div id="site-logout-success-screen" style="display: none; text-align: center; padding: 2rem 1rem;">
+        <div style="font-size: 2.5rem; color: #16a34a; line-height: 1; margin-bottom: 0.75rem;">✓</div>
+        <h4 style="font-family: var(--font-display); font-size: 1.6rem; letter-spacing: 0.04em; margin-bottom: 0.5rem; text-transform: uppercase;">CHANGES SAVED SUCCESSFULLY</h4>
+        <p style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted); margin: 0;">LOGGED OUT OF EDITING MODE</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accessible Web Crawler & Search Engine Indexing Fallback (Ensures full indexing even without client-side JS) -->
+  <section class="seo-crawler-archive" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;" aria-hidden="true">
+    <h2>Moo Renee — Interactive Spatial Design Portfolio 2024–2026</h2>
+    <p>Designer: Moo Renee | Institution: Taylor's University | Degree: Bachelor in Interactive Spatial Design (Hons)</p>
+    <div>
+      <h3>Where the Demon Breathes (When the Ocean Breathes)</h3>
+      <p>Interactive spatial installation exploring the threshold between darkness and breath dynamics through responsive lighting sensors and sound sculptures. Category: Academic Installation. Keywords: Where the Demon Breathes, when the ocean breath, ocean breath, breath dynamics, sound sculpture, spatial installation.</p>
+
+      <h3>QuickSight</h3>
+      <p>Spatial computing prototype for rapid eye-tracking interaction and micro-gesture navigation.</p>
+
+      <h3>Quest for the Scattered Crystal</h3>
+      <p>Immersive 3D narrative adventure environment in Unreal Engine and Blender with dynamic spatial audio.</p>
+
+      <h3>MOJAY</h3>
+      <p>Mobile application and spatial event wayfinding system design.</p>
+
+      <h3>Deline Album</h3>
+      <p>Generative spatial media installation driven by TouchDesigner translating biometric audio data.</p>
+
+      <h3>Entangled World</h3>
+      <p>Interactive 4-wall projection mapping chamber reacting to multi-user presence.</p>
+
+      <h3>Aura Gallery</h3>
+      <p>WebXR multi-user virtual art gallery designed for browser and headset exploration.</p>
+
+      <h3>Physiotherapy Center</h3>
+      <p>Spatial interior architecture and human-centric wayfinding clinic layout.</p>
+
+      <h3>Illustration &amp; Visual Narrative</h3>
+      <p>Editorial illustration series investigating urban solitude and emotional geography.</p>
+
+      <h3>Wonder Window</h3>
+      <p>Public interactive storefront installation. Terang Competition 2025 Finalist.</p>
+
+      <h3>PIZ DI</h3>
+      <p>XR Jam 2024 Mental Health mixed reality game centering on cognitive decluttering, spatial coordination, and meditative breathing exercises.</p>
+
+      <h3>RE : AD</h3>
+      <p>AR Fest KL Top 5 Finalist. Location-based mobile augmented reality application reviving heritage facades.</p>
+
+      <h3>City 37°C</h3>
+      <p>Superior Culture Competition Silver Award. Speculative urban climate simulation and interactive tactile landscape.</p>
+
+      <h3>Cheer Mori Cheer</h3>
+      <p>Pre-U Logo Proposal Top 10. Spatial experience identity and modular mascot architectural booth.</p>
+
+      <h3>Illustration Compilation</h3>
+      <p>Cross-Strait Pin Art Distinction Award. Anthology of speculative architectural drawings.</p>
+
+      <h3>MOS Mythictolspace</h3>
+      <p>Virtual production stage lead 3D modeling and lighting pipeline.</p>
+
+      <h3>AUK Technical Training 2024</h3>
+      <p>Real-time Unreal Engine 5 virtual production stages and lighting pipeline.</p>
+    </div>
+  </section>
+
+  <!-- Storage and Application Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="database.js"></script>
+  <script src="script.js"></script>
+  <!-- Vercel Web Analytics (Active automatically upon enabling Analytics in Vercel dashboard) -->
+  <script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

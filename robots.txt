@@ -1,0 +1,8 @@
+# Robots.txt for Moo Renee Design Portfolio
+# Allow all search engine crawlers full access to portfolio pages
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: sitemap.xml

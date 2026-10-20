@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PORTFOLIO EDITOR — Moo Renee Content Studio</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="admin.css" />
+</head>
+<body class="admin-body">
+
+  <!-- ================= AUTHENTICATION GATE (DIRECT URL ACCESS) ================= -->
+  <div class="admin-login-overlay" id="admin-login-screen" style="display: none;">
+    <div class="admin-login-box">
+      <div class="login-top-tag">AUTHENTICATION REQUIRED</div>
+      <h2 class="login-title">PORTFOLIO<br>STUDIO ACCESS</h2>
+      <p class="login-desc">Enter authorized credentials to open the content management workspace and enable editing mode.</p>
+      
+      <form id="admin-login-form" class="login-input-group">
+        <label for="admin-user-input">USER NAME</label>
+        <input type="text" id="admin-user-input" class="login-pass-input" placeholder="User Name" autocomplete="username" required />
+
+        <label for="admin-passcode-input" style="margin-top: 0.65rem;">PASSWORD</label>
+        <input type="password" id="admin-passcode-input" class="login-pass-input" placeholder="Password" autocomplete="current-password" required />
+        <div class="login-error-msg" id="admin-login-error">Incorrect username or password. Please try again.</div>
+        
+        <div class="login-actions">
+          <button type="submit" class="login-btn-enter">ENTER STUDIO &rarr;</button>
+          <a href="index.html" class="login-btn-exit">VIEW SITE</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= FULL WORKSPACE LAYOUT (SIDEBAR PINNED, RIGHT COLUMN SCROLLS) ================= -->
+  <div class="editor-app-shell">
+    
+    <!-- Left Navigation Sidebar (Stationary Pinned on Left) -->
+    <aside class="editor-sidebar">
+      <div class="sidebar-brand-mini">
+        <div class="sidebar-brand-tag">PORTFOLIO CMS</div>
+        <div class="sidebar-brand-name">MOO RENEE</div>
+      </div>
+
+      <div class="sidebar-section-heading">CONTENT SECTIONS</div>
+      <nav class="editor-nav-tabs" role="tablist">
+        <button class="editor-nav-tab active" data-tab="tab-identity" role="tab" aria-selected="true">
+          <span class="tab-num">01</span>
+          <span class="tab-label">Identity & contact</span>
+        </button>
+        <button class="editor-nav-tab" data-tab="tab-about" role="tab" aria-selected="false">
+          <span class="tab-num">02</span>
+          <span class="tab-label">About & Resume</span>
+        </button>
+        <button class="editor-nav-tab" data-tab="tab-projects" role="tab" aria-selected="false">
+          <span class="tab-num">03</span>
+          <span class="tab-label">Project archive</span>
+        </button>
+        <button class="editor-nav-tab" data-tab="tab-headers" role="tab" aria-selected="false">
+          <span class="tab-num">04</span>
+          <span class="tab-label">Top Headers</span>
+        </button>
+        <button class="editor-nav-tab" data-tab="tab-backup" role="tab" aria-selected="false">
+          <span class="tab-num">05</span>
+          <span class="tab-label">Settings & Database</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-system-status">
+        <div class="sys-status-badge" id="sidebar-status-badge">
+          <span class="sys-dot"></span> LIVE LOCAL DATABASE
+        </div>
+        <p class="sys-status-note">
+          Edits sync in real-time to your preview. Click "SAVE CHANGES" to commit permanently before logging out.
+        </p>
+        <div style="margin-top: 0.85rem; padding: 0.65rem 0.85rem; background: #fff; border: 1px solid rgba(0,0,0,0.12); border-radius: 2px;">
+          <div style="font-family: var(--font-mono); font-size: 0.65rem; color: #777; text-transform: uppercase; letter-spacing: 0.05em;">LOGGED IN USER</div>
+          <div id="sidebar-current-username" style="font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: #112250; word-break: break-all; margin-top: 2px;">RENEE@MOO081706</div>
+        </div>
+        <button type="button" class="editor-btn-outline sidebar-logout-btn" id="btn-sidebar-logout" style="width: 100%; margin-top: 0.85rem; justify-content: center; font-size: 0.72rem; padding: 0.65rem 1rem; cursor: pointer; text-align: center; border: 1px solid rgba(0,0,0,0.2);" title="Log out of Studio CMS">
+          LOG OUT OF STUDIO
+        </button>
+      </div>
+    </aside>
+
+    <!-- Right Scroll Container: Header + Content Pane scroll together smoothly -->
+    <div class="editor-main-scroll-column" id="editor-main-scroll-column">
+
+      <!-- ================= TOP HERO BANNER (SCROLLS WITH RIGHT PAGE) ================= -->
+      <header class="editor-header">
+        <div class="editor-header-inner">
+          <div class="editor-brand-col">
+            <div class="editor-eyebrow-tag">PRIVATE WORKSPACE / LOCAL CONTENT</div>
+            <h1 class="editor-giant-title">PORTFOLIO<br>EDITOR</h1>
+          </div>
+
+          <div class="editor-header-actions">
+            <div class="editor-sync-indicator" id="header-sync-indicator" title="Real-time draft automatically updates preview views">
+              <span class="sync-dot live-dot"></span>
+              <span class="sync-text">LIVE PREVIEW SYNCED</span>
+            </div>
+            <!-- 1. VIEW SITE (PREVIEW MODE) -->
+            <a href="index.html" target="_blank" class="editor-btn-outline" id="btn-view-site" title="Preview site in new tab with live real-time sync">
+              VIEW SITE &nearr;
+            </a>
+            <!-- 2. LOG OUT -->
+            <button type="button" class="editor-btn-outline" id="btn-admin-logout" title="Log out of admin and return to site">
+              LOG OUT
+            </button>
+            <!-- 3. SAVE CHANGES -->
+            <button type="button" class="editor-btn-solid" id="btn-global-save" title="Save changes permanently to database">
+              SAVE CHANGES
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- ================= NOTIFICATION TOAST ================= -->
+      <div class="admin-toast" id="admin-toast"></div>
+
+      <!-- Right Content Pane -->
+      <main class="editor-content-pane">
+
+      <!-- ================= 01. IDENTITY & CONTACT PANE ================= -->
+      <section class="editor-pane active" id="tab-identity" role="tabpanel">
+        <div class="editor-inner-box">
+          <div class="pane-title-bar">
+            <span class="pane-title-num">01</span>
+            <h2 class="pane-title-text">IDENTITY</h2>
+          </div>
+
+          <form id="form-identity" class="editor-clean-form" novalidate>
+            <!-- Row 1: Display Name & Role -->
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="id-name">DISPLAY NAME</label>
+                <input type="text" id="id-name" class="editor-input" required placeholder="MOO RENEE" />
+              </div>
+              <div class="editor-field">
+                <label for="id-role">ROLE / DISCIPLINE</label>
+                <input type="text" id="id-role" class="editor-input" required placeholder="BACHELOR IN INTERACTIVE SPATIAL DESIGN (HONS)" />
+              </div>
+            </div>
+
+            <!-- Row 2: Headline & Years -->
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="id-headline">MAIN HEADLINE (MULTI-LINE BREAKS ACCEPTED)</label>
+                <textarea id="id-headline" class="editor-textarea" rows="2" placeholder="DESIGNING&#10;SYSTEMS &amp;&#10;EXPERIENCES"></textarea>
+              </div>
+              <div class="editor-field">
+                <label for="id-years">ACADEMIC / ACTIVE YEARS</label>
+                <input type="text" id="id-years" class="editor-input" required placeholder="2024 - 2026" />
+                <div class="editor-field" style="margin-top: 1rem;">
+                  <label for="id-institution">INSTITUTION / LOCATION</label>
+                  <input type="text" id="id-institution" class="editor-input" placeholder="TAYLOR'S UNIVERSITY" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 3: Status / Availability & Location -->
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="id-status">STATUS BANNER / AVAILABILITY</label>
+                <input type="text" id="id-status" class="editor-input" placeholder="AVAILABLE FOR COLLABORATIONS, INTERNSHIPS &amp; CREATIVE OPPORTUNITIES" />
+              </div>
+              <div class="editor-field">
+                <label for="id-coordinates">CAMPUS COORDINATES</label>
+                <input type="text" id="id-coordinates" class="editor-input" placeholder="LAT 3.0649° N, LONG 101.6167° E" />
+              </div>
+            </div>
+
+            <!-- Short Bio -->
+            <div class="editor-field">
+              <label for="id-bio">SHORT BIOGRAPHY</label>
+              <textarea id="id-bio" class="editor-textarea" rows="3" placeholder="Hi, I'm Renee — a Design student specialising in UI/UX, Visual Design, and 3D Modeling..."></textarea>
+            </div>
+
+            <!-- Portrait Photo -->
+            <div class="editor-field">
+              <label>PORTRAIT PHOTO (PREVIEW &amp; UPLOAD)</label>
+              <div class="editor-photo-uploader">
+                <div class="photo-preview-wrap">
+                  <img id="id-photo-preview" src="" alt="Portrait Preview" />
+                </div>
+                <div class="photo-inputs-wrap">
+                  <p class="mono-help">Paste image URL or choose a local file:</p>
+                  <input type="text" id="id-photo-url" class="editor-input" placeholder="https://images.unsplash.com/..." />
+                  <input type="file" id="id-photo-file" accept="image/*" class="editor-file-input" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Contact Channels & Socials -->
+            <div class="section-sub-divider">
+              <span>DIRECT CONTACT CHANNELS &amp; LINKS</span>
+            </div>
+
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="id-email">EMAIL ADDRESS <span class="mono-help" style="display:inline; margin-left:4px; font-weight:normal;">(OPTIONAL)</span></label>
+                <input type="email" id="id-email" class="editor-input" placeholder="moorenee481@gmail.com (Optional - leave blank to hide)" />
+              </div>
+              <div class="editor-field">
+                <label for="id-phone">PHONE NUMBER <span class="mono-help" style="display:inline; margin-left:4px; font-weight:normal;">(OPTIONAL)</span></label>
+                <input type="text" id="id-phone" class="editor-input" placeholder="+06 10-3687393 (Optional - leave blank to hide)" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="id-behance">BEHANCE PROFILE URL <span class="mono-help" style="display:inline; margin-left:4px; font-weight:normal;">(OPTIONAL)</span></label>
+                <input type="url" id="id-behance" class="editor-input" placeholder="https://behance.net/reneemoo (Optional - leave blank to hide)" />
+              </div>
+              <div class="editor-field">
+                <label for="id-linktree">LINKTREE PROFILE URL <span class="mono-help" style="display:inline; margin-left:4px; font-weight:normal;">(OPTIONAL)</span></label>
+                <input type="url" id="id-linktree" class="editor-input" placeholder="https://linktr.ee/reneemoo (Optional - leave blank to hide)" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="id-github">GITHUB PROFILE URL</label>
+                <input type="url" id="id-github" class="editor-input" placeholder="https://github.com" />
+              </div>
+              <div class="editor-field">
+                <label for="id-instagram">INSTAGRAM PROFILE URL</label>
+                <input type="url" id="id-instagram" class="editor-input" placeholder="https://instagram.com" />
+              </div>
+            </div>
+
+            <!-- Homepage Discipline Pills -->
+            <div class="editor-field">
+              <label for="id-tags">PRIMARY SKILL TAGS (COMMA SEPARATED)</label>
+              <input type="text" id="id-tags" class="editor-input" placeholder="UI/UX, AR/VR, GAME DESIGN, 3D MODELING, PROJECTION MAPPING, ILLUSTRATION" />
+            </div>
+
+            <!-- Homepage Hero & Bottom Bar Configuration (Matching Images 1 & 2) -->
+            <div class="section-sub-divider">
+              <span>HOMEPAGE HERO STAGE (IMAGE 2)</span>
+            </div>
+
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="home-des-by-input">"DES. BY" PREFIX LABEL</label>
+                <input type="text" id="home-des-by-input" class="editor-input" placeholder="DES. BY" />
+              </div>
+              <div class="editor-field">
+                <label for="home-designer-name-input">HERO DESIGNER NAME (GIANT DISPLAY)</label>
+                <input type="text" id="home-designer-name-input" class="editor-input" placeholder="MOO RENEE" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="home-discipline-sub-input">DISCIPLINE SUBTITLE &amp; INSTITUTION (LINE BREAKS ACCEPTED)</label>
+                <textarea id="home-discipline-sub-input" class="editor-textarea" rows="2" placeholder="INTERACTIVE SPATIAL DESIGN&#10;TAYLOR'S UNIVERSITY"></textarea>
+              </div>
+              <div class="editor-field">
+                <label for="home-copyright-input">COPYRIGHT YEAR TEXT</label>
+                <input type="text" id="home-copyright-input" class="editor-input" placeholder="©2026" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="home-right-discipline-input">RIGHT COLUMN &bull; DEGREE / DISCIPLINE</label>
+                <input type="text" id="home-right-discipline-input" class="editor-input" placeholder="BACHELOR IN INTERACTIVE SPATIAL DESIGN (HONS)" />
+              </div>
+              <div class="editor-field">
+                <label for="home-right-years-input">RIGHT COLUMN &bull; YEARS</label>
+                <input type="text" id="home-right-years-input" class="editor-input" placeholder="2024 — 2026" />
+              </div>
+            </div>
+
+            <div class="section-sub-divider">
+              <span>HOMEPAGE BOTTOM GRID INFO BAR (IMAGE 1)</span>
+            </div>
+
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="home-email-text-input">CELL 1 &bull; EMAIL DISPLAY TEXT <span class="mono-help" style="display:inline; font-weight:normal;">(OPTIONAL - Leave blank to hide)</span></label>
+                <input type="text" id="home-email-text-input" class="editor-input" placeholder="- MOORENEE481@GMAIL.COM (Optional)" />
+              </div>
+              <div class="editor-field">
+                <label for="home-email-url-input">CELL 1 &bull; EMAIL LINK (MAILTO)</label>
+                <input type="text" id="home-email-url-input" class="editor-input" placeholder="mailto:moorenee481@gmail.com" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="home-phone-text-input">CELL 2 &bull; PHONE DISPLAY TEXT <span class="mono-help" style="display:inline; font-weight:normal;">(OPTIONAL - Leave blank to hide)</span></label>
+                <input type="text" id="home-phone-text-input" class="editor-input" placeholder="+06 10-3687393 (Optional)" />
+              </div>
+              <div class="editor-field">
+                <label for="home-phone-url-input">CELL 2 &bull; PHONE LINK (TEL)</label>
+                <input type="text" id="home-phone-url-input" class="editor-input" placeholder="tel:+60103687393" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="home-behance-text-input">CELL 3 &bull; BEHANCE DISPLAY TEXT <span class="mono-help" style="display:inline; font-weight:normal;">(OPTIONAL - Leave blank to hide)</span></label>
+                <input type="text" id="home-behance-text-input" class="editor-input" placeholder="BEHANCE.NET/RENEEMOO (Optional)" />
+              </div>
+              <div class="editor-field">
+                <label for="home-behance-url-input">CELL 3 &bull; BEHANCE URL</label>
+                <input type="url" id="home-behance-url-input" class="editor-input" placeholder="https://behance.net/reneemoo" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="home-enter-text-input">CELL 4 &bull; ENTER PORTFOLIO TEXT</label>
+                <input type="text" id="home-enter-text-input" class="editor-input" placeholder="- ENTER PORTFOLIO ->" />
+              </div>
+              <div class="editor-field">
+                <label for="home-enter-url-input">CELL 4 &bull; TARGET DESTINATION (VIEW/URL)</label>
+                <input type="text" id="home-enter-url-input" class="editor-input" placeholder="#projects" />
+              </div>
+            </div>
+
+            <div class="pane-action-footer">
+              <button type="submit" id="btn-save-identity" class="editor-btn-action">SAVE IDENTITY &amp; HOMEPAGE</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+
+      <!-- ================= 02. ABOUT & RESUME PANE ================= -->
+      <section class="editor-pane" id="tab-about" role="tabpanel">
+        <div class="editor-inner-box">
+          <div class="pane-title-bar">
+            <span class="pane-title-num">02</span>
+            <h2 class="pane-title-text">ABOUT &amp; RESUME</h2>
+          </div>
+
+          <p class="pane-section-desc">
+            Edit education history, software toolkits, languages, matrix columns, profile information, and custom sections.
+          </p>
+
+          <!-- 1. Top Architectural Header for About Me -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <span class="sub-card-title">ABOUT PAGE &bull; TOP ARCHITECTURAL HEADER</span>
+            </div>
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="about-hdr-index-tab2">INDEX BADGE</label>
+                <input type="text" id="about-hdr-index-tab2" class="editor-input" placeholder="01 / ABOUT ME" />
+              </div>
+              <div class="editor-field">
+                <label for="about-hdr-title-tab2">GIANT TITLE</label>
+                <input type="text" id="about-hdr-title-tab2" class="editor-input" placeholder="ABOUT" />
+              </div>
+            </div>
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="about-hdr-disc-tab2">DISCIPLINE META</label>
+                <input type="text" id="about-hdr-disc-tab2" class="editor-input" placeholder="INTERACTIVE SPATIAL DESIGN" />
+              </div>
+              <div class="editor-field">
+                <label for="about-hdr-desc-tab2">INTRO DESCRIPTION</label>
+                <input type="text" id="about-hdr-desc-tab2" class="editor-input" placeholder="Background, education, capabilities and the experiences driving my practice." />
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Profile Card & Biography (Image 3) -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <span class="sub-card-title">ABOUT PAGE &bull; PROFILE CARD &amp; BIO (IMAGE 3)</span>
+            </div>
+            <div class="editor-field">
+              <label>PORTRAIT PHOTO (PREVIEW &amp; UPLOAD)</label>
+              <div class="editor-photo-uploader">
+                <div class="photo-preview-wrap">
+                  <img id="about-photo-preview-tab2" src="" alt="About Portrait Preview" />
+                </div>
+                <div class="photo-inputs-wrap">
+                  <p class="mono-help">Paste photo URL or upload file:</p>
+                  <input type="text" id="about-photo-url-tab2" class="editor-input" placeholder="https://images.unsplash.com/..." />
+                  <input type="file" id="about-photo-file-tab2" accept="image/*" class="editor-file-input" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="about-profile-name-tab2">PROFILE CARD &bull; DISPLAY NAME</label>
+                <input type="text" id="about-profile-name-tab2" class="editor-input" placeholder="MOO RENEE" />
+              </div>
+              <div class="editor-field">
+                <label for="about-profile-phone-tab2">PROFILE CARD &bull; PHONE NUMBER <span class="mono-help" style="display:inline; font-weight:normal;">(OPTIONAL - Leave blank to hide)</span></label>
+                <input type="text" id="about-profile-phone-tab2" class="editor-input" placeholder="+06 10-3687393 (Optional)" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="about-profile-email-tab2">PROFILE CARD &bull; EMAIL ADDRESS <span class="mono-help" style="display:inline; font-weight:normal;">(OPTIONAL - Leave blank to hide)</span></label>
+                <input type="email" id="about-profile-email-tab2" class="editor-input" placeholder="moorenee481@gmail.com (Optional)" />
+              </div>
+              <div class="editor-field">
+                <label for="about-profile-behance-tab2">PROFILE CARD &bull; BEHANCE URL <span class="mono-help" style="display:inline; font-weight:normal;">(OPTIONAL - Leave blank to hide)</span></label>
+                <input type="url" id="about-profile-behance-tab2" class="editor-input" placeholder="https://behance.net/reneemoo (Optional)" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="about-profile-linktree-tab2">PROFILE CARD &bull; LINKTREE URL <span class="mono-help" style="display:inline; font-weight:normal;">(OPTIONAL - Leave blank to hide)</span></label>
+                <input type="url" id="about-profile-linktree-tab2" class="editor-input" placeholder="https://linktr.ee/reneemoo (Optional)" />
+              </div>
+              <div class="editor-field">
+                <label for="about-profile-tags-tab2">SKILL PILLS / TAGS (COMMA SEPARATED)</label>
+                <input type="text" id="about-profile-tags-tab2" class="editor-input" placeholder="UI/UX, AR/VR, GAME DESIGN, 3D MODELING, PROJECTION MAPPING, ILLUSTRATION" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="editor-field">
+                <label for="about-profile-headline-tab2">LEFT BIO &bull; MAIN HEADLINE</label>
+                <textarea id="about-profile-headline-tab2" class="editor-textarea" rows="2" placeholder="DESIGNING&#10;SYSTEMS &amp;&#10;EXPERIENCES"></textarea>
+              </div>
+              <div class="editor-field">
+                <label for="about-profile-bio-tab2">LEFT BIO &bull; STATEMENT PARAGRAPH</label>
+                <textarea id="about-profile-bio-tab2" class="editor-textarea" rows="3" placeholder="Hi, I'm Renee — a Design student specialising in UI/UX..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stat Metric Counters -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <div>
+                <span class="sub-card-title">STAT METRIC COUNTERS</span>
+                <p class="mono-help">Projects Completed &amp; Competitions auto-calculate live from catalog. You can edit manual values and add new metric cards.</p>
+              </div>
+              <button type="button" class="editor-btn-sm" id="btn-add-stat-metric">+ Add Metric Counter</button>
+            </div>
+            <div class="stats-layout-bar">
+              <span class="stats-layout-bar-title">FRONTEND ALIGNMENT:</span>
+              <div class="stats-layout-pill-group">
+                <button type="button" class="stats-layout-pill active" data-layout="beside" id="stats-layout-beside-btn">BESIDE (SINGLE ROW)</button>
+                <button type="button" class="stats-layout-pill" data-layout="box" id="stats-layout-box-btn">ARCHITECTURAL BOX GRID</button>
+              </div>
+            </div>
+            <div class="stats-cards-grid" id="about-stats-editor-grid">
+              <!-- Dynamically populated stats -->
+            </div>
+          </div>
+
+          <!-- Education Section -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <span class="sub-card-title">EDUCATION TIMELINE</span>
+              <button type="button" class="editor-btn-sm" id="btn-add-edu-row">+ Add Education Row</button>
+            </div>
+            <div class="col-title-bar-editor">
+              <label for="col-title-education">Column Header Title:</label>
+              <input type="text" id="col-title-education" class="col-title-input" value="EDUCATION" placeholder="e.g. EDUCATION" />
+            </div>
+            <div class="editor-list-container" id="edu-rows-container"></div>
+          </div>
+
+          <!-- Software Proficiency Grid -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <span class="sub-card-title">SOFTWARE PROFICIENCIES</span>
+              <button type="button" class="editor-btn-sm" id="btn-add-soft-row">+ Add Software</button>
+            </div>
+            <div class="col-title-bar-editor">
+              <label for="col-title-software">Column Header Title:</label>
+              <input type="text" id="col-title-software" class="col-title-input" value="SOFTWARE" placeholder="e.g. SOFTWARE" />
+            </div>
+            <div class="editor-list-container" id="soft-rows-container"></div>
+          </div>
+
+          <!-- Languages -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <span class="sub-card-title">LANGUAGES &amp; PROFICIENCY</span>
+              <button type="button" class="editor-btn-sm" id="btn-add-lang-row">+ Add Language</button>
+            </div>
+            <div class="col-title-bar-editor">
+              <label for="col-title-languages">Column Header Title:</label>
+              <input type="text" id="col-title-languages" class="col-title-input" value="LANGUAGE" placeholder="e.g. LANGUAGE" />
+            </div>
+            <div class="editor-list-container" id="lang-rows-container"></div>
+          </div>
+
+          <!-- Matrix Column 1: Technical & Column 2: Personal Skills -->
+          <div class="form-row-2">
+            <div class="editor-sub-card">
+              <div class="sub-card-header">
+                <span class="sub-card-title">COL 1: TECHNICAL SKILLS</span>
+                <button type="button" class="editor-btn-sm" id="btn-add-tech-row">+ Add Skill</button>
+              </div>
+              <div class="col-title-bar-editor">
+                <label for="col-title-technical">Header Title:</label>
+                <input type="text" id="col-title-technical" class="col-title-input" value="TECHNICAL" placeholder="e.g. TECHNICAL" />
+              </div>
+              <div class="editor-pills-list" id="tech-skills-wrap"></div>
+            </div>
+
+            <div class="editor-sub-card">
+              <div class="sub-card-header">
+                <span class="sub-card-title">COL 2: PERSONAL SKILLS</span>
+                <button type="button" class="editor-btn-sm" id="btn-add-pers-row">+ Add Skill</button>
+              </div>
+              <div class="col-title-bar-editor">
+                <label for="col-title-personal">Header Title:</label>
+                <input type="text" id="col-title-personal" class="col-title-input" value="PERSONAL" placeholder="e.g. PERSONAL" />
+              </div>
+              <div class="editor-pills-list" id="pers-skills-wrap"></div>
+            </div>
+          </div>
+
+          <!-- Matrix Column 3: Experience -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <span class="sub-card-title">COL 3: INDUSTRY EXPERIENCE &amp; INTERNSHIP</span>
+              <button type="button" class="editor-btn-sm" id="btn-add-exp-row">+ Add Experience</button>
+            </div>
+            <div class="col-title-bar-editor">
+              <label for="col-title-experience">Header Title:</label>
+              <input type="text" id="col-title-experience" class="col-title-input" value="EXPERIENCE" placeholder="e.g. EXPERIENCE" />
+            </div>
+            <div class="editor-list-container" id="exp-rows-container"></div>
+          </div>
+
+          <!-- Matrix Column 3: Achievements -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <span class="sub-card-title">COL 3: ACHIEVEMENTS &amp; HONORS</span>
+              <button type="button" class="editor-btn-sm" id="btn-add-ach-row">+ Add Award</button>
+            </div>
+            <div class="col-title-bar-editor">
+              <label for="col-title-achievements">Header Title:</label>
+              <input type="text" id="col-title-achievements" class="col-title-input" value="ACHIEVEMENTS" placeholder="e.g. ACHIEVEMENTS" />
+            </div>
+            <div class="editor-list-container" id="ach-rows-container"></div>
+          </div>
+
+          <!-- Matrix Column 4: Competitions & Extracurricular -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <span class="sub-card-title">COL 4: COMPETITIONS &amp; EXTRACURRICULAR</span>
+              <button type="button" class="editor-btn-sm" id="btn-add-comp-row">+ Add Competition</button>
+            </div>
+            <div class="col-title-bar-editor">
+              <label for="col-title-competitions">Header Title:</label>
+              <input type="text" id="col-title-competitions" class="col-title-input" value="COMPETITIONS & EXTRACURRICULAR" placeholder="e.g. COMPETITIONS & EXTRACURRICULAR" />
+            </div>
+            <div class="editor-list-container" id="comp-rows-container"></div>
+          </div>
+
+          <!-- Custom Dynamic Sections (User can create new sections and choose placement Column 1–4) -->
+          <div class="editor-sub-card custom-sections-master-card">
+            <div class="sub-card-header">
+              <div>
+                <span class="sub-card-title">CUSTOM ABOUT SECTIONS</span>
+                <p class="mono-help">Add custom sections (e.g. Workshops, Publications, Blueprints) and choose their layout placement (Auto Flow across rows or specific column) and display style.</p>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <button type="button" class="editor-btn-outline dark-btn" id="btn-auto-distribute-about-sections" title="Reset all custom sections to Auto Layout across rows and columns">⚡ AUTO-FLOW ACROSS ROWS</button>
+                <button type="button" class="editor-btn-action" id="btn-add-custom-about-section">+ ADD NEW SECTION</button>
+              </div>
+            </div>
+            <div class="custom-sections-stack" id="custom-about-sections-stack"></div>
+          </div>
+
+          <div class="pane-action-footer">
+            <button type="button" class="editor-btn-action" id="btn-save-about-all">SAVE ALL ABOUT &amp; RESUME CHANGES</button>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ================= 03. PROJECT ARCHIVE PANE ================= -->
+      <section class="editor-pane" id="tab-projects" role="tabpanel">
+        <div class="editor-inner-box">
+          <div class="pane-title-bar">
+            <span class="pane-title-num">03</span>
+            <h2 class="pane-title-text">PROJECT ARCHIVE</h2>
+          </div>
+
+          <p class="pane-section-desc">
+            Manage projects, organize main categories and sub-labels, edit video links and related documentation links.
+          </p>
+
+          <!-- 1. MAIN CATEGORIES MANAGER (Dropdown options) -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <div>
+                <span class="sub-card-title">MAIN CATEGORIES (PRIMARY CATALOG FILTER)</span>
+                <p class="mono-help">These appear as primary category pills and populate the project category dropdown.</p>
+              </div>
+              <button type="button" class="editor-btn-sm" id="btn-add-main-category">+ Add Main Category</button>
+            </div>
+            <div class="editor-category-tags-row" id="main-categories-editor-row">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- 2. SUB-LABELS CATALOG MANAGER -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <div>
+                <span class="sub-card-title">SUB-LABELS (DISCIPLINE BADGES &amp; HOVER LABELS)</span>
+                <p class="mono-help">Used to tag individual projects (e.g. 3D, UI/UX, INSTALLATION). Displayed on card hover.</p>
+              </div>
+              <button type="button" class="editor-btn-sm" id="btn-add-sub-label">+ Add Sub-Label</button>
+            </div>
+            <div class="editor-category-tags-row" id="sublabels-editor-row">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- 3. PROJECT LIST -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <div>
+                <span class="sub-card-title">CATALOG PROJECTS (<span id="admin-project-count">17</span>)</span>
+                <p class="mono-help">Click any project to edit details, images, video links, or trigger triple-confirm delete.</p>
+              </div>
+              <button type="button" class="editor-btn-action" id="btn-create-project">+ CREATE NEW PROJECT</button>
+            </div>
+
+            <div class="editor-projects-cards-grid" id="admin-projects-cards-grid">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <div class="pane-action-footer" style="margin-top: 1.5rem;">
+            <button type="button" class="editor-btn-action" id="btn-save-projects-all">SAVE ALL PROJECT &amp; CATEGORY CHANGES</button>
+          </div>
+
+        </div>
+      </section>
+
+
+      <!-- ================= 04. TOP HEADERS & CONTACT PANE ================= -->
+      <section class="editor-pane" id="tab-headers" role="tabpanel">
+        <div class="editor-inner-box">
+          <div class="pane-title-bar">
+            <span class="pane-title-num">04</span>
+            <h2 class="pane-title-text">TOP HEADERS &amp; CONTACT</h2>
+          </div>
+
+          <p class="pane-section-desc">
+            Edit the top architectural 6-column headers on About, Projects, and Contact pages, as well as the Contact stage text.
+          </p>
+
+          <form id="form-headers" class="editor-clean-form" novalidate>
+            <!-- 1. ABOUT TOP HEADER -->
+            <div class="editor-sub-card">
+              <div class="sub-card-header">
+                <span class="sub-card-title">ABOUT PAGE &bull; TOP HEADER TEXT</span>
+              </div>
+              <div class="form-row-2">
+                <div class="editor-field">
+                  <label for="hdr-about-index">INDEX BADGE</label>
+                  <input type="text" id="hdr-about-index" class="editor-input" placeholder="01 / ABOUT ME" />
+                </div>
+                <div class="editor-field">
+                  <label for="hdr-about-title">GIANT TITLE</label>
+                  <input type="text" id="hdr-about-title" class="editor-input" placeholder="ABOUT" />
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="editor-field">
+                  <label for="hdr-about-disc">DISCIPLINE META</label>
+                  <input type="text" id="hdr-about-disc" class="editor-input" placeholder="INTERACTIVE SPATIAL DESIGN" />
+                </div>
+                <div class="editor-field">
+                  <label for="hdr-about-desc">INTRO DESCRIPTION</label>
+                  <input type="text" id="hdr-about-desc" class="editor-input" placeholder="Background, education, capabilities and the experiences driving my practice." />
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. PROJECTS TOP HEADER -->
+            <div class="editor-sub-card">
+              <div class="sub-card-header">
+                <span class="sub-card-title">PROJECTS CATALOG &bull; TOP HEADER TEXT</span>
+              </div>
+              <div class="form-row-2">
+                <div class="editor-field">
+                  <label for="hdr-projects-index">INDEX BADGE</label>
+                  <input type="text" id="hdr-projects-index" class="editor-input" placeholder="02 / VIEW PROJECT" />
+                </div>
+                <div class="editor-field">
+                  <label for="hdr-projects-title">GIANT TITLE</label>
+                  <input type="text" id="hdr-projects-title" class="editor-input" placeholder="PROJECTS" />
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="editor-field">
+                  <label for="hdr-projects-disc">DISCIPLINE META</label>
+                  <input type="text" id="hdr-projects-disc" class="editor-input" placeholder="INTERACTIVE SPATIAL DESIGN" />
+                </div>
+                <div class="editor-field">
+                  <label for="hdr-projects-desc">INTRO DESCRIPTION</label>
+                  <input type="text" id="hdr-projects-desc" class="editor-input" placeholder="Seventeen works across academic study, competitions and professional practice." />
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. CONTACT TOP HEADER -->
+            <div class="editor-sub-card">
+              <div class="sub-card-header">
+                <span class="sub-card-title">CONTACT PAGE &bull; TOP HEADER TEXT</span>
+              </div>
+              <div class="form-row-2">
+                <div class="editor-field">
+                  <label for="hdr-contact-index">INDEX BADGE</label>
+                  <input type="text" id="hdr-contact-index" class="editor-input" placeholder="03 / GET IN TOUCH" />
+                </div>
+                <div class="editor-field">
+                  <label for="hdr-contact-title">GIANT TITLE</label>
+                  <input type="text" id="hdr-contact-title" class="editor-input" placeholder="CONTACT" />
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="editor-field">
+                  <label for="hdr-contact-disc">DISCIPLINE META</label>
+                  <input type="text" id="hdr-contact-disc" class="editor-input" placeholder="INTERACTIVE SPATIAL DESIGN" />
+                </div>
+                <div class="editor-field">
+                  <label for="hdr-contact-desc">INTRO DESCRIPTION</label>
+                  <input type="text" id="hdr-contact-desc" class="editor-input" placeholder="Available for collaborations, internships and thoughtful creative opportunities." />
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. CONTACT STAGE TEXTS -->
+            <div class="editor-sub-card">
+              <div class="sub-card-header">
+                <span class="sub-card-title">CONTACT STAGE &bull; DARK PANEL CONTENT</span>
+              </div>
+              <div class="editor-field">
+                <label for="hdr-contact-start-heading">GIANT HEADING (LINE BREAKS ACCEPTED)</label>
+                <textarea id="hdr-contact-start-heading" class="editor-textarea" rows="2" placeholder="START A&#10;PROJECT"></textarea>
+              </div>
+              <div class="editor-field">
+                <label for="hdr-contact-callout">CALLOUT INVITATION TEXT</label>
+                <textarea id="hdr-contact-callout" class="editor-textarea" rows="2" placeholder="Available for collaborations, freelance projects, and full-time opportunities. Let's build something meaningful together."></textarea>
+              </div>
+            </div>
+
+            <div class="pane-action-footer">
+              <button type="submit" id="btn-save-headers" class="editor-btn-action">SAVE TOP HEADERS &amp; CONTACT TEXTS</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+
+      <!-- ================= 05. SETTINGS & DATABASE PANE ================= -->
+      <section class="editor-pane" id="tab-backup" role="tabpanel">
+        <div class="editor-inner-box">
+          <div class="pane-title-bar">
+            <span class="pane-title-num">05</span>
+            <h2 class="pane-title-text">SETTINGS &amp; DATABASE</h2>
+          </div>
+
+          <!-- ADMIN ACCESS CREDENTIALS (USERNAME & PASSWORD) CARD -->
+          <div class="editor-sub-card" style="margin-bottom: 1.5rem; border: 2px solid #112250; background: #ffffff;">
+            <div class="sub-card-header">
+              <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span class="sub-card-title" style="color: #112250; font-weight: 700; font-size: 0.95rem;">🔐 STUDIO ADMIN CREDENTIALS</span>
+                  <span style="font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700; padding: 4px 10px; border-radius: 2px; background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe;">LOGIN ACCESS</span>
+                </div>
+                <span class="mono-help" style="margin: 0; color: #555;">Used for 6-tap 'P' secret modal &amp; Admin login</span>
+              </div>
+            </div>
+
+            <p class="mono-help" style="margin-top: 8px; line-height: 1.6; color: #444;">
+              View and customize your Admin login username and password below. Changes are saved directly to your database and synced to the cloud.
+            </p>
+
+            <form id="admin-credentials-form" style="margin-top: 1.25rem;">
+              <div class="form-row-2">
+                <div class="editor-field">
+                  <label for="cred-username" style="font-weight: 700; color: #112250;">STUDIO USERNAME</label>
+                  <input type="text" id="cred-username" class="editor-input" value="RENEE@MOO081706" required autocomplete="username" />
+                  <span class="mono-help">Case-insensitive for convenience</span>
+                </div>
+                <div class="editor-field">
+                  <label for="cred-password" style="font-weight: 700; color: #112250;">STUDIO PASSWORD</label>
+                  <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="password" id="cred-password" class="editor-input" value="36987@RENEE6667" required autocomplete="current-password" style="flex: 1;" />
+                    <button type="button" id="btn-toggle-cred-pass" class="editor-btn-outline" style="padding: 0.65rem 0.95rem; font-size: 0.72rem; white-space: nowrap; cursor: pointer; border: 1px solid #112250; color: #112250; background: #fff;">
+                      👁️ SHOW
+                    </button>
+                  </div>
+                  <span class="mono-help">Exact character match required</span>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 14px; align-items: center; margin-top: 1rem; flex-wrap: wrap;">
+                <button type="submit" class="editor-btn-solid dark-solid" id="btn-save-credentials" style="background: #112250; color: #DAD1CA; padding: 0.75rem 1.6rem; font-weight: 700; cursor: pointer;">
+                  💾 SAVE &amp; UPDATE CREDENTIALS
+                </button>
+                <span id="cred-status-note" class="mono-help" style="margin: 0; color: #15803d; font-weight: 700; display: none;">✓ Credentials updated &amp; saved successfully!</span>
+              </div>
+            </form>
+          </div>
+
+          <!-- CLOUD AUTO-SAVE (FIREBASE FIRESTORE) CARD -->
+          <div class="editor-sub-card" style="margin-bottom: 1.5rem; border: 2px solid #112250; background: #ffffff;">
+            <div class="sub-card-header">
+              <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span class="sub-card-title" style="color: #112250; font-weight: 700; font-size: 0.95rem;">☁️ CLOUD AUTO-SAVE (FIREBASE FIRESTORE)</span>
+                  <span id="cloud-status-badge" style="font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700; padding: 4px 10px; border-radius: 2px; background: #eee; color: #555;">CHECKING CLOUD...</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="editor-btn-sm" id="btn-cloud-sync-now" style="display: none; padding: 4px 12px; font-size: 0.72rem; background: #112250; color: #fff; border: 1px solid #112250; cursor: pointer;">⚡ SYNC NOW</button>
+                  <button type="button" class="editor-btn-sm" id="btn-cloud-disconnect" style="display: none; padding: 4px 12px; font-size: 0.72rem; color: #d32f2f; border-color: #d32f2f; background: transparent; cursor: pointer;">Disconnect Cloud</button>
+                </div>
+              </div>
+            </div>
+
+            <p class="mono-help" style="margin-top: 8px; line-height: 1.6; color: #444;">
+              Enable <strong>automatic real-time cloud saving</strong>! Every change you save here will immediately sync to Google Firebase Firestore in the cloud and update your live website across all devices instantly without needing to manually replace files or redeploy.
+            </p>
+
+            <div id="cloud-connected-info" style="display: none; margin-top: 1rem; padding: 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 2px;">
+              <p style="font-family: var(--font-mono); font-size: 0.78rem; color: #166534; margin: 0 0 10px 0; line-height: 1.5;">
+                <strong>✓ Cloud Auto-Save is ACTIVE:</strong> Connected to Firebase Project <code id="cloud-connected-project-id" style="font-weight: 700;">—</code>. Any edits you commit are automatically synced to the cloud in real-time.
+              </p>
+              <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button type="button" class="editor-btn-solid dark-solid" id="btn-download-firebase-config" style="background: #112250; color: #DAD1CA; padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
+                  📥 DOWNLOAD firebase-config.js (FOR VERCEL)
+                </button>
+                <span class="mono-help" style="margin: 0; color: #166534;">Drop this into your GitHub/Vercel project once so all live visitors connect to your cloud database!</span>
+              </div>
+            </div>
+
+            <!-- Configuration Form -->
+            <div id="cloud-config-form-wrap" style="margin-top: 1.25rem;">
+              <div class="editor-field">
+                <label for="firebase-config-input" style="font-weight: 700; color: #112250;">PASTE FIREBASE CONFIGURATION (JSON OR JS OBJECT)</label>
+                <textarea id="firebase-config-input" class="editor-code-box" rows="6" placeholder='Paste your Firebase config object here, e.g.:
+{
+  "apiKey": "AIzaSy...",
+  "authDomain": "your-app.firebaseapp.com",
+  "projectId": "your-app-id",
+  "storageBucket": "your-app.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:123456789:web:..."
+}'></textarea>
+              </div>
+
+              <div style="display: flex; gap: 10px; align-items: center; margin-top: 0.75rem; flex-wrap: wrap;">
+                <button type="button" class="editor-btn-solid dark-solid" id="btn-save-cloud-config" style="background: #112250; color: #DAD1CA; padding: 0.75rem 1.4rem; font-weight: 700; cursor: pointer;">
+                  CONNECT &amp; AUTO-SAVE TO CLOUD
+                </button>
+                <button type="button" class="editor-btn-outline dark-btn" id="btn-toggle-firebase-guide" style="padding: 0.75rem 1.2rem; cursor: pointer;">
+                  📖 HOW TO SET UP FREE FIREBASE (2 MINS)
+                </button>
+              </div>
+
+              <!-- Collapsible Guide -->
+              <div id="firebase-guide-box" style="display: none; margin-top: 1rem; padding: 1.25rem; background: #F8F7F4; border: 1px solid #DAD1CA; border-radius: 2px;">
+                <h4 style="font-family: var(--font-display); font-size: 1.1rem; color: #112250; margin-bottom: 0.75rem;">FREE FIREBASE SETUP IN 3 QUICK STEPS</h4>
+                <ol style="font-family: var(--font-mono); font-size: 0.76rem; color: #333; line-height: 1.8; padding-left: 1.2rem;">
+                  <li>Go to <a href="https://console.firebase.google.com" target="_blank" rel="noopener" style="color: #112250; font-weight: 700; text-decoration: underline;">console.firebase.google.com</a> and click <strong>Create a project</strong> (e.g. <code>renee-portfolio</code>).</li>
+                  <li>In your project menu, click <strong>Build &rarr; Firestore Database &rarr; Create Database</strong>. Choose <strong>Start in test mode</strong> (this permits reading and writing).</li>
+                  <li>Click Project Overview <strong>Gear Icon &rarr; Project settings</strong>. Scroll down to <em>Your apps</em>, click the Web <strong>&lt;/&gt;</strong> icon to register a web app, and copy the <code>firebaseConfig</code> object. Paste it in the box above and click <strong>CONNECT &amp; AUTO-SAVE TO CLOUD</strong>!</li>
+                </ol>
+                <p style="font-family: var(--font-mono); font-size: 0.72rem; color: #666; margin-top: 0.5rem;">
+                  Firebase's Spark plan is 100% free forever for personal portfolios. Once connected, every edit in this Studio auto-syncs to the cloud and updates your live portfolio for any visitor on any device!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- PUBLISH / LIVE WEBSITE CODE GENERATOR -->
+          <div class="editor-sub-card" style="margin-bottom: 1.5rem; border: 2px solid #112250;">
+            <div class="sub-card-header">
+              <div>
+                <span class="sub-card-title" style="color: #112250; font-weight: 700;">⚡ PUBLISH CHANGES TO LIVE WEBSITE (DOWNLOAD database.js)</span>
+                <p class="mono-help" style="margin-top: 6px; line-height: 1.6;">
+                  All edits you save here are stored locally in your browser's private database. To push your updates so <strong>everyone on the internet can see them</strong> on GitHub Pages, Netlify, Vercel, or your hosting server:
+                  <br>&bull; Click the button below to download the updated <code>database.js</code> file.
+                  <br>&bull; Replace the existing <code>database.js</code> in your portfolio root folder with the downloaded file.
+                  <br>&bull; Deploy / git push to your live website! Zero backend server required.
+                </p>
+              </div>
+            </div>
+            <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 1rem;">
+              <button type="button" class="editor-btn-solid dark-solid" id="btn-download-updated-database" style="background: #112250; color: #DAD1CA; border-color: #112250; padding: 0.85rem 1.65rem; font-weight: 700; letter-spacing: 0.06em; cursor: pointer;">
+                ⚡ DOWNLOAD UPDATED database.js
+              </button>
+              <button type="button" class="editor-btn-outline dark-btn" id="btn-sync-from-code" style="padding: 0.85rem 1.4rem; font-weight: 700; cursor: pointer;">
+                🔄 RELOAD / SYNC FROM CODE (database.js)
+              </button>
+              <span class="mono-help" style="margin: 0; font-weight: 600; color: #112250;">Edit in code or admin • Seamlessly kept in sync</span>
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="editor-sub-card">
+              <div class="sub-card-header"><span class="sub-card-title">EXPORT DATA</span></div>
+              <p class="mono-help">Download all portfolio content, images, categories, and settings as a standalone JSON file.</p>
+              <button type="button" class="editor-btn-outline dark-btn" id="btn-export-json">DOWNLOAD JSON BACKUP</button>
+            </div>
+
+            <div class="editor-sub-card">
+              <div class="sub-card-header"><span class="sub-card-title">IMPORT DATA</span></div>
+              <p class="mono-help">Select a JSON file to restore your portfolio content instantly.</p>
+              <input type="file" id="import-json-file" accept=".json" class="editor-file-input" />
+            </div>
+          </div>
+
+          <!-- VISITOR ANALYTICS & TRACKING CARD -->
+          <div class="editor-sub-card" style="margin-top: 1.5rem; margin-bottom: 1.5rem; border: 2px solid #112250; background: #ffffff;">
+            <div class="sub-card-header">
+              <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 10px;">
+                <span class="sub-card-title" style="color: #112250; font-weight: 700; font-size: 0.95rem;">📊 VISITOR TRACKING &amp; TRAFFIC ANALYTICS</span>
+                <span id="site-views-badge" style="font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; padding: 4px 10px; border-radius: 2px; background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc;">TOTAL VIEWS: --</span>
+              </div>
+            </div>
+            <p class="mono-help" style="margin-top: 8px; line-height: 1.6; color: #444;">
+              Wondering <strong>who entered your portfolio</strong>, what countries they come from, and what projects recruiters viewed? You have 3 built-in tracking options:
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem;">
+              <div style="padding: 1rem; background: #F8F7F4; border: 1px solid #DAD1CA; border-radius: 2px;">
+                <h4 style="font-family: var(--font-display); font-size: 1rem; color: #112250; margin-bottom: 0.4rem;">1. VERCEL WEB ANALYTICS (1-CLICK FREE)</h4>
+                <p style="font-family: var(--font-mono); font-size: 0.74rem; color: #555; line-height: 1.6; margin: 0;">
+                  Already configured! In your Vercel project dashboard, click the <strong>Analytics</strong> tab and click <strong>Enable</strong>. You'll see real-time visitors, total page views, countries (Malaysia, Singapore, USA, etc.), devices, and referral websites (Behance, Instagram, LinkedIn, Google).
+                </p>
+              </div>
+              <div style="padding: 1rem; background: #F8F7F4; border: 1px solid #DAD1CA; border-radius: 2px;">
+                <h4 style="font-family: var(--font-display); font-size: 1rem; color: #112250; margin-bottom: 0.4rem;">2. MICROSOFT CLARITY (WATCH VISITOR REPLAYS)</h4>
+                <p style="font-family: var(--font-mono); font-size: 0.74rem; color: #555; line-height: 1.6; margin: 0;">
+                  100% free forever by Microsoft. Sign up at <a href="https://clarity.microsoft.com" target="_blank" rel="noopener" style="color: #112250; font-weight: 700; text-decoration: underline;">clarity.microsoft.com</a>, and watch actual video replays of recruiters exploring your projects, scroll heatmaps, and mouse clicks!
+                </p>
+              </div>
+            </div>
+
+            <!-- PERSONALIZED TRACKING LINK GENERATOR -->
+            <div style="margin-top: 1.25rem; padding: 1rem; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 2px;">
+              <span style="font-family: var(--font-display); font-size: 0.95rem; color: #1e40af; display: block; margin-bottom: 0.25rem;">🎯 WANT TO KNOW EXACTLY WHO CLICKS YOUR LINK? (PERSONALIZED TRACKING)</span>
+              <p style="font-family: var(--font-mono); font-size: 0.72rem; color: #1e3a8a; line-height: 1.5; margin: 0 0 8px 0;">
+                Browsers prevent websites from silently stealing personal accounts. But you can generate a personalized link to send to a specific recruiter, lecturer, or client (or in your Instagram story)! When they open it, their name/handle will be recorded in the table below:
+              </p>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <input type="text" id="tracking-username-input" class="editor-input" style="max-width: 240px; padding: 6px 10px; font-size: 0.75rem;" placeholder="e.g. John_Recruiter or Sarah" />
+                <button type="button" class="editor-btn-solid dark-solid" id="btn-generate-track-link" style="background: #1e40af; color: #fff; padding: 6px 14px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">
+                  CREATE &amp; COPY TRACKING LINK
+                </button>
+                <span id="track-link-result" style="font-family: var(--font-mono); font-size: 0.72rem; color: #15803d; font-weight: 600;"></span>
+              </div>
+            </div>
+
+            <!-- LIVE IN-ADMIN VISITOR LOGS TABLE (OPTION 3) -->
+            <div style="margin-top: 1.5rem; border-top: 1px solid #DAD1CA; padding-top: 1.25rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 8px;">
+                <span style="font-family: var(--font-display); font-size: 1.05rem; color: #112250;">RECENT VISITOR LOG (LAST 30 ENTRANTS)</span>
+                <button type="button" class="editor-btn-sm" id="btn-refresh-visits" style="padding: 4px 12px; font-size: 0.72rem; background: #112250; color: #fff; border: 1px solid #112250; cursor: pointer;">
+                  🔄 REFRESH VISITOR LOG
+                </button>
+              </div>
+              <div style="overflow-x: auto; border: 1px solid #DAD1CA; background: #fff;">
+                <table style="width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.72rem; text-align: left;">
+                  <thead>
+                    <tr style="background: #112250; color: #fff; text-transform: uppercase;">
+                      <th style="padding: 8px 12px; border-bottom: 1px solid #112250;">Visitor / Tag</th>
+                      <th style="padding: 8px 12px; border-bottom: 1px solid #112250;">Time</th>
+                      <th style="padding: 8px 12px; border-bottom: 1px solid #112250;">Location / TZ</th>
+                      <th style="padding: 8px 12px; border-bottom: 1px solid #112250;">Device &amp; Browser</th>
+                      <th style="padding: 8px 12px; border-bottom: 1px solid #112250;">Page / Project Viewed</th>
+                      <th style="padding: 8px 12px; border-bottom: 1px solid #112250;">Referrer Source</th>
+                    </tr>
+                  </thead>
+                  <tbody id="visitor-log-tbody">
+                    <tr>
+                      <td colspan="6" style="padding: 16px; text-align: center; color: #666;">
+                        Connect Firebase to begin capturing live visitor records in real-time.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="editor-sub-card" style="margin-top: 1.5rem;">
+            <div class="sub-card-header"><span class="sub-card-title">DATABASE RAW JSON INSPECTOR</span></div>
+            <textarea id="raw-json-inspector" class="editor-code-box" readonly rows="10"></textarea>
+          </div>
+        </div>
+      </section>
+
+      </main>
+    </div><!-- /.editor-main-scroll-column -->
+  </div><!-- /.editor-app-shell -->
+
+
+  <!-- ================= PROJECT EDIT MODAL ================= -->
+  <div class="admin-modal-backdrop" id="project-edit-modal" style="display: none;">
+    <div class="admin-modal-card">
+      <div class="admin-modal-header">
+        <div class="modal-heading-text" id="modal-project-heading">EDIT PROJECT</div>
+        <button type="button" class="admin-modal-close" id="modal-project-close" aria-label="Close modal">&times;</button>
+      </div>
+
+      <div class="admin-modal-body">
+        <form id="project-editor-form">
+          <input type="hidden" id="edit-proj-id" />
+
+          <!-- Title & Date -->
+          <div class="form-row-2">
+            <div class="editor-field">
+              <label for="edit-proj-title">PROJECT TITLE</label>
+              <input type="text" id="edit-proj-title" class="editor-input" required placeholder="Where the Demon Breathes" />
+            </div>
+            <div class="editor-field">
+              <label for="edit-proj-date">YEAR / TIMELINE</label>
+              <input type="text" id="edit-proj-date" class="editor-input" required placeholder="2025" />
+            </div>
+          </div>
+
+          <!-- Main Category Dropdown & Index -->
+          <div class="form-row-2">
+            <div class="editor-field">
+              <label for="edit-proj-main-section">MAIN CATEGORY (SELECT FROM CATALOG)</label>
+              <select id="edit-proj-main-section" class="editor-select" required>
+                <!-- Populated dynamically from mainCategories -->
+              </select>
+            </div>
+            <div class="editor-field">
+              <label for="edit-proj-index">CATALOG INDEX (e.g. 01, 02... 17)</label>
+              <input type="text" id="edit-proj-index" class="editor-input" placeholder="01" />
+            </div>
+          </div>
+
+          <!-- Sub-Labels Manager (Multi-Select Pills + Add Custom) -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="sub-card-title">SUB-LABELS (SHOWN ON HOVER &bull; MULTI-SELECT)</span>
+                  <span class="sub-card-badge" id="sublabels-count-badge" style="font-size: 0.65rem; background: #112250; color: #DAD1CA; padding: 2px 7px; border-radius: 2px; font-family: var(--font-mono); font-weight: 700;">0 SELECTED</span>
+                </div>
+                <p class="mono-help" style="margin: 0;">Click to toggle one or more sub-labels. Hover preview updates automatically.</p>
+              </div>
+            </div>
+            
+            <div class="modal-sublabels-selector" id="modal-sublabels-selector">
+              <!-- Dynamically populated checkbox pills -->
+            </div>
+
+            <div class="inline-adder-row" style="margin-top: 0.75rem;">
+              <input type="text" id="input-new-project-sublabel" class="editor-input" placeholder="Add new sub-label tag (e.g. SOUND, PROTOTYPE)..." />
+              <button type="button" class="editor-btn-sm" id="btn-add-project-sublabel">+ Add Tag</button>
+            </div>
+          </div>
+
+          <!-- Hover Preview Live Card -->
+          <div class="hover-preview-card">
+            <div class="hover-prev-tag">HOVER PREVIEW ON CATALOG</div>
+            <div class="hover-prev-meta" id="preview-hover-meta">01 &mdash; INSTALLATION</div>
+            <div class="hover-prev-title" id="preview-hover-title">PROJECT TITLE</div>
+          </div>
+
+          <!-- Project Cover Image (Main Catalog Card Image) -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <div>
+                <span class="sub-card-title">PROJECT COVER IMAGE (MAIN CATALOG THUMBNAIL)</span>
+                <p class="mono-help">Upload or specify the primary image shown on the Projects catalog grid card.</p>
+              </div>
+            </div>
+            <div class="project-cover-uploader-box">
+              <div class="cover-preview-container">
+                <img id="edit-proj-cover-preview" class="cover-thumb-preview" alt="Cover Preview" />
+                <span id="cover-preview-placeholder" class="cover-thumb-placeholder">NO COVER IMAGE SELECTED</span>
+              </div>
+              <div class="cover-inputs-container">
+                <input type="text" id="edit-proj-cover-url" class="editor-input" placeholder="Paste image URL (https://...)" />
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                  <label class="editor-btn-outline dark-btn" style="cursor: pointer; margin: 0; display: inline-flex; align-items: center;">
+                    Upload Cover File...
+                    <input type="file" id="edit-proj-cover-file" accept="image/*" style="display: none;" />
+                  </label>
+                  <button type="button" class="editor-btn-sm" id="btn-clear-cover-img">Clear Image</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Descriptions -->
+          <div class="editor-field">
+            <label for="edit-proj-short-desc">SHORT SUMMARY (SHOWN ON CATALOG CARD)</label>
+            <textarea id="edit-proj-short-desc" class="editor-textarea" rows="2" placeholder="Brief 1-2 sentence overview..."></textarea>
+          </div>
+
+          <div class="editor-field">
+            <label for="edit-proj-full-desc">FULL CASE STUDY CONCEPT DESCRIPTION</label>
+            <textarea id="edit-proj-full-desc" class="editor-textarea" rows="4" placeholder="Detailed architectural and spatial concept description..."></textarea>
+          </div>
+
+          <!-- Search Keywords & Alternate Aliases -->
+          <div class="editor-field">
+            <label for="edit-proj-keywords">SEARCH KEYWORDS &amp; ALIASES (OPTIONAL - comma-separated, e.g. when the ocean breath, sound sculpture, installation)</label>
+            <input type="text" id="edit-proj-keywords" class="editor-input" placeholder="e.g. ocean, breath, when the ocean breath, sound sculpture, installation" />
+            <p class="mono-help">Visitors can search any of these words on the website or on Google to find this project.</p>
+          </div>
+
+          <!-- Video Link -->
+          <div class="editor-field">
+            <label for="edit-proj-video">VIDEO LINK (YOUTUBE EMBED, VIMEO, OR MP4 URL)</label>
+            <input type="text" id="edit-proj-video" class="editor-input" placeholder="https://www.youtube.com/embed/..." />
+            <p class="mono-help">Embed URL for YouTube: <code>https://www.youtube.com/embed/VIDEO_ID</code></p>
+          </div>
+
+          <!-- Project Documentation Links (Title AND URL editable) -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <div>
+                <span class="sub-card-title">PROJECT DOCUMENTATION &amp; EXTERNAL LINKS</span>
+                <p class="mono-help">You can edit both the link name/title and the destination URL.</p>
+              </div>
+              <button type="button" class="editor-btn-sm" id="btn-add-modal-link">+ Add Link</button>
+            </div>
+            <div class="editor-list-container" id="modal-related-links-container"></div>
+          </div>
+
+          <!-- Presentation Mode -->
+          <div class="form-row-2">
+            <div class="editor-field">
+              <label for="edit-proj-gap">SHOWCASE PRESENTATION MODE</label>
+              <select id="edit-proj-gap" class="editor-select">
+                <option value="false">Continuous Roll (Seamless Connected Slices &bull; 0px Gap)</option>
+                <option value="true">Spaced Individual Images</option>
+              </select>
+            </div>
+            <div class="editor-field">
+              <label for="edit-proj-autoscroll">SUPPLEMENTARY EXHIBITS AUTO-SCROLL</label>
+              <select id="edit-proj-autoscroll" class="editor-select">
+                <option value="true">Continuous Smooth Auto-Scroll</option>
+                <option value="false">Manual Horizontal Scroll</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Showcase Images (Continuous Roll / Connected Slides) -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <div>
+                <span class="sub-card-title">MAIN SHOWCASE IMAGES (CONTINUOUS ROLL)</span>
+                <p class="mono-help">Upload or paste slice URLs. Slices stick together with 0px gap.</p>
+              </div>
+              <button type="button" class="editor-btn-sm" id="btn-add-modal-image">+ Add Image URL</button>
+            </div>
+
+            <!-- Batch Dropzone -->
+            <div class="modal-dropzone" id="modal-dropzone">
+              <input type="file" id="batch-file-input" accept="image/*" multiple style="display:none;" />
+              <div class="dropzone-text">DRAG &amp; DROP IMAGE SLICES OR CLICK TO BROWSE</div>
+              <button type="button" class="editor-btn-outline dark-btn" id="btn-batch-browse">Browse Image Files...</button>
+            </div>
+
+            <div class="editor-slices-stream" id="modal-images-container"></div>
+          </div>
+
+          <!-- Supplementary Scrolling Gallery Images -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <div>
+                <span class="sub-card-title">SUPPLEMENTARY EXHIBITS (HORIZONTAL SCROLLING GALLERY)</span>
+              </div>
+              <button type="button" class="editor-btn-sm" id="btn-add-modal-gallery">+ Add Gallery Image</button>
+            </div>
+            <div class="editor-list-container" id="modal-gallery-container"></div>
+          </div>
+
+          <!-- Custom Project Sections (Lower Page Narrative, Images & Links) -->
+          <div class="editor-sub-card">
+            <div class="sub-card-header">
+              <div>
+                <span class="sub-card-title">CUSTOM PROJECT SECTIONS (LOWER PAGE NARRATIVE &amp; MEDIA)</span>
+                <p class="mono-help">Add custom titled sections to the bottom of this project page. You can name each section and add text descriptions, images (upload file or paste URL with captions), or external links.</p>
+              </div>
+              <button type="button" class="editor-btn-sm" id="btn-add-project-custom-section">+ Add Section</button>
+            </div>
+            <div class="project-custom-sections-stack" id="modal-project-custom-sections-container">
+              <!-- Dynamically populated custom section cards -->
+            </div>
+          </div>
+
+          <div class="modal-form-actions">
+            <button type="submit" class="editor-btn-solid dark-solid">SAVE PROJECT</button>
+            <button type="button" class="editor-btn-outline dark-btn" id="btn-cancel-project">CANCEL</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= TRIPLE-CONFIRM PROJECT DELETE MODAL ================= -->
+  <div class="admin-modal-backdrop" id="delete-confirm-modal" style="display: none;">
+    <div class="admin-modal-card modal-delete-card">
+      <div class="admin-modal-header danger-header">
+        <div class="modal-heading-text" id="delete-modal-title">TRIPLE CONFIRMATION REQUIRED</div>
+        <button type="button" class="admin-modal-close" id="delete-modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="admin-modal-body">
+        
+        <!-- Step 1 Screen -->
+        <div class="delete-step-screen" id="delete-step-1">
+          <div class="danger-badge">CONFIRMATION STEP 1 OF 3</div>
+          <h3 class="delete-proj-name" id="del-name-step-1">Project Name</h3>
+          <p class="delete-warning-text">
+            Are you sure you want to delete this project from your portfolio? It will be removed from the catalog and detail views.
+          </p>
+          <div class="modal-form-actions">
+            <button type="button" class="editor-btn-danger" id="btn-del-proceed-1">PROCEED TO STEP 2 &rarr;</button>
+            <button type="button" class="editor-btn-outline dark-btn btn-del-cancel">CANCEL</button>
+          </div>
+        </div>
+
+        <!-- Step 2 Screen -->
+        <div class="delete-step-screen" id="delete-step-2" style="display:none;">
+          <div class="danger-badge red-alert">CONFIRMATION STEP 2 OF 3</div>
+          <h3 class="delete-proj-name" id="del-name-step-2">Project Name</h3>
+          <p class="delete-warning-text">
+            WARNING: All project slices, gallery items, and descriptions will be permanently unlinked. Do you still wish to proceed?
+          </p>
+          <div class="modal-form-actions">
+            <button type="button" class="editor-btn-danger" id="btn-del-proceed-2">PROCEED TO FINAL STEP &rarr;</button>
+            <button type="button" class="editor-btn-outline dark-btn btn-del-cancel">CANCEL</button>
+          </div>
+        </div>
+
+        <!-- Step 3 Screen -->
+        <div class="delete-step-screen" id="delete-step-3" style="display:none;">
+          <div class="danger-badge critical-alert">FINAL CONFIRMATION STEP 3 OF 3</div>
+          <h3 class="delete-proj-name" id="del-name-step-3">Project Name</h3>
+          <p class="delete-warning-text">
+            To permanently delete this project, type <strong>DELETE</strong> in the confirmation box below:
+          </p>
+          <div class="editor-field" style="margin: 1.25rem 0;">
+            <input type="text" id="input-del-verification" class="editor-input delete-verify-input" placeholder="Type DELETE to confirm" autocomplete="off" />
+          </div>
+          <div class="modal-form-actions">
+            <button type="button" class="editor-btn-danger disabled" id="btn-del-final-confirm" disabled>
+              PERMANENTLY DELETE PROJECT
+            </button>
+            <button type="button" class="editor-btn-outline dark-btn btn-del-cancel">CANCEL</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= LOGOUT CONFIRMATION MODAL ================= -->
+  <div class="admin-modal-backdrop" id="admin-logout-modal">
+    <div class="admin-modal-card modal-logout-card" style="max-width: 500px;">
+      <div class="admin-modal-header">
+        <div class="modal-heading-text">SESSION LOG OUT</div>
+        <button type="button" class="admin-modal-close" id="btn-admin-logout-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="admin-modal-body" id="admin-logout-confirm-screen">
+        <div class="logout-top-tag" style="font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em; color: var(--text-muted); text-transform: uppercase;">CONTENT MANAGEMENT SYSTEM</div>
+        <h3 class="logout-modal-title" style="font-family: var(--font-display, 'Anton', sans-serif); font-size: 1.85rem; line-height: 1.1; margin: 0.6rem 0; text-transform: uppercase;">SAVE CHANGES BEFORE EXITING?</h3>
+        <p class="logout-modal-desc" style="font-size: 0.86rem; line-height: 1.55; color: #555555; margin-bottom: 1.5rem;">
+          Would you like to permanently commit and save your updates to the portfolio, or discard in-progress changes and log out?
+        </p>
+        <div class="logout-modal-actions" style="display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" class="editor-btn-solid dark-solid" id="btn-admin-modal-save" style="padding: 0.85rem 1.25rem; font-weight: 700; width: 100%; text-align: center; justify-content: center; cursor: pointer;">
+            ✓ SAVE &amp; LOG OUT
+          </button>
+          <button type="button" class="editor-btn-outline dark-btn" id="btn-admin-modal-discard" style="padding: 0.75rem 1.25rem; width: 100%; text-align: center; justify-content: center; cursor: pointer;">
+            LOG OUT WITHOUT SAVING
+          </button>
+          <button type="button" id="btn-admin-modal-cancel" style="border: none; background: transparent; padding: 0.5rem; color: #777; width: 100%; text-align: center; cursor: pointer; font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em;">
+            CANCEL (CONTINUE EDITING)
+          </button>
+        </div>
+      </div>
+      <div class="admin-modal-body" id="admin-logout-success-screen" style="display: none; text-align: center; padding: 3rem 1.5rem;">
+        <div style="font-size: 2.5rem; color: #16a34a; line-height: 1; margin-bottom: 0.75rem;">✓</div>
+        <h3 style="font-family: var(--font-display); font-size: 1.85rem; margin-bottom: 0.5rem; text-transform: uppercase;">SAVED &amp; LOGGED OUT SUCCESSFULLY</h3>
+        <p style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted); margin: 0 auto; max-width: 380px;">
+          All your edits have been committed permanently to the database. Exiting studio...
+        </p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================= SCRIPTS ================= -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="database.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
+
