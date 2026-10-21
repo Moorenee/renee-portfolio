@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let isInitialLoad = true;
   let portfolioData = null;
+  let currentActiveProjectId = null;
 
   function navigateTo(viewId, param = null) {
     const earlyStyle = document.getElementById('early-route-style');
@@ -36,6 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     if (viewId === 'project-detail' && param) {
+      currentActiveProjectId = param;
       if (portfolioData) renderProjectDetail(param);
       const detailView = document.getElementById('view-project-detail');
       if (detailView) detailView.classList.add('active');
@@ -77,6 +79,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   window.addEventListener('hashchange', handleHashChange);
+
+  // Subscribe immediately to real-time database updates from Cloud Firestore & Admin
+  if (window.PortfolioDB && window.PortfolioDB.subscribe) {
+    window.PortfolioDB.subscribe((newData) => {
+      portfolioData = newData;
+      renderAll();
+      const hash = window.location.hash.replace('#', '');
+      const detailView = document.getElementById('view-project-detail');
+      const isDetailActive = detailView && detailView.classList.contains('active');
+      if (hash.startsWith('project/')) {
+        renderProjectDetail(hash.split('/')[1]);
+      } else if (isDetailActive && currentActiveProjectId) {
+        renderProjectDetail(currentActiveProjectId);
+      }
+    });
+  }
 
   // Synchronously switch to requested view from hash BEFORE waiting for database async
   handleHashChange();
@@ -1377,6 +1395,53 @@ document.addEventListener('DOMContentLoaded', async () => {
   const prevProjectBtn = document.getElementById('prev-project-btn');
   const nextProjectBtn = document.getElementById('next-project-btn');
 
+  function formatProcessEmbedUrl(rawUrl) {
+    if (!rawUrl) return '';
+    let u = rawUrl.trim();
+    // 1. Google Drive: file/d/ID/view -> file/d/ID/preview, or folders
+    if (u.includes('drive.google.com')) {
+      const match = u.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        return `https://drive.google.com/file/d/${match[1]}/preview`;
+      }
+      const folderMatch = u.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+      if (folderMatch && folderMatch[1]) {
+        return `https://drive.google.com/embeddedfolderview?id=${folderMatch[1]}#grid`;
+      }
+      const idMatch = u.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (idMatch && idMatch[1]) {
+        return `https://drive.google.com/file/d/${idMatch[1]}/preview`;
+      }
+    }
+    // 2. Google Docs / Slides / Sheets
+    if (u.includes('docs.google.com/presentation')) {
+      return u.replace(/\/edit.*$/, '/embed?start=false&loop=false');
+    }
+    if (u.includes('docs.google.com/document')) {
+      return u.replace(/\/edit.*$/, '/preview');
+    }
+    if (u.includes('docs.google.com/spreadsheets')) {
+      return u.replace(/\/edit.*$/, '/preview');
+    }
+    // 3. Figma Prototype / File
+    if (u.includes('figma.com/') && !u.includes('figma.com/embed')) {
+      return `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(u)}`;
+    }
+    // 4. Canva Embed
+    if (u.includes('canva.com/design') && !u.includes('embed')) {
+      return u.includes('?') ? `${u}&embed` : `${u}?embed`;
+    }
+    // 5. Dropbox
+    if (u.includes('dropbox.com')) {
+      return u.replace('?dl=0', '?raw=1').replace('&dl=0', '&raw=1');
+    }
+    // 6. Direct PDF
+    if (u.toLowerCase().endsWith('.pdf') && !u.includes('#')) {
+      return `${u}#toolbar=1&navpanes=0&scrollbar=1`;
+    }
+    return u;
+  }
+
   function renderProjectDetail(projectId) {
     if (!portfolioData || !portfolioData.projects) return;
     const projs = portfolioData.projects || [];
@@ -1387,6 +1452,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.location.hash = 'projects';
       return;
     }
+    currentActiveProjectId = project.id || project.index || projectId;
 
     try {
       window.scrollTo({ top: 0, behavior: 'instant' });
@@ -1432,13 +1498,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       detailLinksGrid.innerHTML = '';
       if (links.length > 0) {
         detailLinksSection.style.display = 'block';
+        const count = links.length;
+        detailLinksGrid.className = 'related-links-grid links-count-' + count + (count === 1 ? ' has-1-link' : ' has-multi-links');
         links.forEach(lk => {
           const a = document.createElement('a');
           a.className = 'related-link-card';
           a.href = lk.url;
           a.target = '_blank';
-          a.rel = 'noopener';
-          a.innerHTML = `<span>${lk.title}</span> <span>&UpperRightArrow;</span>`;
+          a.rel = 'noopener noreferrer';
+          a.innerHTML = `<span class="link-card-title">${lk.title || 'RELATED LINK'}</span> <span class="link-card-arrow">&UpperRightArrow;</span>`;
           detailLinksGrid.appendChild(a);
         });
       } else {
@@ -1571,19 +1639,121 @@ document.addEventListener('DOMContentLoaded', async () => {
           `;
         }
 
+        const isEmbedMode = !!linkUrl && cs.linkMode !== 'button_only';
+
         if (linkUrl) {
-          innerHtml += `
-            <div class="custom-section-link-wrap">
-              <a href="${linkUrl}" target="_blank" rel="noopener noreferrer" class="custom-section-link-btn">
-                <span>${linkText.toUpperCase()}</span>
-                <span>&rarr;</span>
-              </a>
-            </div>
-          `;
+          if (isEmbedMode) {
+            const embedSrc = formatProcessEmbedUrl(linkUrl);
+            const embedH = parseInt(cs.embedHeight, 10) || 620;
+            const speed = parseFloat(cs.autoScrollSpeed) || 1;
+            innerHtml += `
+              <div class="custom-section-pdf-viewer">
+                <div class="pdf-viewer-bar">
+                  <div class="pdf-bar-title-wrap">
+                    <span class="pdf-bar-pill">PROCESS PDF</span>
+                    <span class="pdf-bar-doc-title">${(linkText || title).toUpperCase()}</span>
+                  </div>
+                  <div class="pdf-bar-actions">
+                    <button type="button" class="btn-pdf-control btn-pdf-autoscroll" data-speed="${speed}" title="Auto-scroll through document">
+                      <span class="pdf-ctrl-icon">▶</span>
+                      <span class="pdf-ctrl-text">AUTO-SCROLL</span>
+                    </button>
+                    <a href="${linkUrl}" target="_blank" rel="noopener noreferrer" class="btn-pdf-control btn-pdf-open" title="Open full PDF in new tab to scroll yourself">
+                      <span class="pdf-ctrl-text">OPEN FULL</span>
+                      <span class="pdf-ctrl-icon">&nearr;</span>
+                    </a>
+                  </div>
+                </div>
+                <div class="pdf-viewer-viewport" style="height: ${embedH}px;">
+                  <iframe src="${embedSrc}" class="pdf-embed-frame" title="${title}" allowfullscreen loading="lazy"></iframe>
+                </div>
+                <div class="pdf-viewer-footer">
+                  <div class="pdf-footer-hint">
+                    <span class="hint-bullet">&bull;</span>
+                    <span>PROCESS DOCUMENTATION &bull; SCROLL MANUALLY WITH TOUCH / MOUSE, OR CLICK <strong>AUTO-SCROLL</strong> FOR HANDS-FREE VIEWING.</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          } else {
+            innerHtml += `
+              <div class="custom-section-link-wrap">
+                <a href="${linkUrl}" target="_blank" rel="noopener noreferrer" class="custom-section-link-btn">
+                  <span>${linkText.toUpperCase()}</span>
+                  <span>&rarr;</span>
+                </a>
+                <span class="custom-section-link-hint">[ OPENS FULL DOCUMENT IN NEW TAB &bull; SCROLL YOURSELF ]</span>
+              </div>
+            `;
+          }
         }
 
         secBlock.innerHTML = innerHtml;
         customSecsContainer.appendChild(secBlock);
+
+        if (isEmbedMode) {
+          const btnAutoScroll = secBlock.querySelector('.btn-pdf-autoscroll');
+          const viewport = secBlock.querySelector('.pdf-viewer-viewport');
+          if (btnAutoScroll && viewport) {
+            let isAutoScrolling = false;
+            let scrollTimer = null;
+            const speed = parseFloat(btnAutoScroll.dataset.speed) || 1;
+            const scrollStep = 1.2 * speed;
+
+            function stopAutoScroll() {
+              if (!isAutoScrolling) return;
+              isAutoScrolling = false;
+              clearInterval(scrollTimer);
+              scrollTimer = null;
+              btnAutoScroll.classList.remove('is-active');
+              const icon = btnAutoScroll.querySelector('.pdf-ctrl-icon');
+              const text = btnAutoScroll.querySelector('.pdf-ctrl-text');
+              if (icon) icon.textContent = '▶';
+              if (text) text.textContent = 'AUTO-SCROLL';
+            }
+
+            function startAutoScroll() {
+              isAutoScrolling = true;
+              btnAutoScroll.classList.add('is-active');
+              const icon = btnAutoScroll.querySelector('.pdf-ctrl-icon');
+              const text = btnAutoScroll.querySelector('.pdf-ctrl-text');
+              if (icon) icon.textContent = '⏸';
+              if (text) text.textContent = 'PAUSE SCROLL';
+
+              const rect = viewport.getBoundingClientRect();
+              if (rect.top < 60 || rect.top > window.innerHeight - 200) {
+                viewport.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+
+              clearInterval(scrollTimer);
+              scrollTimer = setInterval(() => {
+                if (viewport.scrollHeight > viewport.clientHeight + 4) {
+                  viewport.scrollTop += scrollStep;
+                  if (viewport.scrollTop >= (viewport.scrollHeight - viewport.clientHeight - 2)) {
+                    stopAutoScroll();
+                  }
+                } else {
+                  window.scrollBy({ top: scrollStep, behavior: 'instant' });
+                  const currentRect = viewport.getBoundingClientRect();
+                  if (currentRect.bottom <= 140) {
+                    stopAutoScroll();
+                  }
+                }
+              }, 32);
+            }
+
+            btnAutoScroll.addEventListener('click', () => {
+              if (isAutoScrolling) {
+                stopAutoScroll();
+              } else {
+                startAutoScroll();
+              }
+            });
+
+            viewport.addEventListener('wheel', stopAutoScroll, { passive: true });
+            viewport.addEventListener('touchstart', stopAutoScroll, { passive: true });
+          }
+        }
       });
 
       customSecsContainer.style.display = customSecs.length > 0 ? 'flex' : 'none';
@@ -1720,15 +1890,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try { renderTopHeaders(); } catch(e) { console.warn('Render Headers error:', e); }
   }
 
-  // Subscribe to real-time changes saved in admin page
-  window.PortfolioDB.subscribe((newData) => {
-    portfolioData = newData;
-    renderAll();
-    const hash = window.location.hash.replace('#', '');
-    if (hash.startsWith('project/')) {
-      renderProjectDetail(hash.split('/')[1]);
-    }
-  });
+
 
   // Re-sync instantly when user switches back to this tab
   async function refreshLiveState() {
@@ -1739,8 +1901,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         portfolioData = fresh;
         renderAll();
         const hash = window.location.hash.replace('#', '');
+        const detailView = document.getElementById('view-project-detail');
+        const isDetailActive = detailView && detailView.classList.contains('active');
         if (hash.startsWith('project/')) {
           renderProjectDetail(hash.split('/')[1]);
+        } else if (isDetailActive && currentActiveProjectId) {
+          renderProjectDetail(currentActiveProjectId);
         }
       }
     } catch(e) {}

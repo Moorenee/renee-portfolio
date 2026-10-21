@@ -8,6 +8,17 @@ async function initAdmin() {
   try { updateCloudUI(); } catch (e) {}
   let currentData = await window.PortfolioDB.getData();
 
+  // Subscribe to real-time database updates from Cloud Firestore
+  if (window.PortfolioDB && window.PortfolioDB.subscribe) {
+    window.PortfolioDB.subscribe((freshData) => {
+      if (!hasUnsavedChanges && freshData) {
+        currentData = freshData;
+        try { populateAllForms(); } catch(e) {}
+        try { updateRawJsonInspector(); } catch(e) {}
+      }
+    });
+  }
+
   const toast = document.getElementById('admin-toast');
 
   function showToast(msg, isError = false) {
@@ -47,8 +58,8 @@ async function initAdmin() {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, w, h);
-          // Standardize on JPEG quality 0.80 for compact 30-70KB uploads that easily fit into Firestore
-          resolve(canvas.toDataURL('image/jpeg', 0.80));
+          // Standardize on JPEG quality 0.74 for compact 30-60KB uploads that easily fit into Firestore
+          resolve(canvas.toDataURL('image/jpeg', 0.74));
         };
         img.src = rawResult;
       };
@@ -171,10 +182,22 @@ async function initAdmin() {
     openAdminLogoutModal();
   }
 
-  // Attach to header logout button, sidebar logout button, and exit links
-  document.querySelectorAll('#btn-admin-logout, #btn-sidebar-logout, .sidebar-logout-btn, .admin-exit-btn').forEach(btn => {
+  // Attach to header logout button and sidebar logout button
+  document.querySelectorAll('#btn-admin-logout, #btn-sidebar-logout, .sidebar-logout-btn').forEach(btn => {
     btn.addEventListener('click', handleLogoutClick);
   });
+
+  // Dedicated handler for EXIT TO SITE button: saves any pending edits and returns to index.html without destroying session
+  const btnViewSite = document.getElementById('btn-view-site');
+  if (btnViewSite) {
+    btnViewSite.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (hasUnsavedChanges) {
+        await executeSave('CHANGES');
+      }
+      window.location.href = 'index.html#home';
+    });
+  }
 
   if (btnAdminModalCancel) {
     btnAdminModalCancel.addEventListener('click', closeAdminLogoutModal);
@@ -1920,6 +1943,105 @@ async function initAdmin() {
     const asEl = document.getElementById('edit-proj-autoscroll');
     if (asEl) activeProject.autoScrollImages = asEl.value === 'true';
 
+    // 1. Scrape Related Links from modal DOM
+    const linksWrap = document.getElementById('modal-related-links-container');
+    if (linksWrap) {
+      const scrapedLinks = [];
+      linksWrap.querySelectorAll('.editor-dynamic-row').forEach(row => {
+        const inps = row.querySelectorAll('.editor-input');
+        if (inps && inps.length >= 2) {
+          const lTitle = inps[0].value.trim().toUpperCase();
+          const lUrl = inps[1].value.trim();
+          if (lTitle || lUrl) {
+            scrapedLinks.push({ title: lTitle || 'RELATED LINK', url: lUrl });
+          }
+        }
+      });
+      activeProject.relatedLinks = scrapedLinks;
+    }
+
+    // 2. Scrape Showcase Image Slices from modal DOM
+    const imgsWrap = document.getElementById('modal-images-container');
+    if (imgsWrap) {
+      const scrapedImgs = [];
+      imgsWrap.querySelectorAll('.editor-dynamic-row').forEach(row => {
+        const inps = row.querySelectorAll('.editor-input');
+        if (inps && inps.length >= 2) {
+          const imgUrl = inps[0].value.trim();
+          const imgCaption = inps[1].value.trim();
+          if (imgUrl) {
+            scrapedImgs.push({ url: imgUrl, caption: imgCaption });
+          }
+        }
+      });
+      activeProject.images = scrapedImgs;
+    }
+
+    // 3. Scrape Gallery from modal DOM
+    const galWrap = document.getElementById('modal-gallery-container');
+    if (galWrap) {
+      const scrapedGal = [];
+      galWrap.querySelectorAll('.editor-dynamic-row').forEach(row => {
+        const inp = row.querySelector('.editor-input');
+        if (inp && inp.value.trim()) {
+          scrapedGal.push(inp.value.trim());
+        }
+      });
+      activeProject.gallery = scrapedGal;
+    }
+
+    // 4. Scrape Custom Project Sections from modal DOM
+    const secContainer = document.getElementById('modal-project-custom-sections-container');
+    if (secContainer) {
+      const cards = secContainer.querySelectorAll('.custom-sec-card');
+      const scrapedSecs = [];
+      cards.forEach((card, cIdx) => {
+        const titleInp = card.querySelector('.sec-title-input');
+        const textInp = card.querySelector('.sec-text-input');
+        const imgUrlInp = card.querySelector('.sec-img-url-input');
+        const captionInp = card.querySelector('.sec-img-caption-input');
+        const linkTextInp = card.querySelector('.sec-link-text-input');
+        const linkUrlInp = card.querySelector('.sec-link-url-input');
+        const heightSelect = card.querySelector('.sec-height-select');
+        const speedSelect = card.querySelector('.sec-speed-select');
+        const activeLinkModeBtn = card.querySelector('.btn-link-mode-toggle.active');
+        const activeTypePill = card.querySelector('.sec-type-pill.active');
+
+        const title = titleInp ? titleInp.value.trim() : '';
+        const text = textInp ? textInp.value.trim() : '';
+        const imageUrl = imgUrlInp ? imgUrlInp.value.trim() : '';
+        const imageCaption = captionInp ? captionInp.value.trim() : '';
+        const linkText = linkTextInp ? linkTextInp.value.trim() : '';
+        const linkUrl = linkUrlInp ? linkUrlInp.value.trim() : '';
+        const embedHeight = heightSelect ? (parseInt(heightSelect.value, 10) || 620) : 620;
+        const autoScrollSpeed = speedSelect ? (parseFloat(speedSelect.value) || 1) : 1;
+        const linkMode = activeLinkModeBtn ? activeLinkModeBtn.dataset.mode : 'embed';
+        const contentType = activeTypePill ? activeTypePill.dataset.type : 'mixed';
+
+        const existingSec = (activeProject.customSections && activeProject.customSections[cIdx]) || {};
+        const id = existingSec.id || `sec_${activeProject.id || 'p'}_${cIdx + 1}`;
+
+        scrapedSecs.push({
+          id,
+          title: title || `SECTION 0${cIdx + 1}`,
+          contentType,
+          text,
+          content: text,
+          imageUrl,
+          imageCaption,
+          linkText,
+          linkUrl,
+          linkMode: linkMode === 'button_only' ? 'button_only' : 'embed',
+          autoScroll: true,
+          autoScrollSpeed,
+          embedHeight
+        });
+      });
+      if (cards.length > 0) {
+        activeProject.customSections = scrapedSecs;
+      }
+    }
+
     // Synchronize to currentData.projects immediately!
     const existingIdx = currentData.projects.findIndex(p => p.id === activeProject.id);
     if (existingIdx !== -1) {
@@ -2199,7 +2321,7 @@ async function initAdmin() {
       if (files.length > 0) {
         showToast(`Processing ${files.length} image slice(s)...`);
         for (const file of files) {
-          const b64 = await fileToBase64(file, 2000);
+          const b64 = await fileToBase64(file, 1200);
           activeProject.images = activeProject.images || [];
           activeProject.images.push({ url: b64, caption: file.name.replace(/\.[^/.]+$/, '') });
         }
@@ -2322,12 +2444,55 @@ async function initAdmin() {
           </div>
         </div>
 
-        <!-- Link Content Area -->
+        <!-- Link & Research Document Content Area -->
         <div class="editor-field sec-field-link" style="${cType === 'text' || cType === 'image' ? 'display:none;' : ''}">
-          <label style="font-size: 0.68rem; font-weight: 700; color: #555;">EXTERNAL LINK / RESOURCE BUTTON</label>
+          <label style="font-size: 0.68rem; font-weight: 700; color: #555;">RESEARCH DOCUMENT & LINK PRESENTATION MODE</label>
+          
+          <div class="sec-link-mode-bar" style="display:flex; gap:8px; margin: 6px 0 10px 0; flex-wrap:wrap;">
+            <button type="button" class="btn-link-mode-toggle ${sec.linkMode !== 'button_only' ? 'active' : ''}" data-mode="embed" style="padding:6px 12px; font-size:0.68rem; font-weight:700; font-family:var(--font-mono, monospace); cursor:pointer; border:1px solid #d5d2c8; background:${sec.linkMode !== 'button_only' ? '#111' : '#fff'}; color:${sec.linkMode !== 'button_only' ? '#fff' : '#444'};">
+              📄 EMBEDDED PDF PROCESS VIEWER (In-Page &bull; Auto-Scroll & Manual Scroll)
+            </button>
+            <button type="button" class="btn-link-mode-toggle ${sec.linkMode === 'button_only' ? 'active' : ''}" data-mode="button_only" style="padding:6px 12px; font-size:0.68rem; font-weight:700; font-family:var(--font-mono, monospace); cursor:pointer; border:1px solid #d5d2c8; background:${sec.linkMode === 'button_only' ? '#111' : '#fff'}; color:${sec.linkMode === 'button_only' ? '#fff' : '#444'};">
+              🔗 DIRECT LINK BUTTON (Open in new tab &bull; Scroll yourself)
+            </button>
+          </div>
+
           <div class="form-row-2">
-            <input type="text" class="editor-input sec-link-text-input" placeholder="Link Button Label (e.g. VIEW LIVE REPO)" value="${sec.linkText || ''}" />
-            <input type="text" class="editor-input sec-link-url-input" placeholder="Destination URL (https://...)" value="${sec.linkUrl || ''}" />
+            <div>
+              <label style="font-size: 0.62rem; color: #777;">LINK / DOCUMENT TITLE</label>
+              <input type="text" class="editor-input sec-link-text-input" placeholder="e.g. VIEW RESEARCH PROCESS & WHITE PAPER" value="${sec.linkText || ''}" />
+            </div>
+            <div>
+              <label style="font-size: 0.62rem; color: #777;">DOCUMENT / PDF URL (Google Drive, direct .pdf link, Canva, etc.)</label>
+              <input type="text" class="editor-input sec-link-url-input" placeholder="https://... or Google Drive link" value="${sec.linkUrl || ''}" />
+            </div>
+          </div>
+
+          <!-- Embedded PDF Viewer Configuration Box -->
+          <div class="sec-embed-panel" style="${sec.linkMode !== 'button_only' ? 'display:block; margin-top:10px; padding:10px 12px; background:#f4f2ec; border:1px solid #d5d2c8;' : 'display:none;'}">
+            <div style="font-size:0.68rem; font-weight:700; color:#222; margin-bottom:6px; letter-spacing:0.04em;">EMBEDDED PROCESS VIEWER OPTIONS</div>
+            <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap; font-size:0.75rem;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:0.68rem; color:#555;">Viewer Height:</span>
+                <select class="editor-input sec-height-select" style="padding:2px 8px; font-size:0.72rem; width:auto;">
+                  <option value="500" ${sec.embedHeight == 500 ? 'selected' : ''}>Compact (500px)</option>
+                  <option value="620" ${(!sec.embedHeight || sec.embedHeight == 620) ? 'selected' : ''}>Standard (620px)</option>
+                  <option value="780" ${sec.embedHeight == 780 ? 'selected' : ''}>Tall / Full Page (780px)</option>
+                  <option value="920" ${sec.embedHeight == 920 ? 'selected' : ''}>Extended (920px)</option>
+                </select>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:0.68rem; color:#555;">Auto-Scroll Speed:</span>
+                <select class="editor-input sec-speed-select" style="padding:2px 8px; font-size:0.72rem; width:auto;">
+                  <option value="0.7" ${sec.autoScrollSpeed == 0.7 ? 'selected' : ''}>Gentle (Slow)</option>
+                  <option value="1" ${(!sec.autoScrollSpeed || sec.autoScrollSpeed == 1) ? 'selected' : ''}>Standard (Normal)</option>
+                  <option value="1.8" ${sec.autoScrollSpeed == 1.8 ? 'selected' : ''}>Brisk (Fast)</option>
+                </select>
+              </div>
+            </div>
+            <div style="font-size:0.64rem; color:#666; font-style:italic; margin-top:6px;">
+              💡 Paste any Google Drive link, direct PDF file URL, Canva presentation, or Figma prototype. When set to Embedded, visitors can view hands-free with Auto-Scroll or scroll manually at their own pace!
+            </div>
           </div>
         </div>
       `;
@@ -2343,6 +2508,36 @@ async function initAdmin() {
       const captionInp = card.querySelector('.sec-img-caption-input');
       const linkTextInp = card.querySelector('.sec-link-text-input');
       const linkUrlInp = card.querySelector('.sec-link-url-input');
+      const linkModeButtons = card.querySelectorAll('.btn-link-mode-toggle');
+      const embedPanel = card.querySelector('.sec-embed-panel');
+      const heightSelect = card.querySelector('.sec-height-select');
+      const speedSelect = card.querySelector('.sec-speed-select');
+
+      linkModeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const mode = btn.dataset.mode;
+          sec.linkMode = mode;
+          linkModeButtons.forEach(b => {
+            const isActive = b.dataset.mode === mode;
+            b.style.background = isActive ? '#111' : '#fff';
+            b.style.color = isActive ? '#fff' : '#444';
+          });
+          if (embedPanel) {
+            embedPanel.style.display = mode === 'embed' ? 'block' : 'none';
+          }
+        });
+      });
+
+      if (heightSelect) {
+        heightSelect.addEventListener('change', () => {
+          sec.embedHeight = parseInt(heightSelect.value, 10) || 620;
+        });
+      }
+      if (speedSelect) {
+        speedSelect.addEventListener('change', () => {
+          sec.autoScrollSpeed = parseFloat(speedSelect.value) || 1;
+        });
+      }
 
       titleInp.addEventListener('input', () => { sec.title = titleInp.value; });
       textInp.addEventListener('input', () => { sec.text = textInp.value; sec.content = textInp.value; });
@@ -2364,7 +2559,7 @@ async function initAdmin() {
           const file = e.target.files && e.target.files[0];
           if (file) {
             try {
-              const b64 = await fileToBase64(file, 1600);
+              const b64 = await fileToBase64(file, 1200);
               sec.imageUrl = b64;
               imgUrlInp.value = b64;
               imgPrev.src = b64;
@@ -2468,7 +2663,11 @@ async function initAdmin() {
         imageUrl: '',
         imageCaption: '',
         linkText: '',
-        linkUrl: ''
+        linkUrl: '',
+        linkMode: 'embed',
+        autoScroll: true,
+        autoScrollSpeed: 1,
+        embedHeight: 620
       });
       renderModalCustomSections();
     });

@@ -285,7 +285,11 @@ const DEFAULT_PORTFOLIO_DATA = {
           imageUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1200&auto=format&fit=crop&q=80",
           imageCaption: "Figure 1.1: Spatial Acoustic Field Calibration & Sensor Node Layout",
           linkText: "VIEW RESEARCH WHITE PAPER",
-          linkUrl: "https://behance.net/reneemoo"
+          linkUrl: "https://behance.net/reneemoo",
+          linkMode: "embed",
+          autoScroll: true,
+          autoScrollSpeed: 1,
+          embedHeight: 620
         }
       ]
     },
@@ -819,8 +823,11 @@ class PortfolioDatabase {
       this.memoryData = this._ensureSchemaIntegrity(DEFAULT_PORTFOLIO_DATA);
     }
 
+    this.isInitialized = false;
     this.initCloud();
-    this.initPromise = this.init();
+    this.initPromise = this.init().finally(() => {
+      this.isInitialized = true;
+    });
 
     // BroadcastChannel for instant cross-tab sync
     if (typeof BroadcastChannel !== 'undefined') {
@@ -961,6 +968,13 @@ class PortfolioDatabase {
         p.images = Array.isArray(p.images) ? p.images : [];
         p.gallery = Array.isArray(p.gallery) ? p.gallery : [];
         p.customSections = Array.isArray(p.customSections) ? p.customSections : [];
+        p.customSections.forEach((cs, cIdx) => {
+          if (!cs.id) cs.id = `sec_${p.id || 'p'}_${cIdx + 1}`;
+          if (!cs.linkMode || cs.linkMode === 'button') cs.linkMode = 'embed';
+          if (cs.autoScroll === undefined) cs.autoScroll = true;
+          if (!cs.autoScrollSpeed) cs.autoScrollSpeed = 1;
+          if (!cs.embedHeight) cs.embedHeight = 620;
+        });
       });
     }
     return data;
@@ -1023,14 +1037,14 @@ class PortfolioDatabase {
         }
       } catch (e) {}
 
-      // 3. Fast-boot Cloud Sync: Start listener immediately and race cloud fetch with 500ms timeout
+      // 3. Fast-boot Cloud Sync: Start listener immediately and race cloud fetch with 2500ms timeout
       // This ensures visitors on mobile/other devices see the LATEST saved project on the very first frame!
       if (this.firestore && this.isCloudEnabled) {
         this.setupCloudListener();
         try {
           await Promise.race([
             this.syncCloudInBackground(),
-            new Promise(resolve => setTimeout(resolve, 550))
+            new Promise(resolve => setTimeout(resolve, 2500))
           ]);
         } catch (e) {
           console.warn('Initial cloud sync race notice:', e);
@@ -1053,21 +1067,22 @@ class PortfolioDatabase {
         const cloudPayload = docSnap.data();
         if (cloudPayload && cloudPayload.data && cloudPayload.data.profile && Array.isArray(cloudPayload.data.projects)) {
           const cloudData = this._ensureSchemaIntegrity(cloudPayload.data);
+          const isClientView = typeof window !== 'undefined' && !window.location.pathname.toLowerCase().includes('admin');
           const localUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
           const cloudUpdated = cloudPayload.clientTimestamp
             ? new Date(cloudPayload.clientTimestamp).getTime()
             : ((cloudPayload.data && cloudPayload.data._lastUpdated) || 0);
 
-          // ONLY push local to cloud if this device explicitly edited/saved from admin!
-          if (this.memoryData && this.memoryData._savedFromAdmin && localUpdated > cloudUpdated) {
-            console.info('[PortfolioDB] Local edits are newer than cloud. Syncing local to cloud...');
-            await this.saveToCloud(this.memoryData);
-          } else if (cloudUpdated >= localUpdated || !this.memoryData || !this.memoryData._savedFromAdmin) {
+          // If on client live view, or cloud data is newer or local is default, update local immediately
+          if (isClientView || cloudUpdated >= localUpdated || localUpdated <= 10 || !this.memoryData || !this.memoryData._savedFromAdmin) {
             console.info('[PortfolioDB] Updating to latest cloud dataset...');
             this.memoryData = cloudData;
             await idbSet('current_portfolio_v3', this.memoryData);
             this.persistToLocal(this.memoryData);
             this.notifyListeners();
+          } else if (this.memoryData && this.memoryData._savedFromAdmin && localUpdated > cloudUpdated) {
+            console.info('[PortfolioDB] Local edits are newer than cloud. Syncing local to cloud...');
+            await this.saveToCloud(this.memoryData);
           }
         }
       } else {
@@ -1081,7 +1096,7 @@ class PortfolioDatabase {
   }
 
   async getData() {
-    if (!this.memoryData) {
+    if (!this.isInitialized) {
       await this.initPromise;
     }
     try {
@@ -1181,19 +1196,21 @@ class PortfolioDatabase {
           }
           const cloudPayload = docSnap.data();
           if (cloudPayload && cloudPayload.data && cloudPayload.data.profile) {
+            const isClientView = typeof window !== 'undefined' && !window.location.pathname.toLowerCase().includes('admin');
             const localUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
             const cloudUpdated = cloudPayload.clientTimestamp
               ? new Date(cloudPayload.clientTimestamp).getTime()
               : ((cloudPayload.data && cloudPayload.data._lastUpdated) || 0);
 
-            // Don't overwrite if local admin session has strictly newer unsaved local edits
-            if (this.memoryData && this.memoryData._savedFromAdmin && localUpdated > cloudUpdated) {
-              return;
+            // On the live website (client view), ALWAYS apply cloud updates immediately with 0ms delay!
+            // In Admin, apply if cloud is newer or equal (to avoid clobbering active in-progress edits).
+            if (isClientView || cloudUpdated >= (localUpdated - 500) || localUpdated <= 10) {
+              console.info('[PortfolioDB] Real-time cloud sync applied.');
+              this.memoryData = this._ensureSchemaIntegrity(cloudPayload.data);
+              idbSet('current_portfolio_v3', this.memoryData);
+              this.persistToLocal(this.memoryData);
+              this.notifyListeners();
             }
-            this.memoryData = this._ensureSchemaIntegrity(cloudPayload.data);
-            idbSet('current_portfolio_v3', this.memoryData);
-            this.persistToLocal(this.memoryData);
-            this.notifyListeners();
           }
         }, (err) => {
           console.warn('Cloud sync listener error:', err);
