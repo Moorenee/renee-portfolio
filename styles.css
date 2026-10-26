@@ -4559,6 +4559,9 @@ html, body {
     color: #8c8984;
     white-space: nowrap;
   }
+  body.theme-navy .home-left-col .home-year-copyright {
+    color: #FFFFFF !important;
+  }
   .home-center-hero {
     grid-column: auto;
     border-right: none;
@@ -4605,6 +4608,9 @@ html, body {
     letter-spacing: 1.5px;
     color: #8c8984;
     white-space: nowrap;
+  }
+  body.theme-navy .home-right-years {
+    color: #FFFFFF !important;
   }
   .home-bottom-grid-bar {
     display: grid;

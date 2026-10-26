@@ -453,23 +453,23 @@ async function initAdmin() {
     if (resTextEl) resTextEl.value = p.resumeBtnText || 'VIEW RESUME';
 
     // Homepage Hero inputs (Image 2)
-    const sv = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
-    sv('home-des-by-input', h.desByLabel || 'DES. BY');
-    sv('home-designer-name-input', h.designerName || p.name || 'MOO RENEE');
-    sv('home-discipline-sub-input', h.disciplineSub || "INTERACTIVE SPATIAL DESIGN\nTAYLOR'S UNIVERSITY");
-    sv('home-copyright-input', h.copyrightText || '©2026');
-    sv('home-right-discipline-input', h.rightDiscipline || p.degree || 'BACHELOR IN INTERACTIVE SPATIAL DESIGN (HONS)');
-    sv('home-right-years-input', h.rightYears || p.years || '2024 — 2026');
+    const sv = (id, val) => { const el = document.getElementById(id); if (el) el.value = (val !== undefined && val !== null) ? val : ''; };
+    sv('home-des-by-input', h.desByLabel !== undefined ? h.desByLabel : 'DES. BY');
+    sv('home-designer-name-input', h.designerName !== undefined ? h.designerName : (p.name || 'MOO RENEE'));
+    sv('home-discipline-sub-input', h.disciplineSub !== undefined ? h.disciplineSub : "INTERACTIVE SPATIAL DESIGN\nTAYLOR'S UNIVERSITY");
+    sv('home-copyright-input', h.copyrightText !== undefined ? h.copyrightText : '©2026');
+    sv('home-right-discipline-input', h.rightDiscipline !== undefined ? h.rightDiscipline : (p.degree || 'BACHELOR IN INTERACTIVE SPATIAL DESIGN (HONS)'));
+    sv('home-right-years-input', h.rightYears !== undefined ? h.rightYears : (p.years || '2024 — 2026'));
 
     // Homepage Bottom Bar inputs (Image 1)
-    sv('home-email-text-input', h.emailText || '- MOORENEE481@GMAIL.COM');
-    sv('home-email-url-input', h.emailUrl || 'mailto:moorenee481@gmail.com');
-    sv('home-phone-text-input', h.phoneText || '+06 10-3687393');
-    sv('home-phone-url-input', h.phoneUrl || 'tel:+60103687393');
-    sv('home-behance-text-input', h.behanceText || 'BEHANCE.NET/RENEEMOO');
-    sv('home-behance-url-input', h.behanceUrl || 'https://behance.net/reneemoo');
-    sv('home-enter-text-input', h.enterText || '- ENTER PORTFOLIO ->');
-    sv('home-enter-url-input', h.enterUrl || '#projects');
+    sv('home-email-text-input', h.emailText !== undefined ? h.emailText : '- MOORENEE481@GMAIL.COM');
+    sv('home-email-url-input', h.emailUrl !== undefined ? h.emailUrl : 'mailto:moorenee481@gmail.com');
+    sv('home-phone-text-input', h.phoneText !== undefined ? h.phoneText : '+06 10-3687393');
+    sv('home-phone-url-input', h.phoneUrl !== undefined ? h.phoneUrl : 'tel:+60103687393');
+    sv('home-behance-text-input', h.behanceText !== undefined ? h.behanceText : 'BEHANCE.NET/RENEEMOO');
+    sv('home-behance-url-input', h.behanceUrl !== undefined ? h.behanceUrl : 'https://behance.net/reneemoo');
+    sv('home-enter-text-input', h.enterText !== undefined ? h.enterText : '- ENTER PORTFOLIO ->');
+    sv('home-enter-url-input', h.enterUrl !== undefined ? h.enterUrl : '#projects');
   }
 
   if (idPhotoUrl) {
@@ -587,8 +587,8 @@ async function initAdmin() {
     h.phoneUrl = document.getElementById('home-phone-url-input') ? document.getElementById('home-phone-url-input').value.trim() : (h.phoneUrl || '');
     h.behanceText = document.getElementById('home-behance-text-input') ? document.getElementById('home-behance-text-input').value.trim() : (h.behanceText || '');
     h.behanceUrl = document.getElementById('home-behance-url-input') ? document.getElementById('home-behance-url-input').value.trim() : (h.behanceUrl || '');
-    h.enterText = gv('home-enter-text-input', '- ENTER PORTFOLIO ->');
-    h.enterUrl = gv('home-enter-url-input', '#projects');
+    h.enterText = document.getElementById('home-enter-text-input') ? document.getElementById('home-enter-text-input').value.trim() : (h.enterText || '');
+    h.enterUrl = document.getElementById('home-enter-url-input') ? document.getElementById('home-enter-url-input').value.trim() : (h.enterUrl || '');
   }
 
   const btnSaveIdentity = document.getElementById('btn-save-identity');
@@ -617,32 +617,32 @@ async function initAdmin() {
     const defAbout = (window.DEFAULT_PORTFOLIO_DATA && window.DEFAULT_PORTFOLIO_DATA.about) || {};
     const defProf = (window.DEFAULT_PORTFOLIO_DATA && window.DEFAULT_PORTFOLIO_DATA.profile) || {};
 
-    if (!Array.isArray(currentData.about.technicalSkills) || currentData.about.technicalSkills.length === 0) {
+    if (!Array.isArray(currentData.about.technicalSkills)) {
       currentData.about.technicalSkills = [...(defAbout.technicalSkills || ["UI/UX DESIGN", "GAME DESIGN", "AR/VR DEVELOPMENT", "GRAPHIC DESIGN", "CODING", "3D MODELING"])];
     }
-    if (!Array.isArray(currentData.about.personalSkills) || currentData.about.personalSkills.length === 0) {
+    if (!Array.isArray(currentData.about.personalSkills)) {
       currentData.about.personalSkills = [...(defAbout.personalSkills || ["TEAMWORK", "CREATIVITY", "TIME MANAGEMENT", "RESPONSIBILITY", "WILLINGNESS TO LEARN", "ORGANIZATION"])];
     }
-    if (!Array.isArray(currentData.about.languages) || currentData.about.languages.length === 0) {
+    if (!Array.isArray(currentData.about.languages)) {
       currentData.about.languages = JSON.parse(JSON.stringify(defAbout.languages || [
         { language: "Chinese", proficiency: "NATIVE" },
         { language: "English", proficiency: "FLUENT" },
         { language: "Malay", proficiency: "CONVERSATIONAL" }
       ]));
     }
-    if (!Array.isArray(currentData.about.experience) || currentData.about.experience.length === 0) {
+    if (!Array.isArray(currentData.about.experience)) {
       currentData.about.experience = JSON.parse(JSON.stringify(defAbout.experience || []));
     }
-    if (!Array.isArray(currentData.about.achievements) || currentData.about.achievements.length === 0) {
+    if (!Array.isArray(currentData.about.achievements)) {
       currentData.about.achievements = JSON.parse(JSON.stringify(defAbout.achievements || []));
     }
-    if (!Array.isArray(currentData.about.competitions) || currentData.about.competitions.length === 0) {
+    if (!Array.isArray(currentData.about.competitions)) {
       currentData.about.competitions = JSON.parse(JSON.stringify(defAbout.competitions || []));
     }
-    if (!Array.isArray(currentData.about.education) || currentData.about.education.length === 0) {
+    if (!Array.isArray(currentData.about.education)) {
       currentData.about.education = JSON.parse(JSON.stringify(defAbout.education || []));
     }
-    if (!Array.isArray(currentData.profile.stats) || currentData.profile.stats.length === 0) {
+    if (!Array.isArray(currentData.profile.stats)) {
       currentData.profile.stats = JSON.parse(JSON.stringify(defProf.stats || [
         { number: "6+", label: "YEARS STUDYING DESIGN" },
         { number: "2+", label: "PROJECTS COMPLETED" },

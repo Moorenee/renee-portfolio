@@ -307,7 +307,7 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["INSTALLATION", "3D", "PROJECTION", "ILLUSTRATION"],
       tag: "INSTALLATION",
       date: "2025",
-      coverImage: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200&auto=format&fit=crop&q=80",
       labels: ["INSTALLATION", "3D", "PROJECTION", "ILLUSTRATION"],
       shortDescription: "Interactive spatial installation exploring the threshold between darkness and breath dynamics through responsive lighting sensors and sound sculptures.",
       fullDescription: "Where the Demon Breathes is an immersive sensory installation exploring spatial threshold mythology. Ambient sensors detect participant breath cycles and proximity, dynamically manipulating localized acoustic reverberation and organic pneumatic light sculptures.",
@@ -1033,7 +1033,7 @@ class PortfolioDatabase {
       });
     }
 
-    if (!Array.isArray(data.about.software) || data.about.software.length === 0) {
+    if (!Array.isArray(data.about.software)) {
       data.about.software = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.about.software));
     } else {
       data.about.software.forEach(s => {
@@ -1042,25 +1042,25 @@ class PortfolioDatabase {
       });
     }
 
-    if (!Array.isArray(data.about.technicalSkills) || data.about.technicalSkills.length === 0) {
+    if (!Array.isArray(data.about.technicalSkills)) {
       data.about.technicalSkills = [...DEFAULT_PORTFOLIO_DATA.about.technicalSkills];
     }
-    if (!Array.isArray(data.about.personalSkills) || data.about.personalSkills.length === 0) {
+    if (!Array.isArray(data.about.personalSkills)) {
       data.about.personalSkills = [...DEFAULT_PORTFOLIO_DATA.about.personalSkills];
     }
-    if (!Array.isArray(data.about.experience) || data.about.experience.length === 0) {
+    if (!Array.isArray(data.about.experience)) {
       data.about.experience = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.about.experience));
     }
-    if (!Array.isArray(data.about.achievements) || data.about.achievements.length === 0) {
+    if (!Array.isArray(data.about.achievements)) {
       data.about.achievements = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.about.achievements));
     }
-    if (!Array.isArray(data.about.competitions) || data.about.competitions.length === 0) {
+    if (!Array.isArray(data.about.competitions)) {
       data.about.competitions = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.about.competitions));
     }
-    if (!Array.isArray(data.about.languages) || data.about.languages.length === 0) {
+    if (!Array.isArray(data.about.languages)) {
       data.about.languages = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.about.languages));
     }
-    if (!Array.isArray(data.about.education) || data.about.education.length === 0) {
+    if (!Array.isArray(data.about.education)) {
       data.about.education = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.about.education));
     } else {
       data.about.education.forEach(e => {
@@ -1072,7 +1072,7 @@ class PortfolioDatabase {
     }
 
     if (!data.profile) data.profile = {};
-    if (!Array.isArray(data.profile.stats) || data.profile.stats.length === 0) {
+    if (!Array.isArray(data.profile.stats)) {
       data.profile.stats = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.profile.stats));
     }
     if (Array.isArray(data.projects)) {

@@ -164,10 +164,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  function updateHomeBottomBarLayout() {
+    const bottomBar = document.getElementById('home-bottom-bar') || document.querySelector('.home-bottom-grid-bar');
+    if (!bottomBar) return;
+    const cells = Array.from(bottomBar.querySelectorAll('.bottom-cell'));
+    const visibleCells = cells.filter(c => c.style.display !== 'none');
+    const count = visibleCells.length;
+    if (count === 0) {
+      bottomBar.style.display = 'none';
+    } else {
+      bottomBar.style.display = 'grid';
+      bottomBar.style.setProperty('--home-bottom-cols', count);
+      if (window.innerWidth > 900) {
+        bottomBar.style.gridTemplateColumns = `repeat(${count}, 1fr)`;
+      } else {
+        bottomBar.style.removeProperty('grid-template-columns');
+      }
+      cells.forEach(c => c.classList.remove('is-last-visible'));
+      if (visibleCells.length > 0) {
+        visibleCells[visibleCells.length - 1].classList.add('is-last-visible');
+      }
+    }
+  }
+  window.addEventListener('resize', updateHomeBottomBarLayout);
+
   function applySectionVisibility() {
     const sv = (portfolioData && portfolioData.sectionVisibility) || {};
     const p = (portfolioData && portfolioData.profile) || {};
     const a = (portfolioData && portfolioData.about) || {};
+    const h = (portfolioData && portfolioData.home) || {};
 
     const sectionElements = [
       // HOME PAGE SECTIONS
@@ -215,16 +240,38 @@ document.addEventListener('DOMContentLoaded', async () => {
       let visible = true;
       if (sv[key] === false) visible = false;
 
+      // Check empty / blank content to prevent re-opening empty cells
+      if (key === 'homeEmail') {
+        const emailVal = (h.emailText !== undefined && h.emailText !== null) ? h.emailText.trim() : (p.email ? p.email.trim() : '');
+        if (!emailVal) visible = false;
+      }
+      if (key === 'homePhone') {
+        const phoneVal = (h.phoneText !== undefined && h.phoneText !== null) ? h.phoneText.trim() : (p.phone ? p.phone.trim() : '');
+        if (!phoneVal) visible = false;
+      }
+      if (key === 'homeBehance') {
+        const behanceVal = (h.behanceText !== undefined && h.behanceText !== null) ? h.behanceText.trim() : (p.behanceUrl ? p.behanceUrl.trim() : '');
+        if (!behanceVal) visible = false;
+      }
+      if (key === 'homeEnterPortfolio') {
+        const enterVal = (h.enterText !== undefined && h.enterText !== null) ? h.enterText.trim() : 'ENTER PORTFOLIO ->';
+        if (!enterVal) visible = false;
+      }
+      if (key === 'contactResumeBtn') {
+        const resumeVal = (p.resumeUrl || p.cvUrl || '').trim();
+        if (!resumeVal) visible = false;
+      }
+
       // Backward compatible checks with about.sectionSettings & profile.showStats
-      if (key === 'aboutStats' && p.showStats === false) visible = false;
-      if (key === 'aboutEducation' && a.sectionSettings && a.sectionSettings.education && a.sectionSettings.education.enabled === false) visible = false;
-      if (key === 'aboutSoftware' && a.sectionSettings && a.sectionSettings.software && a.sectionSettings.software.enabled === false) visible = false;
-      if (key === 'aboutLanguages' && a.sectionSettings && a.sectionSettings.languages && a.sectionSettings.languages.enabled === false) visible = false;
-      if (key === 'aboutTechnical' && a.sectionSettings && a.sectionSettings.technicalSkills && a.sectionSettings.technicalSkills.enabled === false) visible = false;
-      if (key === 'aboutPersonal' && a.sectionSettings && a.sectionSettings.personalSkills && a.sectionSettings.personalSkills.enabled === false) visible = false;
-      if (key === 'aboutExperience' && a.sectionSettings && a.sectionSettings.experience && a.sectionSettings.experience.enabled === false) visible = false;
-      if (key === 'aboutAchievements' && a.sectionSettings && a.sectionSettings.achievements && a.sectionSettings.achievements.enabled === false) visible = false;
-      if (key === 'aboutCompetitions' && a.sectionSettings && a.sectionSettings.competitions && a.sectionSettings.competitions.enabled === false) visible = false;
+      if (key === 'aboutStats' && (p.showStats === false || !Array.isArray(p.stats) || p.stats.length === 0)) visible = false;
+      if (key === 'aboutEducation' && ((a.sectionSettings && a.sectionSettings.education && a.sectionSettings.education.enabled === false) || (Array.isArray(a.education) && a.education.length === 0))) visible = false;
+      if (key === 'aboutSoftware' && ((a.sectionSettings && a.sectionSettings.software && a.sectionSettings.software.enabled === false) || (Array.isArray(a.software) && a.software.length === 0))) visible = false;
+      if (key === 'aboutLanguages' && ((a.sectionSettings && a.sectionSettings.languages && a.sectionSettings.languages.enabled === false) || (Array.isArray(a.languages) && a.languages.length === 0))) visible = false;
+      if (key === 'aboutTechnical' && ((a.sectionSettings && a.sectionSettings.technicalSkills && a.sectionSettings.technicalSkills.enabled === false) || (Array.isArray(a.technicalSkills) && a.technicalSkills.length === 0))) visible = false;
+      if (key === 'aboutPersonal' && ((a.sectionSettings && a.sectionSettings.personalSkills && a.sectionSettings.personalSkills.enabled === false) || (Array.isArray(a.personalSkills) && a.personalSkills.length === 0))) visible = false;
+      if (key === 'aboutExperience' && ((a.sectionSettings && a.sectionSettings.experience && a.sectionSettings.experience.enabled === false) || (Array.isArray(a.experience) && a.experience.length === 0))) visible = false;
+      if (key === 'aboutAchievements' && ((a.sectionSettings && a.sectionSettings.achievements && a.sectionSettings.achievements.enabled === false) || (Array.isArray(a.achievements) && a.achievements.length === 0))) visible = false;
+      if (key === 'aboutCompetitions' && ((a.sectionSettings && a.sectionSettings.competitions && a.sectionSettings.competitions.enabled === false) || (Array.isArray(a.competitions) && a.competitions.length === 0))) visible = false;
 
       if (!visible) {
         el.style.display = 'none';
@@ -232,6 +279,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         el.style.display = '';
       }
     });
+
+    updateHomeBottomBarLayout();
   }
 
   function applyPageVisibility() {
@@ -700,26 +749,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 4. Enter Portfolio link
-    if (enterBox) enterBox.style.display = 'flex';
-    if (enterText) {
-      const rawEnter = (h.enterText !== undefined && h.enterText !== null && h.enterText.trim()) ? h.enterText.trim() : 'ENTER PORTFOLIO ->';
-      const cleanEnter = rawEnter.replace(/^[-—\s]+/, '').replace(/->$/, '→').trim();
-      enterText.textContent = cleanEnter.endsWith('→') || cleanEnter.endsWith('&rarr;') ? cleanEnter : `${cleanEnter} \u2192`;
-    }
-    if (enterLink && h.enterUrl) {
-      enterLink.href = h.enterUrl;
+    const enterVal = (h.enterText !== undefined && h.enterText !== null) ? h.enterText.trim() : 'ENTER PORTFOLIO ->';
+    if (enterVal) {
+      if (enterBox) enterBox.style.display = 'flex';
+      if (enterText) {
+        const cleanEnter = enterVal.replace(/^[-—\s]+/, '').replace(/->$/, '→').trim();
+        enterText.textContent = cleanEnter.endsWith('→') || cleanEnter.endsWith('&rarr;') ? cleanEnter : `${cleanEnter} \u2192`;
+      }
+      if (enterLink && h.enterUrl) {
+        enterLink.href = h.enterUrl;
+      }
+    } else {
+      if (enterBox) enterBox.style.display = 'none';
     }
 
     // Adjust bottom bar columns dynamically based on visible cells
-    const bottomBar = document.getElementById('home-bottom-bar') || document.querySelector('.home-bottom-grid-bar');
-    if (bottomBar) {
-      const visibleCells = Array.from(bottomBar.querySelectorAll('.bottom-cell')).filter(c => c.style.display !== 'none');
-      const count = Math.max(1, visibleCells.length);
-      bottomBar.style.setProperty('--home-bottom-cols', count);
-      visibleCells.forEach((c, idx) => {
-        c.classList.toggle('is-last-visible', idx === visibleCells.length - 1);
-      });
-    }
+    updateHomeBottomBarLayout();
 
     // Make entire bottom-bar columns clickable (e.g. clicking anywhere in the column enters portfolio / activates link)
     const allBottomCells = document.querySelectorAll('.home-bottom-grid-bar .bottom-cell');
@@ -759,89 +804,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     const defAbout = (window.DEFAULT_PORTFOLIO_DATA && window.DEFAULT_PORTFOLIO_DATA.about) || {};
     const defProf = (window.DEFAULT_PORTFOLIO_DATA && window.DEFAULT_PORTFOLIO_DATA.profile) || {};
 
-    const statsListItems = (Array.isArray(p.stats) && p.stats.length > 0)
+    const statsListItems = (Array.isArray(p.stats))
       ? p.stats
-      : (defProf.stats || [
-          { number: "6+", label: "YEARS STUDYING DESIGN" },
-          { number: "2+", label: "PROJECTS COMPLETED" },
-          { number: "10", label: "COMPETITIONS ENTERED" },
-          { number: "7", label: "AWARDS & RECOGNITIONS" }
-        ]);
+      : (defProf.stats || []);
 
-    const eduListItems = (Array.isArray(a.education) && a.education.length > 0)
+    const eduListItems = (Array.isArray(a.education))
       ? a.education
-      : (defAbout.education || [
-          {
-            years: "2017-2022",
-            title: "Tenby International School Setia EcoHill",
-            subtitle: "",
-            cgpa: ""
-          },
-          {
-            years: "2022-2023",
-            title: "Foundation in Design",
-            subtitle: "Taylor's College",
-            cgpa: "CGPA 3.67"
-          },
-          {
-            years: "2023-2026",
-            title: "Bachelor in Interactive Spatial Design (Hons)",
-            subtitle: "Taylor's University",
-            cgpa: "CGPA 3.79"
-          }
-        ]);
+      : (defAbout.education || []);
 
-    const techSkillsList = (Array.isArray(a.technicalSkills) && a.technicalSkills.length > 0)
+    const techSkillsList = (Array.isArray(a.technicalSkills))
       ? a.technicalSkills
-      : (defAbout.technicalSkills || ["UI/UX DESIGN", "GAME DESIGN", "AR/VR DEVELOPMENT", "GRAPHIC DESIGN", "CODING", "3D MODELING"]);
+      : (defAbout.technicalSkills || []);
 
-    const persSkillsList = (Array.isArray(a.personalSkills) && a.personalSkills.length > 0)
+    const persSkillsList = (Array.isArray(a.personalSkills))
       ? a.personalSkills
-      : (defAbout.personalSkills || ["TEAMWORK", "CREATIVITY", "TIME MANAGEMENT", "RESPONSIBILITY", "WILLINGNESS TO LEARN", "ORGANIZATION"]);
+      : (defAbout.personalSkills || []);
 
-    const langListItems = (Array.isArray(a.languages) && a.languages.length > 0)
+    const langListItems = (Array.isArray(a.languages))
       ? a.languages
-      : (defAbout.languages || [
-          { language: "Chinese", proficiency: "NATIVE" },
-          { language: "English", proficiency: "FLUENT" },
-          { language: "Malay", proficiency: "CONVERSATIONAL" }
-        ]);
+      : (defAbout.languages || []);
 
-    const expListItems = (Array.isArray(a.experience) && a.experience.length > 0)
+    const expListItems = (Array.isArray(a.experience))
       ? a.experience
-      : (defAbout.experience || [{
-          type: "INTERNSHIP",
-          role: "Visual Experience Designer",
-          company: "Virtualtech Frontier (VTF)",
-          description: "Specialized in 3D spatial environments, interactive asset modeling, and XR experiences."
-        }]);
+      : (defAbout.experience || []);
 
-    const achListItems = (Array.isArray(a.achievements) && a.achievements.length > 0)
+    const achListItems = (Array.isArray(a.achievements))
       ? a.achievements
-      : (defAbout.achievements || [
-          { title: "Terang Competition 2025", award: "FINALIST" },
-          { title: "Superior Culture Competition", award: "SILVER" },
-          { title: "AR Fest KL", award: "TOP 05" },
-          { title: "Pre U Logo Proposal", award: "TOP 10" },
-          { title: "Taylor's University", award: "DEAN'S LIST" },
-          { title: "Tian Yan Cup", award: "EXCELLENCE AWARD" },
-          { title: "Cross-Strait Pin Art Exhibition", award: "DISTINCTION" }
-        ]);
+      : (defAbout.achievements || []);
 
-    const compListItems = (Array.isArray(a.competitions) && a.competitions.length > 0)
+    const compListItems = (Array.isArray(a.competitions))
       ? a.competitions
-      : (defAbout.competitions || [
-          { year: "2025", name: "Tenang Projection Mapping Competition" },
-          { year: "2025", name: "Superior Culture | Black and White Painting Competition" },
-          { year: "2024", name: "D-Zone (Event Crew)" },
-          { year: "2024", name: "XR Jam 2024 / Mental Health" },
-          { year: "2024", name: "AR Fest KL / Instagram Wall Painting Filter" },
-          { year: "2024", name: "Taiwan International Student Design Competition / Product Design" },
-          { year: "2024", name: "Design For Change 2024 Singapore / Sustainability in Healthcare" },
-          { year: "2023", name: "Pre U Foundation in Design Logo Proposal" },
-          { year: "2022", name: "Tian Yan Cup International Cartoon Competition / Illustration" },
-          { year: "2020", name: "Cross-Strait Pin Art Exhibition / Illustration" }
-        ]);
+      : (defAbout.competitions || []);
 
     // Headline
     const headlineEl = document.getElementById('about-headline-title');
@@ -944,7 +937,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const eduBlock = document.getElementById('about-block-education') || document.querySelector('.about-education-block');
     const secEdu = a.sectionSettings && a.sectionSettings.education;
     if (eduBlock) {
-      if (secEdu && secEdu.enabled === false) {
+      if ((secEdu && secEdu.enabled === false) || eduListItems.length === 0) {
         eduBlock.style.display = 'none';
       } else {
         eduBlock.style.display = 'block';
@@ -980,8 +973,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Software grid
     const softBlock = document.getElementById('about-block-software') || document.querySelector('.about-software-block');
     const secSoft = a.sectionSettings && a.sectionSettings.software;
+    const softwares = (Array.isArray(a.software)) ? a.software : (defAbout.software || []);
     if (softBlock) {
-      if (secSoft && secSoft.enabled === false) {
+      if ((secSoft && secSoft.enabled === false) || softwares.length === 0) {
         softBlock.style.display = 'none';
       } else {
         softBlock.style.display = 'block';
@@ -992,16 +986,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const softGrid = document.getElementById('about-software-grid');
     if (softGrid) {
       softGrid.innerHTML = '';
-      const softwares = (a.software && a.software.length > 0) ? a.software : [
-        { code: "AU", name: "Audition", image: "" },
-        { code: "AN", name: "Animate", image: "" },
-        { code: "AE", name: "After Effects", image: "" },
-        { code: "AI", name: "Illustrator", image: "" },
-        { code: "DW", name: "Dreamweaver", image: "" },
-        { code: "UN", name: "Unity", image: "" },
-        { code: "BL", name: "Blender", image: "" },
-        { code: "FG", name: "Figma", image: "" }
-      ];
       softwares.forEach((s, idx) => {
         const box = document.createElement('div');
         box.className = 'software-square-box';
@@ -1068,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const secTech = a.sectionSettings && a.sectionSettings.technicalSkills;
     if (techPills) {
       const heading = groupTech ? groupTech.querySelector('.matrix-subheading') : techPills.previousElementSibling;
-      if (secTech && secTech.enabled === false) {
+      if ((secTech && secTech.enabled === false) || techSkillsList.length === 0) {
         if (groupTech) groupTech.style.display = 'none';
         else {
           techPills.style.display = 'none';
@@ -1097,7 +1081,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const secPers = a.sectionSettings && a.sectionSettings.personalSkills;
     if (persPills) {
       const heading = groupPers ? groupPers.querySelector('.matrix-subheading') : persPills.previousElementSibling;
-      if (secPers && secPers.enabled === false) {
+      if ((secPers && secPers.enabled === false) || persSkillsList.length === 0) {
         if (groupPers) groupPers.style.display = 'none';
         else {
           persPills.style.display = 'none';
@@ -1126,7 +1110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const secLang = a.sectionSettings && a.sectionSettings.languages;
     if (langTable) {
       const heading = groupLang ? groupLang.querySelector('.matrix-subheading, .block-mini-title') : langTable.previousElementSibling;
-      if (secLang && secLang.enabled === false) {
+      if ((secLang && secLang.enabled === false) || langListItems.length === 0) {
         if (groupLang) groupLang.style.display = 'none';
         else {
           langTable.style.display = 'none';
@@ -1158,7 +1142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const secExp = a.sectionSettings && a.sectionSettings.experience;
     if (expList) {
       const heading = groupExp ? groupExp.querySelector('.matrix-subheading') : expList.previousElementSibling;
-      if (secExp && secExp.enabled === false) {
+      if ((secExp && secExp.enabled === false) || expListItems.length === 0) {
         if (groupExp) groupExp.style.display = 'none';
         else {
           expList.style.display = 'none';
@@ -1191,7 +1175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const secAch = a.sectionSettings && a.sectionSettings.achievements;
     if (achList) {
       const heading = groupAch ? groupAch.querySelector('.matrix-subheading') : achList.previousElementSibling;
-      if (secAch && secAch.enabled === false) {
+      if ((secAch && secAch.enabled === false) || achListItems.length === 0) {
         if (groupAch) groupAch.style.display = 'none';
         else {
           achList.style.display = 'none';
@@ -1223,7 +1207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const secComp = a.sectionSettings && a.sectionSettings.competitions;
     if (compList) {
       const heading = groupComp ? groupComp.querySelector('.matrix-subheading') : compList.previousElementSibling;
-      if (secComp && secComp.enabled === false) {
+      if ((secComp && secComp.enabled === false) || compListItems.length === 0) {
         if (groupComp) groupComp.style.display = 'none';
         else {
           compList.style.display = 'none';
@@ -2352,14 +2336,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (resumeVal) {
         resumeBox.style.display = 'flex';
         resumeBtn.href = resumeVal.startsWith('http') ? resumeVal : `https://${resumeVal}`;
+        const labelText = (p.resumeBtnText || p.resumeText || 'VIEW RESUME').trim() || 'VIEW RESUME';
+        const btnTextEl = resumeBtn.querySelector('.resume-btn-text');
+        if (btnTextEl) {
+          btnTextEl.textContent = labelText;
+        }
       } else {
-        resumeBox.style.display = 'flex';
-        resumeBtn.href = 'https://drive.google.com';
-      }
-      const labelText = (p.resumeBtnText || p.resumeText || 'VIEW RESUME').trim() || 'VIEW RESUME';
-      const btnTextEl = resumeBtn.querySelector('.resume-btn-text');
-      if (btnTextEl) {
-        btnTextEl.textContent = labelText;
+        resumeBox.style.display = 'none';
       }
     }
   }
