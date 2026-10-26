@@ -20,6 +20,53 @@ const DEFAULT_PORTFOLIO_DATA = {
     username: "RENEE@MOO081706",
     password: "36987@RENEE6667"
   },
+  pageVisibility: {
+    home: true,
+    about: true,
+    projects: true,
+    contact: true
+  },
+  pageOrder: ['home', 'projects', 'about', 'contact'],
+  sectionVisibility: {
+    // HOME PAGE
+    homeHero: true,
+    homeMetaLeft: true,
+    homeMetaRight: true,
+    homeBottomBar: true,
+    homeEmail: true,
+    homePhone: true,
+    homeBehance: true,
+    homeEnterPortfolio: true,
+
+    // ABOUT PAGE
+    aboutHeader: true,
+    aboutProfileCard: true,
+    aboutBio: true,
+    aboutSkillsTags: true,
+    aboutStats: true,
+    aboutEducation: true,
+    aboutSoftware: true,
+    aboutLanguages: true,
+    aboutTechnical: true,
+    aboutPersonal: true,
+    aboutExperience: true,
+    aboutAchievements: true,
+    aboutCompetitions: true,
+
+    // PROJECTS PAGE
+    projectsHeader: true,
+    projectsFilterBar: true,
+    projectsGrid: true,
+
+    // CONTACT PAGE
+    contactHeader: true,
+    contactStartProject: true,
+    contactChannels: true,
+    contactResumeBtn: true,
+
+    // GLOBAL
+    siteFooter: true
+  },
   profile: {
     name: "MOO RENEE",
     degree: "BACHELOR IN INTERACTIVE SPATIAL DESIGN (HONS)",
@@ -31,6 +78,8 @@ const DEFAULT_PORTFOLIO_DATA = {
     photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80",
     phone: "+06 10-3687393",
     email: "moorenee481@gmail.com",
+    resumeUrl: "https://drive.google.com",
+    resumeBtnText: "VIEW RESUME",
     behanceUrl: "https://behance.net/reneemoo",
     linktreeUrl: "https://linktr.ee/reneemoo",
     githubUrl: "https://github.com",
@@ -39,6 +88,7 @@ const DEFAULT_PORTFOLIO_DATA = {
     coordinates: "LAT 3.0649° N, LONG 101.6167° E",
     tags: ["UI/UX", "AR/VR", "GAME DESIGN", "3D MODELING", "PROJECTION MAPPING", "ILLUSTRATION"],
     statsLayout: "beside",
+    showStats: true,
     stats: [
       { number: "6+", label: "YEARS STUDYING DESIGN" },
       { number: "17+", label: "PROJECTS COMPLETED" },
@@ -274,7 +324,10 @@ const DEFAULT_PORTFOLIO_DATA = {
         { title: "EXHIBITION PHOTO ARCHIVE", url: "https://behance.net/reneemoo" }
       ],
       gallery: [
-        "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&auto=format&fit=crop&q=80"
+        {
+          url: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&auto=format&fit=crop&q=80",
+          text: "Acoustic sensor array calibration & spatial testing"
+        }
       ],
       customSections: [
         {
@@ -867,6 +920,57 @@ class PortfolioDatabase {
       data.adminAuth.password = (data.adminAuth.password || "36987@RENEE6667").trim();
     }
 
+    // Page Visibility schema
+    if (!data.pageVisibility) {
+      data.pageVisibility = { home: true, about: true, projects: true, contact: true };
+    } else {
+      data.pageVisibility = Object.assign({ home: true, about: true, projects: true, contact: true }, data.pageVisibility);
+    }
+
+    // Page Order schema (Flexible sequencing of pages)
+    if (!Array.isArray(data.pageOrder) || data.pageOrder.length === 0) {
+      data.pageOrder = [...DEFAULT_PORTFOLIO_DATA.pageOrder];
+    } else {
+      ['home', 'projects', 'about', 'contact'].forEach(pk => {
+        if (!data.pageOrder.includes(pk)) data.pageOrder.push(pk);
+      });
+    }
+
+    // Section Visibility schema (Fine-grained control over any section)
+    if (!data.sectionVisibility || typeof data.sectionVisibility !== 'object') {
+      data.sectionVisibility = Object.assign({}, DEFAULT_PORTFOLIO_DATA.sectionVisibility);
+    } else {
+      data.sectionVisibility = Object.assign({}, DEFAULT_PORTFOLIO_DATA.sectionVisibility, data.sectionVisibility);
+    }
+
+    // Sync Section Visibility with profile & about sectionSettings for backwards compatibility
+    if (data.profile) {
+      if (data.sectionVisibility.aboutStats !== undefined) {
+        data.profile.showStats = data.sectionVisibility.aboutStats;
+      } else if (data.profile.showStats !== undefined) {
+        data.sectionVisibility.aboutStats = data.profile.showStats;
+      }
+    }
+    if (data.about && data.about.sectionSettings) {
+      const secKeys = [
+        ['aboutEducation', 'education'],
+        ['aboutSoftware', 'software'],
+        ['aboutLanguages', 'languages'],
+        ['aboutTechnical', 'technicalSkills'],
+        ['aboutPersonal', 'personalSkills'],
+        ['aboutExperience', 'experience'],
+        ['aboutAchievements', 'achievements'],
+        ['aboutCompetitions', 'competitions']
+      ];
+      secKeys.forEach(([svKey, ssKey]) => {
+        if (data.sectionVisibility[svKey] !== undefined && data.about.sectionSettings[ssKey]) {
+          data.about.sectionSettings[ssKey].enabled = data.sectionVisibility[svKey];
+        } else if (data.about.sectionSettings[ssKey] && data.about.sectionSettings[ssKey].enabled !== undefined) {
+          data.sectionVisibility[svKey] = data.about.sectionSettings[ssKey].enabled;
+        }
+      });
+    }
+
     // Headers schema
     if (!data.headers) {
       data.headers = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.headers));
@@ -874,6 +978,21 @@ class PortfolioDatabase {
       data.headers.about = Object.assign({}, DEFAULT_PORTFOLIO_DATA.headers.about, data.headers.about || {});
       data.headers.projects = Object.assign({}, DEFAULT_PORTFOLIO_DATA.headers.projects, data.headers.projects || {});
       data.headers.contact = Object.assign({}, DEFAULT_PORTFOLIO_DATA.headers.contact, data.headers.contact || {});
+    }
+
+    // Profile schema
+    if (!data.profile) {
+      data.profile = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.profile));
+    } else {
+      if (data.profile.resumeUrl === undefined) {
+        data.profile.resumeUrl = (DEFAULT_PORTFOLIO_DATA.profile && DEFAULT_PORTFOLIO_DATA.profile.resumeUrl) || 'https://drive.google.com';
+      }
+      if (data.profile.resumeBtnText === undefined) {
+        data.profile.resumeBtnText = (DEFAULT_PORTFOLIO_DATA.profile && DEFAULT_PORTFOLIO_DATA.profile.resumeBtnText) || 'VIEW RESUME';
+      }
+      if (data.profile.showStats === undefined) {
+        data.profile.showStats = true;
+      }
     }
 
     // Homepage Hero & Bottom Bar schema
@@ -922,13 +1041,39 @@ class PortfolioDatabase {
         if (s && s.code) s.code = s.code.toUpperCase();
       });
     }
-    if (Array.isArray(data.about.education)) {
+
+    if (!Array.isArray(data.about.technicalSkills) || data.about.technicalSkills.length === 0) {
+      data.about.technicalSkills = [...DEFAULT_PORTFOLIO_DATA.about.technicalSkills];
+    }
+    if (!Array.isArray(data.about.personalSkills) || data.about.personalSkills.length === 0) {
+      data.about.personalSkills = [...DEFAULT_PORTFOLIO_DATA.about.personalSkills];
+    }
+    if (!Array.isArray(data.about.experience) || data.about.experience.length === 0) {
+      data.about.experience = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.about.experience));
+    }
+    if (!Array.isArray(data.about.achievements) || data.about.achievements.length === 0) {
+      data.about.achievements = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.about.achievements));
+    }
+    if (!Array.isArray(data.about.competitions) || data.about.competitions.length === 0) {
+      data.about.competitions = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.about.competitions));
+    }
+    if (!Array.isArray(data.about.languages) || data.about.languages.length === 0) {
+      data.about.languages = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.about.languages));
+    }
+    if (!Array.isArray(data.about.education) || data.about.education.length === 0) {
+      data.about.education = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.about.education));
+    } else {
       data.about.education.forEach(e => {
         if (e.years) e.years = e.years.replace(/\s*-\s*/, '-');
         if (e.title && e.title.includes('Bachelor') && !e.cgpa) {
           e.cgpa = 'CGPA 3.79';
         }
       });
+    }
+
+    if (!data.profile) data.profile = {};
+    if (!Array.isArray(data.profile.stats) || data.profile.stats.length === 0) {
+      data.profile.stats = JSON.parse(JSON.stringify(DEFAULT_PORTFOLIO_DATA.profile.stats));
     }
     if (Array.isArray(data.projects)) {
       const defaultMap = {};
@@ -966,7 +1111,13 @@ class PortfolioDatabase {
         p.keywords = Array.isArray(p.keywords) ? p.keywords : (d && Array.isArray(d.keywords) ? [...d.keywords] : []);
         p.relatedLinks = Array.isArray(p.relatedLinks) ? p.relatedLinks : [];
         p.images = Array.isArray(p.images) ? p.images : [];
-        p.gallery = Array.isArray(p.gallery) ? p.gallery : [];
+        p.gallery = Array.isArray(p.gallery) ? p.gallery.map(g => {
+          if (typeof g === 'string') return { url: g, text: '' };
+          return {
+            url: (g && g.url) || '',
+            text: (g && (g.text !== undefined ? g.text : g.caption)) || ''
+          };
+        }) : [];
         p.customSections = Array.isArray(p.customSections) ? p.customSections : [];
         p.customSections.forEach((cs, cIdx) => {
           if (!cs.id) cs.id = `sec_${p.id || 'p'}_${cIdx + 1}`;
@@ -1037,17 +1188,23 @@ class PortfolioDatabase {
         }
       } catch (e) {}
 
-      // 3. Fast-boot Cloud Sync: Start listener immediately and race cloud fetch with 2500ms timeout
-      // This ensures visitors on mobile/other devices see the LATEST saved project on the very first frame!
+      // 3. Fast-boot Cloud Sync: Start listener immediately
+      // If local database is already present, sync non-blockingly in background so refresh is INSTANT (0-15ms)!
       if (this.firestore && this.isCloudEnabled) {
         this.setupCloudListener();
-        try {
-          await Promise.race([
-            this.syncCloudInBackground(),
-            new Promise(resolve => setTimeout(resolve, 2500))
-          ]);
-        } catch (e) {
-          console.warn('Initial cloud sync race notice:', e);
+        const hasLocalSavedData = !!(this.memoryData && ((this.memoryData._lastUpdated > 10) || this.memoryData._savedFromAdmin));
+        if (hasLocalSavedData) {
+          this.syncCloudInBackground().catch(e => console.warn('Background cloud sync notice:', e));
+        } else {
+          // Brand new visitor with virgin local database: race cloud fetch with 1200ms timeout
+          try {
+            await Promise.race([
+              this.syncCloudInBackground(),
+              new Promise(resolve => setTimeout(resolve, 1200))
+            ]);
+          } catch (e) {
+            console.warn('Initial cloud sync race notice:', e);
+          }
         }
       }
 
@@ -1067,21 +1224,24 @@ class PortfolioDatabase {
         const cloudPayload = docSnap.data();
         if (cloudPayload && cloudPayload.data && cloudPayload.data.profile && Array.isArray(cloudPayload.data.projects)) {
           const cloudData = this._ensureSchemaIntegrity(cloudPayload.data);
-          const isClientView = typeof window !== 'undefined' && !window.location.pathname.toLowerCase().includes('admin');
           const localUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
           const cloudUpdated = cloudPayload.clientTimestamp
             ? new Date(cloudPayload.clientTimestamp).getTime()
             : ((cloudPayload.data && cloudPayload.data._lastUpdated) || 0);
 
-          // If on client live view, or cloud data is newer or local is default, update local immediately
-          if (isClientView || cloudUpdated >= localUpdated || localUpdated <= 10 || !this.memoryData || !this.memoryData._savedFromAdmin) {
-            console.info('[PortfolioDB] Updating to latest cloud dataset...');
+          const hasLocalEdits = !!(this.memoryData && this.memoryData._savedFromAdmin);
+          const isLocalNewer = hasLocalEdits && (localUpdated > (cloudUpdated + 500));
+
+          // Only overwrite local if cloud is strictly newer, or local is virgin/unmodified default data (<= 10)
+          // NEVER overwrite when local device has newer saved admin edits!
+          if (!isLocalNewer && (cloudUpdated > localUpdated || localUpdated <= 10 || !hasLocalEdits)) {
+            console.info('[PortfolioDB] Updating local to latest cloud dataset...');
             this.memoryData = cloudData;
             await idbSet('current_portfolio_v3', this.memoryData);
             this.persistToLocal(this.memoryData);
             this.notifyListeners();
-          } else if (this.memoryData && this.memoryData._savedFromAdmin && localUpdated > cloudUpdated) {
-            console.info('[PortfolioDB] Local edits are newer than cloud. Syncing local to cloud...');
+          } else if (isLocalNewer) {
+            console.info('[PortfolioDB] Local edits are newer than cloud. Preserving local edits and syncing to cloud...');
             await this.saveToCloud(this.memoryData);
           }
         }
@@ -1093,6 +1253,10 @@ class PortfolioDatabase {
     } catch (cloudErr) {
       console.warn('Cloud fetch notice (falling back to local cache):', cloudErr);
     }
+  }
+
+  getImmediateData() {
+    return this.memoryData ? JSON.parse(JSON.stringify(this.memoryData)) : null;
   }
 
   async getData() {
@@ -1196,15 +1360,17 @@ class PortfolioDatabase {
           }
           const cloudPayload = docSnap.data();
           if (cloudPayload && cloudPayload.data && cloudPayload.data.profile) {
-            const isClientView = typeof window !== 'undefined' && !window.location.pathname.toLowerCase().includes('admin');
             const localUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
             const cloudUpdated = cloudPayload.clientTimestamp
               ? new Date(cloudPayload.clientTimestamp).getTime()
               : ((cloudPayload.data && cloudPayload.data._lastUpdated) || 0);
 
-            // On the live website (client view), ALWAYS apply cloud updates immediately with 0ms delay!
-            // In Admin, apply if cloud is newer or equal (to avoid clobbering active in-progress edits).
-            if (isClientView || cloudUpdated >= (localUpdated - 500) || localUpdated <= 10) {
+            const hasLocalEdits = !!(this.memoryData && this.memoryData._savedFromAdmin);
+            const isLocalNewer = hasLocalEdits && (localUpdated > (cloudUpdated + 500));
+
+            // Only apply real-time cloud sync if cloud is strictly newer, or local is uninitialized
+            // NEVER clobber local edits when local is newer or equal!
+            if (!isLocalNewer && (cloudUpdated > localUpdated || localUpdated <= 10 || !hasLocalEdits)) {
               console.info('[PortfolioDB] Real-time cloud sync applied.');
               this.memoryData = this._ensureSchemaIntegrity(cloudPayload.data);
               idbSet('current_portfolio_v3', this.memoryData);
@@ -1218,10 +1384,100 @@ class PortfolioDatabase {
     } catch (e) {}
   }
 
+  async _optimizePayloadForCloud(dataToOptimize) {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return dataToOptimize;
+    
+    // Helper to downscale large base64 image strings to compact ~35KB data URLs for Firestore
+    const shrinkBase64 = (b64, maxDim = 850, quality = 0.62) => {
+      return new Promise(resolve => {
+        if (!b64 || typeof b64 !== 'string' || !b64.startsWith('data:image')) {
+          resolve(b64);
+          return;
+        }
+        // If already tiny (< 45KB), leave untouched
+        if (b64.length < 50000) {
+          resolve(b64);
+          return;
+        }
+        const img = new Image();
+        img.onerror = () => resolve(b64);
+        img.onload = () => {
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          if (w > maxDim) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = b64;
+      });
+    };
+
+    try {
+      if (dataToOptimize.profile && dataToOptimize.profile.photoUrl) {
+        dataToOptimize.profile.photoUrl = await shrinkBase64(dataToOptimize.profile.photoUrl, 650, 0.62);
+      }
+      if (Array.isArray(dataToOptimize.projects)) {
+        for (const p of dataToOptimize.projects) {
+          if (p.coverImage) {
+            p.coverImage = await shrinkBase64(p.coverImage, 850, 0.62);
+          }
+          if (Array.isArray(p.images)) {
+            for (let i = 0; i < p.images.length; i++) {
+              if (p.images[i] && p.images[i].url) {
+                p.images[i].url = await shrinkBase64(p.images[i].url, 850, 0.62);
+              }
+            }
+          }
+          if (Array.isArray(p.gallery)) {
+            for (let i = 0; i < p.gallery.length; i++) {
+              if (p.gallery[i] && p.gallery[i].url) {
+                p.gallery[i].url = await shrinkBase64(p.gallery[i].url, 800, 0.6);
+              }
+            }
+          }
+          if (Array.isArray(p.customSections)) {
+            for (let i = 0; i < p.customSections.length; i++) {
+              if (p.customSections[i] && p.customSections[i].imageUrl) {
+                p.customSections[i].imageUrl = await shrinkBase64(p.customSections[i].imageUrl, 850, 0.62);
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[PortfolioDB] Payload optimization fallback:', e);
+    }
+    return dataToOptimize;
+  }
+
   async saveToCloud(data) {
     if (!this.firestore || !this.isCloudEnabled) return { success: false, error: 'Firebase Cloud is not connected' };
     try {
-      const cleanData = JSON.parse(JSON.stringify(data));
+      let cleanData = JSON.parse(JSON.stringify(data));
+
+      // Guard Firestore 1 MiB hard document limit:
+      // If serialized size is over 750KB, safely compress base64 images so it never errors
+      try {
+        const estSize = JSON.stringify(cleanData).length;
+        if (estSize > 750000) {
+          console.info(`[PortfolioDB] Pre-sync payload is ${Math.round(estSize/1024)}KB. Compressing images for cloud sync...`);
+          cleanData = await this._optimizePayloadForCloud(cleanData);
+          const postSize = JSON.stringify(cleanData).length;
+          console.info(`[PortfolioDB] Cloud payload optimized to ${Math.round(postSize/1024)}KB.`);
+        }
+      } catch(optErr) {
+        console.warn('[PortfolioDB] Cloud payload size pre-check notice:', optErr);
+      }
+
       // Overwrite completely without { merge: true } so old deleted projects and obsolete fields are fully purged
       await this.firestore.collection(CLOUD_COLLECTION).doc(CLOUD_DOC).set({
         data: cleanData,
@@ -1548,7 +1804,49 @@ class PortfolioDatabase {
     try {
       localStorage.setItem(DB_KEY, JSON.stringify(data));
     } catch (e) {
-      console.warn('LocalStorage limit reached. Full data saved securely in IndexedDB.');
+      console.warn('LocalStorage limit reached. Saving streamlined metadata to LocalStorage (full dataset preserved in IndexedDB)...');
+      try {
+        const slim = JSON.parse(JSON.stringify(data));
+        if (Array.isArray(slim.projects)) {
+          slim.projects.forEach(p => {
+            if (Array.isArray(p.images) && p.images.length > 2) {
+              p.images = p.images.slice(0, 2);
+            }
+            if (Array.isArray(p.gallery) && p.gallery.length > 4) {
+              p.gallery = p.gallery.slice(0, 4);
+            }
+          });
+        }
+        localStorage.setItem(DB_KEY, JSON.stringify(slim));
+      } catch (innerErr) {
+        try {
+          const mini = {
+            _lastUpdated: data._lastUpdated,
+            _savedFromAdmin: data._savedFromAdmin,
+            profile: data.profile,
+            headers: data.headers,
+            home: data.home,
+            mainCategories: data.mainCategories,
+            subLabels: data.subLabels,
+            projects: (data.projects || []).map(p => ({
+              id: p.id,
+              index: p.index,
+              title: p.title,
+              category: p.category,
+              mainSection: p.mainSection,
+              discipline: p.discipline,
+              subLabels: p.subLabels,
+              coverImage: (p.coverImage && p.coverImage.length < 180000) ? p.coverImage : '',
+              date: p.date,
+              shortDescription: p.shortDescription,
+              overview: p.overview
+            }))
+          };
+          localStorage.setItem(DB_KEY, JSON.stringify(mini));
+        } catch (finalErr) {
+          console.warn('Unable to persist slim data to LocalStorage:', finalErr);
+        }
+      }
     }
   }
 
@@ -1655,5 +1953,6 @@ class PortfolioDatabase {
   }
 }
 
-// Global DB Singleton
+// Global DB Singleton & Default Schema Export
+window.DEFAULT_PORTFOLIO_DATA = DEFAULT_PORTFOLIO_DATA;
 window.PortfolioDB = new PortfolioDatabase();

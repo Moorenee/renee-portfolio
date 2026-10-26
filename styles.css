@@ -31,6 +31,17 @@
   --transition-smooth: 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Anti-FOUC Architecture: Prevents flash of previous/stale version during page refresh */
+html.anti-fouc body {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body {
+  transition: opacity 0.12s ease-out;
+}
+
 /* ================= BLUE ARCHITECTURAL BLUEPRINT THEME (ATTACHED COLORWAYS) ================= */
 /* User Attached Palette: Deep Navy Blue (#112250) + Light Stone/Sand/Putty (#DAD1CA) */
 /* Canvas: Deep Navy Blue (#112250) | Content & Text: Warm Sand (#DAD1CA) & Crisp White (#FAF8F5) */
@@ -702,6 +713,7 @@ button {
   justify-content: flex-end;
   gap: 2.25rem;
   margin-left: auto;
+  font-family: var(--font-mono);
 }
 
 .nav-tab {
@@ -799,16 +811,26 @@ button.nav-tab.nav-logout-btn {
   border: none;
   cursor: pointer;
   padding: 4px 0;
-  font-family: inherit;
-  font-size: inherit;
-  letter-spacing: inherit;
-  line-height: inherit;
+  font-family: var(--font-mono) !important;
+  font-size: 9.6px !important;
+  font-weight: 400 !important;
+  line-height: 14.4px !important;
+  letter-spacing: 2.11px !important;
+  text-transform: uppercase !important;
   color: #8c8984;
   transition: color var(--transition-fast);
 }
 
 button.nav-tab.nav-logout-btn:hover {
-  color: #d32f2f;
+  color: var(--text-dark);
+}
+
+body.theme-navy button.nav-tab.nav-logout-btn {
+  color: #DAD1CA !important;
+}
+
+body.theme-navy button.nav-tab.nav-logout-btn:hover {
+  color: #FAF8F5 !important;
 }
 
 button.drawer-link.drawer-logout-btn {
@@ -1429,7 +1451,27 @@ html[data-theme="navy"] .hero-letter.anim-glitch {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: background-color var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+  cursor: pointer;
+  user-select: none;
+}
+
+.bottom-cell:hover {
+  background-color: #edebe4;
+}
+
+.bottom-cell:hover a,
+.bottom-cell:hover .dash {
+  color: #0b0b0a;
+}
+
+body.theme-navy .bottom-cell:hover {
+  background-color: rgba(218, 209, 202, 0.12) !important;
+}
+
+body.theme-navy .bottom-cell:hover a,
+body.theme-navy .bottom-cell:hover .dash {
+  color: #FAF8F5 !important;
 }
 
 .bottom-cell:last-child,
@@ -1442,6 +1484,7 @@ html[data-theme="navy"] .hero-letter.anim-glitch {
   align-items: center;
   gap: 0.4rem;
   color: #8c8984;
+  cursor: pointer;
   transition: color var(--transition-fast);
 }
 
@@ -1470,14 +1513,25 @@ html[data-theme="navy"] .hero-letter.anim-glitch {
 
 .bottom-cell.cell-enter .enter-portfolio-link {
   font-weight: 700;
+  transition: color var(--transition-fast), transform var(--transition-fast);
 }
 
 .bottom-cell.cell-enter:hover {
   background-color: #edebe4;
 }
 
+.bottom-cell.cell-enter:hover .enter-portfolio-link {
+  color: #0b0b0a;
+  transform: translateX(2px);
+}
+
+body.theme-navy .bottom-cell.cell-enter:hover .enter-portfolio-link {
+  color: #FAF8F5 !important;
+}
+
 .bottom-cell .dash {
   color: var(--text-muted);
+  transition: color var(--transition-fast);
 }
 
 /* ================= 4. COMMON ARCHITECTURAL SECTION HEADER ================= */
@@ -3347,6 +3401,15 @@ html[data-theme="navy"] .hero-letter.anim-glitch {
   padding: 4px 10px;
   border: 1px solid var(--border-hairline);
   background-color: #ffffff;
+  color: #0b0b0a;
+}
+
+html[data-theme="navy"] .detail-tag-chip,
+body.theme-navy .detail-tag-chip {
+  background-color: #ffffff !important;
+  color: #112250 !important;
+  font-weight: 600;
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .detail-overview-block {
@@ -3482,15 +3545,20 @@ body.theme-navy .related-link-card:hover {
   max-width: 100%;
   display: flex;
   flex-direction: column;
+  touch-action: pan-y;
 }
 
 .portrait-image-card {
   width: 100%;
   position: relative;
+  touch-action: pan-y;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
 }
 
 .portrait-img-box {
   width: 100%;
+  touch-action: pan-y;
 }
 
 .portrait-img-box img {
@@ -3498,6 +3566,8 @@ body.theme-navy .related-link-card:hover {
   width: 100% !important;
   max-width: 100% !important;
   height: auto !important;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
 }
 
 /* 0px Gap Seamless Connected Slides */
@@ -3533,6 +3603,8 @@ body.theme-navy .related-link-card:hover {
   padding: 0 !important;
   border: none !important;
   vertical-align: bottom !important;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
 }
 
 /* Has Gap Mode */
@@ -3583,7 +3655,9 @@ body.theme-navy .related-link-card:hover {
 
 /* Supplementary Gallery */
 .detail-scroll-gallery-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  touch-action: pan-y;
+  position: relative;
 }
 
 .scroll-hint-badge {
@@ -3592,10 +3666,18 @@ body.theme-navy .related-link-card:hover {
 
 .scroll-gallery-stage {
   width: 100%;
-  overflow-x: hidden;
+  overflow-x: auto;
   position: relative;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-x pan-y;
+}
+
+.scroll-gallery-stage:active {
+  cursor: grabbing;
 }
 
 .scroll-gallery-stage::-webkit-scrollbar {
@@ -3608,21 +3690,99 @@ body.theme-navy .related-link-card:hover {
   padding-bottom: 0.5rem;
   width: max-content;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 .scroll-gallery-item {
+  position: relative;
   flex: 0 0 360px;
-  height: 230px;
+  height: 240px;
   overflow: hidden;
-  background-color: #ffffff;
-  border: 1px solid var(--border-hairline);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  background-color: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  outline: none !important;
+}
+
+.scroll-gallery-item:active {
+  cursor: grabbing;
 }
 
 .scroll-gallery-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s ease;
+  pointer-events: none;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
+}
+
+/* Words & dark overlay ONLY show when hovering! */
+.scroll-gallery-item:hover img {
+  transform: scale(1.05);
+  filter: brightness(0.55);
+}
+
+.scroll-gallery-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.25rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.6) 55%, transparent 100%);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  box-sizing: border-box;
+}
+
+.scroll-gallery-item:hover .scroll-gallery-overlay {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.gallery-overlay-badge {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  color: #00e5ff;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+
+html[data-theme="navy"] .gallery-overlay-badge,
+body.theme-navy .gallery-overlay-badge {
+  color: #5ce1e6;
+}
+
+.gallery-overlay-text {
+  font-family: var(--font-body, var(--font-sans, -apple-system, sans-serif));
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #ffffff;
+  word-break: break-word;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+@media (max-width: 768px) {
+  .scroll-gallery-item {
+    flex: 0 0 280px;
+    height: 190px;
+  }
+  .scroll-gallery-overlay {
+    padding: 1rem;
+  }
+  .gallery-overlay-text {
+    font-size: 0.8rem;
+  }
 }
 
 /* Custom Narrative & Media Sections (Below Part of Project Detail) */
@@ -3818,13 +3978,6 @@ body.theme-navy .related-link-card:hover {
   color: var(--bg-paper);
 }
 
-.btn-pdf-autoscroll.is-active {
-  background-color: #10b981 !important;
-  color: #ffffff !important;
-  border-color: #10b981 !important;
-  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
-}
-
 .pdf-viewer-viewport {
   width: 100%;
   position: relative;
@@ -3882,11 +4035,6 @@ body.theme-navy .btn-pdf-control:hover {
   background-color: #DAD1CA;
   color: #112250;
 }
-body.theme-navy .btn-pdf-autoscroll.is-active {
-  background-color: #22c55e !important;
-  color: #112250 !important;
-  border-color: #22c55e !important;
-}
 
 /* Bottom Case Study Nav (Matching Image 3) */
 .detail-bottom-nav {
@@ -3931,6 +4079,21 @@ body.theme-navy .btn-pdf-autoscroll.is-active {
   border-color: #000000;
 }
 
+body.theme-navy .nav-case-btn,
+html[data-theme="navy"] .nav-case-btn {
+  background-color: #182C62;
+  color: #FAF8F5;
+  border-color: rgba(218, 209, 202, 0.35);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+body.theme-navy .nav-case-btn:hover,
+html[data-theme="navy"] .nav-case-btn:hover {
+  background-color: #DAD1CA;
+  color: #112250;
+  border-color: #DAD1CA;
+}
+
 /* ================= 8. VIEW 5: CONTACT (ACCORDING TO SHEET 03) ================= */
 .contact-dark-stage {
   width: 100%;
@@ -3968,7 +4131,7 @@ body.theme-navy .btn-pdf-autoscroll.is-active {
   gap: 2.5rem 4rem;
   position: relative;
   margin-bottom: 1.5rem;
-  align-items: start;
+  align-items: end;
 }
 
 /* Left Top: START A PROJECT & Callout */
@@ -4017,12 +4180,13 @@ body.theme-navy .btn-pdf-autoscroll.is-active {
   height: 100%;
 }
 
-/* Right Top: Direct Info Table */
+/* Right Top: Direct Info Table & Resume Action */
 .contact-table-rows {
   grid-area: table;
   grid-column: 2;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
 }
 
 .table-row {
@@ -4049,6 +4213,72 @@ body.theme-navy .btn-pdf-autoscroll.is-active {
 .table-row a.row-val:hover {
   opacity: 0.7;
   text-decoration: underline;
+}
+
+/* Resume Action Button in Contact Section */
+.contact-resume-wrap {
+  margin-top: 1.75rem;
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.contact-resume-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.95rem 1.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ffffff;
+  background-color: var(--bg-dark, #0b0b0a);
+  border: 1px solid #ffffff;
+  border-radius: 0;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.contact-resume-btn .resume-btn-arrow {
+  font-size: 1.15rem;
+  line-height: 1;
+  transition: transform var(--transition-fast);
+  display: inline-block;
+}
+
+.contact-resume-btn:hover {
+  background-color: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
+
+.contact-resume-btn:hover .resume-btn-arrow {
+  transform: translate(3px, -3px);
+}
+
+.contact-resume-btn:active {
+  transform: scale(0.98);
+}
+
+body.theme-navy .contact-resume-btn,
+html[data-theme="navy"] .contact-resume-btn,
+body.blue-mode .contact-resume-btn {
+  background-color: var(--bg-dark, #0A1535) !important;
+  border: 1px solid #ffffff !important;
+  color: #ffffff !important;
+}
+
+body.theme-navy .contact-resume-btn:hover,
+html[data-theme="navy"] .contact-resume-btn:hover,
+body.blue-mode .contact-resume-btn:hover {
+  background-color: #ffffff !important;
+  color: #0A1535 !important;
+  border-color: #ffffff !important;
 }
 
 /* Right Bottom: Quick Form (Ask Question Box) */
@@ -4200,9 +4430,10 @@ html, body {
   .header-nav {
     gap: clamp(0.75rem, 1.8vw, 1.6rem);
   }
-  .nav-tab {
-    font-size: 8.8px;
-    letter-spacing: 1.6px;
+  .nav-tab,
+  button.nav-tab.nav-logout-btn {
+    font-size: 8.8px !important;
+    letter-spacing: 1.6px !important;
   }
   .about-upper-grid {
     grid-template-columns: 1fr;
@@ -4546,6 +4777,26 @@ html, body {
     width: 100% !important;
     justify-content: center !important;
   }
+  .detail-bottom-nav {
+    padding: 2.25rem 0 3.25rem 0 !important;
+    margin-top: 2.5rem !important;
+    justify-content: center !important;
+  }
+  .detail-center-btns {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0.65rem !important;
+  }
+  .nav-case-btn {
+    flex: 1 !important;
+    padding: 12px 8px !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.08em !important;
+    white-space: nowrap !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
 
   /* 6. Contact View on Tablet / Mobile */
   .contact-dark-stage {
@@ -4613,8 +4864,20 @@ html, body {
   .contact-table-rows .table-row .row-val {
     word-break: break-all !important;
   }
+  .contact-resume-wrap {
+    margin-top: 1.5rem !important;
+    width: 100% !important;
+  }
+  .contact-resume-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 0.9rem 1.25rem !important;
+  }
   .related-links-grid {
     grid-template-columns: 1fr !important;
+  }
+  .detail-center-btns {
+    flex-direction: column !important;
   }
   .auth-modal-backdrop, .logout-modal-backdrop {
     padding: 1rem !important;

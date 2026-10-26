@@ -14,10 +14,47 @@ document.addEventListener('DOMContentLoaded', async () => {
   const drawerCloseBtn = document.getElementById('drawer-close-btn');
 
   let isInitialLoad = true;
-  let portfolioData = null;
+  let currentActiveViewId = null;
+  let portfolioData = (window.PortfolioDB && window.PortfolioDB.getImmediateData)
+    ? window.PortfolioDB.getImmediateData()
+    : ((window.PortfolioDB && window.PortfolioDB.memoryData) ? window.PortfolioDB.memoryData : null);
   let currentActiveProjectId = null;
 
+  function findProjectIndex(projs, targetId) {
+    if (!Array.isArray(projs) || projs.length === 0 || !targetId) return 0;
+    const sTarget = String(targetId).trim().toLowerCase();
+    const numTarget = parseInt(sTarget.replace(/\D/g, ''), 10);
+
+    // 1. Direct ID match (case-insensitive)
+    let idx = projs.findIndex(p => p && String(p.id || '').trim().toLowerCase() === sTarget);
+    if (idx !== -1) return idx;
+
+    // 2. Direct Index match (e.g. "02" === "02")
+    idx = projs.findIndex(p => p && String(p.index || '').trim().toLowerCase() === sTarget);
+    if (idx !== -1) return idx;
+
+    // 3. Numeric index match (e.g. "2" matches "02", or "p2" matches "02")
+    if (!isNaN(numTarget)) {
+      idx = projs.findIndex(p => {
+        if (!p) return false;
+        const pIdxNum = parseInt(String(p.index || '').replace(/\D/g, ''), 10);
+        const pIdNum = parseInt(String(p.id || '').replace(/\D/g, ''), 10);
+        return pIdxNum === numTarget || pIdNum === numTarget;
+      });
+      if (idx !== -1) return idx;
+    }
+
+    // 4. Slug / Title match
+    idx = projs.findIndex(p => p && p.title && p.title.toLowerCase().replace(/[^a-z0-9]/g, '') === sTarget.replace(/[^a-z0-9]/g, ''));
+    if (idx !== -1) return idx;
+
+    return 0;
+  }
+
   function navigateTo(viewId, param = null) {
+    const isViewChange = (currentActiveViewId !== viewId);
+    currentActiveViewId = viewId;
+
     const earlyStyle = document.getElementById('early-route-style');
     if (earlyStyle) earlyStyle.remove();
 
@@ -42,7 +79,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const detailView = document.getElementById('view-project-detail');
       if (detailView) detailView.classList.add('active');
       if (portfolioData) {
-        const curProj = (portfolioData.projects || []).find(p => p.id === param || p.index === param);
+        const pIdx = findProjectIndex(portfolioData.projects, param);
+        const curProj = (portfolioData.projects || [])[pIdx];
         if (window.PortfolioDB && window.PortfolioDB.recordVisit && curProj) {
           window.PortfolioDB.recordVisit({ page: 'Project: ' + curProj.title });
         }
@@ -57,7 +95,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.body.classList.toggle('on-home', viewId === 'home');
 
-    if (!isInitialLoad) {
+    // Only scroll to top if the view actually CHANGED (e.g. from home to projects), never on refresh or background data sync!
+    if (!isInitialLoad && isViewChange) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -66,15 +105,205 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  function getFirstVisibleView(pv) {
+    const order = (portfolioData && Array.isArray(portfolioData.pageOrder) && portfolioData.pageOrder.length > 0)
+      ? portfolioData.pageOrder
+      : ['home', 'projects', 'about', 'contact'];
+    for (const key of order) {
+      if (!pv || pv[key] !== false) return key;
+    }
+    return 'home';
+  }
+
+  function applyPageOrder() {
+    const order = (portfolioData && Array.isArray(portfolioData.pageOrder) && portfolioData.pageOrder.length > 0)
+      ? portfolioData.pageOrder
+      : ['home', 'projects', 'about', 'contact'];
+
+    // 1. Re-order desktop header navigation tabs in #main-nav
+    const mainNav = document.getElementById('main-nav');
+    const themeBtn = document.getElementById('nav-theme-toggle');
+    if (mainNav) {
+      order.forEach(pageKey => {
+        const tab = mainNav.querySelector(`.nav-tab[data-view="${pageKey}"]`);
+        if (tab && themeBtn) {
+          mainNav.insertBefore(tab, themeBtn);
+        } else if (tab) {
+          mainNav.appendChild(tab);
+        }
+      });
+    }
+
+    // 2. Re-order mobile drawer links in #mobile-drawer .drawer-body
+    const drawerBody = document.querySelector('#mobile-drawer .drawer-body');
+    const drawerThemeBtn = document.getElementById('drawer-theme-btn');
+    if (drawerBody) {
+      order.forEach((pageKey, idx) => {
+        const link = drawerBody.querySelector(`.drawer-link[data-view="${pageKey}"]`);
+        if (link) {
+          const numSpan = link.querySelector('span');
+          if (numSpan) {
+            numSpan.textContent = String(idx + 1).padStart(2, '0');
+          }
+          if (drawerThemeBtn) {
+            drawerBody.insertBefore(link, drawerThemeBtn);
+          } else {
+            drawerBody.appendChild(link);
+          }
+        }
+      });
+    }
+
+    // 3. Update Homepage "Enter Portfolio" link target to first visible subpage
+    const enterLink = document.getElementById('home-enter-link');
+    if (enterLink) {
+      const pv = (portfolioData && portfolioData.pageVisibility) || {};
+      const subpages = order.filter(k => k !== 'home' && pv[k] !== false);
+      const targetSubpage = subpages.length > 0 ? subpages[0] : 'projects';
+      enterLink.setAttribute('href', '#' + targetSubpage);
+    }
+  }
+
+  function applySectionVisibility() {
+    const sv = (portfolioData && portfolioData.sectionVisibility) || {};
+    const p = (portfolioData && portfolioData.profile) || {};
+    const a = (portfolioData && portfolioData.about) || {};
+
+    const sectionElements = [
+      // HOME PAGE SECTIONS
+      { key: 'homeHero', el: document.getElementById('home-center-hero') },
+      { key: 'homeMetaLeft', el: document.querySelector('.home-left-col') },
+      { key: 'homeMetaRight', el: document.querySelector('.home-right-col') },
+      { key: 'homeBottomBar', el: document.getElementById('home-bottom-bar') },
+      { key: 'homeEmail', el: document.getElementById('home-email-box') },
+      { key: 'homePhone', el: document.getElementById('home-phone-box') },
+      { key: 'homeBehance', el: document.getElementById('home-behance-box') },
+      { key: 'homeEnterPortfolio', el: document.getElementById('home-enter-box') },
+
+      // ABOUT PAGE SECTIONS
+      { key: 'aboutHeader', el: document.querySelector('#view-about .subpage-header-stage') },
+      { key: 'aboutProfileCard', el: document.querySelector('.about-profile-col') },
+      { key: 'aboutBio', el: document.querySelector('.about-bio-col') },
+      { key: 'aboutSkillsTags', el: document.getElementById('about-skills-tags') },
+      { key: 'aboutStats', el: document.getElementById('about-stats-container') },
+      { key: 'aboutEducation', el: document.getElementById('about-block-education') || document.querySelector('.about-education-block') },
+      { key: 'aboutSoftware', el: document.getElementById('about-block-software') || document.querySelector('.about-software-block') },
+      { key: 'aboutLanguages', el: document.getElementById('group-languages') || document.getElementById('about-languages-table') },
+      { key: 'aboutTechnical', el: document.getElementById('group-technical') || document.getElementById('about-technical-pills') },
+      { key: 'aboutPersonal', el: document.getElementById('group-personal') || document.getElementById('about-personal-pills') },
+      { key: 'aboutExperience', el: document.getElementById('group-experience') || document.getElementById('about-experience-list') },
+      { key: 'aboutAchievements', el: document.getElementById('group-achievements') || document.getElementById('about-achievements-list') },
+      { key: 'aboutCompetitions', el: document.getElementById('group-competitions') || document.getElementById('about-competitions-list') },
+
+      // PROJECTS PAGE SECTIONS
+      { key: 'projectsHeader', el: document.querySelector('#view-projects .subpage-header-stage') },
+      { key: 'projectsFilterBar', el: document.querySelector('.projects-filter-bar') },
+      { key: 'projectsGrid', el: document.getElementById('projects-grouped-stage') },
+
+      // CONTACT PAGE SECTIONS
+      { key: 'contactHeader', el: document.querySelector('#view-contact .subpage-header-stage') },
+      { key: 'contactStartProject', el: document.querySelector('.contact-callout-top') },
+      { key: 'contactChannels', el: document.querySelector('.contact-table-rows') },
+      { key: 'contactResumeBtn', el: document.getElementById('contact-resume-action-box') },
+
+      // GLOBAL SECTIONS
+      { key: 'siteFooter', el: document.getElementById('site-footer') }
+    ];
+
+    sectionElements.forEach(({ key, el }) => {
+      if (!el) return;
+      let visible = true;
+      if (sv[key] === false) visible = false;
+
+      // Backward compatible checks with about.sectionSettings & profile.showStats
+      if (key === 'aboutStats' && p.showStats === false) visible = false;
+      if (key === 'aboutEducation' && a.sectionSettings && a.sectionSettings.education && a.sectionSettings.education.enabled === false) visible = false;
+      if (key === 'aboutSoftware' && a.sectionSettings && a.sectionSettings.software && a.sectionSettings.software.enabled === false) visible = false;
+      if (key === 'aboutLanguages' && a.sectionSettings && a.sectionSettings.languages && a.sectionSettings.languages.enabled === false) visible = false;
+      if (key === 'aboutTechnical' && a.sectionSettings && a.sectionSettings.technicalSkills && a.sectionSettings.technicalSkills.enabled === false) visible = false;
+      if (key === 'aboutPersonal' && a.sectionSettings && a.sectionSettings.personalSkills && a.sectionSettings.personalSkills.enabled === false) visible = false;
+      if (key === 'aboutExperience' && a.sectionSettings && a.sectionSettings.experience && a.sectionSettings.experience.enabled === false) visible = false;
+      if (key === 'aboutAchievements' && a.sectionSettings && a.sectionSettings.achievements && a.sectionSettings.achievements.enabled === false) visible = false;
+      if (key === 'aboutCompetitions' && a.sectionSettings && a.sectionSettings.competitions && a.sectionSettings.competitions.enabled === false) visible = false;
+
+      if (!visible) {
+        el.style.display = 'none';
+      } else {
+        el.style.display = '';
+      }
+    });
+  }
+
+  function applyPageVisibility() {
+    applyPageOrder();
+    applySectionVisibility();
+    const pv = (portfolioData && portfolioData.pageVisibility) || { home: true, about: true, projects: true, contact: true };
+
+    // 1. Header Nav Tabs
+    navTabs.forEach(tab => {
+      const viewKey = tab.getAttribute('data-view');
+      if (viewKey && pv[viewKey] !== undefined) {
+        tab.style.display = pv[viewKey] ? '' : 'none';
+      }
+    });
+
+    // 2. Mobile Drawer Links
+    drawerLinks.forEach(link => {
+      const viewKey = link.getAttribute('data-view');
+      if (viewKey && pv[viewKey] !== undefined) {
+        link.style.display = pv[viewKey] ? '' : 'none';
+      }
+    });
+
+    // 3. Section Views (Clean inline display overrides)
+    pageViews.forEach(view => {
+      const vId = view.id.replace('view-', '');
+      if (vId && pv[vId] !== undefined) {
+        if (!pv[vId]) {
+          view.style.display = 'none';
+        } else {
+          view.style.display = '';
+        }
+      }
+    });
+
+    // 4. Homepage Bottom Bar items if respective page is hidden
+    const enterBox = document.getElementById('home-enter-box');
+    if (enterBox && pv.projects !== undefined) {
+      enterBox.style.display = pv.projects ? '' : 'none';
+    }
+
+    // 5. If current active view is hidden, redirect to first visible view
+    if (currentActiveViewId && pv[currentActiveViewId] === false) {
+      const fallback = getFirstVisibleView(pv);
+      window.location.hash = '#' + fallback;
+      navigateTo(fallback);
+    }
+  }
+
   function handleHashChange() {
-    const hash = window.location.hash.replace('#', '') || 'home';
+    const pv = (portfolioData && portfolioData.pageVisibility) || { home: true, about: true, projects: true, contact: true };
+    let hash = window.location.hash.replace('#', '') || 'home';
     if (hash.startsWith('project/')) {
+      if (pv.projects === false) {
+        const fallback = getFirstVisibleView(pv);
+        window.location.hash = '#' + fallback;
+        navigateTo(fallback);
+        return;
+      }
       const projId = hash.split('/')[1];
       navigateTo('project-detail', projId);
     } else if (['home', 'about', 'projects', 'contact'].includes(hash)) {
+      if (pv[hash] === false) {
+        const fallback = getFirstVisibleView(pv);
+        window.location.hash = '#' + fallback;
+        navigateTo(fallback);
+        return;
+      }
       navigateTo(hash);
     } else {
-      navigateTo('home');
+      const fallback = getFirstVisibleView(pv);
+      navigateTo(fallback);
     }
   }
 
@@ -83,6 +312,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Subscribe immediately to real-time database updates from Cloud Firestore & Admin
   if (window.PortfolioDB && window.PortfolioDB.subscribe) {
     window.PortfolioDB.subscribe((newData) => {
+      if (!newData) return;
+      const prevTime = (portfolioData && portfolioData._lastUpdated) || 0;
+      const freshTime = newData._lastUpdated || 0;
+      if (portfolioData && prevTime >= freshTime) return; // avoid duplicate renders & flicker
       portfolioData = newData;
       renderAll();
       const hash = window.location.hash.replace('#', '');
@@ -96,11 +329,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Synchronously switch to requested view from hash BEFORE waiting for database async
+  // Fast 60ms race to ensure latest IndexedDB data is ready before painting!
+  if (window.PortfolioDB && window.PortfolioDB.initPromise) {
+    try {
+      await Promise.race([
+        window.PortfolioDB.initPromise,
+        new Promise(res => setTimeout(res, 60))
+      ]);
+    } catch(e) {}
+  }
+
+  portfolioData = (window.PortfolioDB && window.PortfolioDB.getImmediateData)
+    ? window.PortfolioDB.getImmediateData()
+    : ((window.PortfolioDB && window.PortfolioDB.memoryData) ? window.PortfolioDB.memoryData : null);
+
+  // Synchronously switch to requested view from hash
   handleHashChange();
 
-  // Now load database
-  portfolioData = await window.PortfolioDB.getData();
+  // Instant synchronous first-frame render with 100% updated dataset!
+  if (portfolioData) {
+    try { renderAll(); } catch(e) { console.warn('Instant initial render notice:', e); }
+  }
+
+  // Reveal page immediately with updated version - zero flash of old/previous content!
+  document.documentElement.classList.remove('anti-fouc');
+
+  // Load database asynchronously without blocking the user
+  if (window.PortfolioDB && window.PortfolioDB.getData) {
+    window.PortfolioDB.getData().then(freshData => {
+      if (freshData) {
+        const prevTime = (portfolioData && portfolioData._lastUpdated) || 0;
+        const freshTime = freshData._lastUpdated || 0;
+        if (freshTime > prevTime || !portfolioData) {
+          portfolioData = freshData;
+          renderAll();
+        }
+      }
+    }).catch(err => {
+      console.warn('Async getData notice:', err);
+    });
+  }
 
   // Log visitor count to Firebase if cloud enabled (ignores admin self-views)
   if (window.PortfolioDB && window.PortfolioDB.recordVisit) {
@@ -113,11 +381,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   let activeLayout = 'grid';        // 'grid' | 'table'
   let searchQuery = '';
   let autoScrollInterval = null;
+  let isPageScrolling = false;
+  let pageScrollTimeout = null;
+  window.addEventListener('scroll', () => {
+    isPageScrolling = true;
+    clearTimeout(pageScrollTimeout);
+    pageScrollTimeout = setTimeout(() => {
+      isPageScrolling = false;
+    }, 120);
+  }, { passive: true });
 
   /* ================= NAV AUTHENTICATION & EDIT VISIBILITY ================= */
   function updateNavAuthVisibility() {
-    const isAuth = sessionStorage.getItem('renee_admin_authenticated') === 'true' ||
-                   localStorage.getItem('renee_admin_authenticated') === 'true';
+    try { localStorage.removeItem('renee_admin_authenticated'); } catch(e) {}
+    const isAuth = sessionStorage.getItem('renee_admin_authenticated') === 'true';
     const editNavLinks = document.querySelectorAll('.nav-edit-link, .drawer-edit-link');
     editNavLinks.forEach(el => {
       el.style.display = isAuth ? 'inline-flex' : 'none';
@@ -228,6 +505,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   function applyTheme(themeName) {
     const isNavy = themeName === 'navy';
     document.body.classList.toggle('theme-navy', isNavy);
+    document.body.classList.toggle('blue-mode', isNavy);
     if (isNavy) {
       document.documentElement.setAttribute('data-theme', 'navy');
     } else {
@@ -243,16 +521,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function toggleTheme() {
-    const currentTheme = localStorage.getItem(THEME_STORAGE_KEY) === 'navy' ? 'navy' : 'default';
+    const currentTheme = sessionStorage.getItem(THEME_STORAGE_KEY) === 'navy' ? 'navy' : 'default';
     const nextTheme = currentTheme === 'navy' ? 'default' : 'navy';
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+      sessionStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+      // Clean up legacy localStorage so new sessions always start in default mode
+      localStorage.removeItem(THEME_STORAGE_KEY);
     } catch(e) {}
     applyTheme(nextTheme);
   }
 
-  // Restore saved theme on initial load
-  const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'default';
+  // User requested: Closing tab and entering again will always start in default mode
+  try { localStorage.removeItem(THEME_STORAGE_KEY); } catch(e) {}
+  const savedTheme = sessionStorage.getItem(THEME_STORAGE_KEY) || 'default';
   applyTheme(savedTheme);
 
   if (navThemeToggle) navThemeToggle.addEventListener('click', toggleTheme);
@@ -440,6 +721,29 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
+    // Make entire bottom-bar columns clickable (e.g. clicking anywhere in the column enters portfolio / activates link)
+    const allBottomCells = document.querySelectorAll('.home-bottom-grid-bar .bottom-cell');
+    allBottomCells.forEach(cell => {
+      if (!cell._hasColumnClickHandler) {
+        cell._hasColumnClickHandler = true;
+        cell.addEventListener('click', (e) => {
+          if (e.target.tagName.toLowerCase() === 'a' || e.target.closest('a') === cell.querySelector('a')) {
+            return;
+          }
+          const a = cell.querySelector('a');
+          if (a) {
+            if (a.getAttribute('target') === '_blank') {
+              window.open(a.href, '_blank', 'noopener,noreferrer');
+            } else if (a.hash && a.hash.startsWith('#')) {
+              window.location.hash = a.hash;
+            } else if (a.href) {
+              a.click();
+            }
+          }
+        });
+      }
+    });
+
     // Global Footer texts
     const footerLeft = document.getElementById('footer-left-text');
     if (footerLeft) footerLeft.innerHTML = `${p.name || 'MOO RENEE'} &bull; <span class="secret-p-trigger">P</span>ORTFOLIO ${p.years || '2024–26'}`;
@@ -452,6 +756,92 @@ document.addEventListener('DOMContentLoaded', async () => {
   function renderAboutScreen() {
     const p = portfolioData.profile || {};
     const a = portfolioData.about || {};
+    const defAbout = (window.DEFAULT_PORTFOLIO_DATA && window.DEFAULT_PORTFOLIO_DATA.about) || {};
+    const defProf = (window.DEFAULT_PORTFOLIO_DATA && window.DEFAULT_PORTFOLIO_DATA.profile) || {};
+
+    const statsListItems = (Array.isArray(p.stats) && p.stats.length > 0)
+      ? p.stats
+      : (defProf.stats || [
+          { number: "6+", label: "YEARS STUDYING DESIGN" },
+          { number: "2+", label: "PROJECTS COMPLETED" },
+          { number: "10", label: "COMPETITIONS ENTERED" },
+          { number: "7", label: "AWARDS & RECOGNITIONS" }
+        ]);
+
+    const eduListItems = (Array.isArray(a.education) && a.education.length > 0)
+      ? a.education
+      : (defAbout.education || [
+          {
+            years: "2017-2022",
+            title: "Tenby International School Setia EcoHill",
+            subtitle: "",
+            cgpa: ""
+          },
+          {
+            years: "2022-2023",
+            title: "Foundation in Design",
+            subtitle: "Taylor's College",
+            cgpa: "CGPA 3.67"
+          },
+          {
+            years: "2023-2026",
+            title: "Bachelor in Interactive Spatial Design (Hons)",
+            subtitle: "Taylor's University",
+            cgpa: "CGPA 3.79"
+          }
+        ]);
+
+    const techSkillsList = (Array.isArray(a.technicalSkills) && a.technicalSkills.length > 0)
+      ? a.technicalSkills
+      : (defAbout.technicalSkills || ["UI/UX DESIGN", "GAME DESIGN", "AR/VR DEVELOPMENT", "GRAPHIC DESIGN", "CODING", "3D MODELING"]);
+
+    const persSkillsList = (Array.isArray(a.personalSkills) && a.personalSkills.length > 0)
+      ? a.personalSkills
+      : (defAbout.personalSkills || ["TEAMWORK", "CREATIVITY", "TIME MANAGEMENT", "RESPONSIBILITY", "WILLINGNESS TO LEARN", "ORGANIZATION"]);
+
+    const langListItems = (Array.isArray(a.languages) && a.languages.length > 0)
+      ? a.languages
+      : (defAbout.languages || [
+          { language: "Chinese", proficiency: "NATIVE" },
+          { language: "English", proficiency: "FLUENT" },
+          { language: "Malay", proficiency: "CONVERSATIONAL" }
+        ]);
+
+    const expListItems = (Array.isArray(a.experience) && a.experience.length > 0)
+      ? a.experience
+      : (defAbout.experience || [{
+          type: "INTERNSHIP",
+          role: "Visual Experience Designer",
+          company: "Virtualtech Frontier (VTF)",
+          description: "Specialized in 3D spatial environments, interactive asset modeling, and XR experiences."
+        }]);
+
+    const achListItems = (Array.isArray(a.achievements) && a.achievements.length > 0)
+      ? a.achievements
+      : (defAbout.achievements || [
+          { title: "Terang Competition 2025", award: "FINALIST" },
+          { title: "Superior Culture Competition", award: "SILVER" },
+          { title: "AR Fest KL", award: "TOP 05" },
+          { title: "Pre U Logo Proposal", award: "TOP 10" },
+          { title: "Taylor's University", award: "DEAN'S LIST" },
+          { title: "Tian Yan Cup", award: "EXCELLENCE AWARD" },
+          { title: "Cross-Strait Pin Art Exhibition", award: "DISTINCTION" }
+        ]);
+
+    const compListItems = (Array.isArray(a.competitions) && a.competitions.length > 0)
+      ? a.competitions
+      : (defAbout.competitions || [
+          { year: "2025", name: "Tenang Projection Mapping Competition" },
+          { year: "2025", name: "Superior Culture | Black and White Painting Competition" },
+          { year: "2024", name: "D-Zone (Event Crew)" },
+          { year: "2024", name: "XR Jam 2024 / Mental Health" },
+          { year: "2024", name: "AR Fest KL / Instagram Wall Painting Filter" },
+          { year: "2024", name: "Taiwan International Student Design Competition / Product Design" },
+          { year: "2024", name: "Design For Change 2024 Singapore / Sustainability in Healthcare" },
+          { year: "2023", name: "Pre U Foundation in Design Logo Proposal" },
+          { year: "2022", name: "Tian Yan Cup International Cartoon Competition / Illustration" },
+          { year: "2020", name: "Cross-Strait Pin Art Exhibition / Illustration" }
+        ]);
 
     // Headline
     const headlineEl = document.getElementById('about-headline-title');
@@ -565,7 +955,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const eduList = document.getElementById('about-education-list');
     if (eduList) {
       eduList.innerHTML = '';
-      (a.education || []).forEach(edu => {
+      eduListItems.forEach(edu => {
         const item = document.createElement('div');
         item.className = 'edu-card-item';
         
@@ -636,41 +1026,40 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    // Stats Grid (Auto-Calculates Projects & Competitions Live + Adapts Beside or Boxed)
+    // Stats Grid (Optional & 100% Manually Keyed In by User)
     const statsContainer = document.getElementById('about-stats-container');
-    if (statsContainer && p.stats) {
-      statsContainer.innerHTML = '';
-      const totalProjects = Array.isArray(portfolioData.projects) ? portfolioData.projects.length : 17;
-      const totalCompetitions = Array.isArray(a.competitions) ? a.competitions.length : 10;
-      const statsCount = p.stats.length || 4;
-      const preferredLayout = p.statsLayout || 'beside';
-
-      if (preferredLayout === 'box' || statsCount > 6) {
-        statsContainer.classList.add('stats-boxed-grid');
-        statsContainer.classList.remove('stats-beside-grid');
-        statsContainer.style.removeProperty('--stats-col-count');
+    if (statsContainer) {
+      const isStatsVisible = p.showStats !== false;
+      if (!isStatsVisible || statsListItems.length === 0) {
+        statsContainer.style.display = 'none';
       } else {
-        statsContainer.classList.remove('stats-boxed-grid');
-        statsContainer.classList.add('stats-beside-grid');
-        statsContainer.style.setProperty('--stats-col-count', statsCount);
-      }
+        statsContainer.style.display = '';
+        statsContainer.innerHTML = '';
+        const statsCount = statsListItems.length || 4;
+        const preferredLayout = p.statsLayout || 'beside';
 
-      p.stats.forEach(st => {
-        let displayNum = st.number;
-        const upperLabel = (st.label || '').toUpperCase();
-        if (upperLabel.includes('PROJECT')) {
-          displayNum = `${totalProjects}+`;
-        } else if (upperLabel.includes('COMPETITION')) {
-          displayNum = `${totalCompetitions}`;
+        if (preferredLayout === 'box' || statsCount > 6) {
+          statsContainer.classList.add('stats-boxed-grid');
+          statsContainer.classList.remove('stats-beside-grid');
+          statsContainer.style.removeProperty('--stats-col-count');
+        } else {
+          statsContainer.classList.remove('stats-boxed-grid');
+          statsContainer.classList.add('stats-beside-grid');
+          statsContainer.style.setProperty('--stats-col-count', statsCount);
         }
-        const cell = document.createElement('div');
-        cell.className = 'stat-cell';
-        cell.innerHTML = `
-          <span class="stat-number">${displayNum}</span>
-          <span class="stat-label">${st.label}</span>
-        `;
-        statsContainer.appendChild(cell);
-      });
+
+        statsListItems.forEach(st => {
+          const displayNum = (st.number !== undefined && st.number !== null) ? String(st.number) : '';
+          const displayLabel = st.label || '';
+          const cell = document.createElement('div');
+          cell.className = 'stat-cell';
+          cell.innerHTML = `
+            <span class="stat-number">${displayNum}</span>
+            <span class="stat-label">${displayLabel}</span>
+          `;
+          statsContainer.appendChild(cell);
+        });
+      }
     }
 
     // Lower Matrix: Technical Skills (Column 1)
@@ -693,7 +1082,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           heading.textContent = getCleanHeading('technical', secTech && secTech.title, 'TECHNICAL');
         }
         techPills.innerHTML = '';
-        (a.technicalSkills || []).forEach(sk => {
+        techSkillsList.forEach(sk => {
           const pill = document.createElement('span');
           pill.className = 'matrix-outline-pill';
           pill.textContent = sk;
@@ -722,7 +1111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           heading.textContent = getCleanHeading('personal', secPers && secPers.title, 'PERSONAL');
         }
         persPills.innerHTML = '';
-        (a.personalSkills || []).forEach(sk => {
+        persSkillsList.forEach(sk => {
           const pill = document.createElement('span');
           pill.className = 'matrix-outline-pill';
           pill.textContent = sk;
@@ -751,7 +1140,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           heading.textContent = getCleanHeading('languages', secLang && secLang.title, 'LANGUAGE');
         }
         langTable.innerHTML = '';
-        (a.languages || []).forEach(l => {
+        langListItems.forEach(l => {
           const row = document.createElement('div');
           row.className = 'matrix-lang-row';
           row.innerHTML = `
@@ -783,7 +1172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           heading.textContent = getCleanHeading('experience', secExp && secExp.title, 'EXPERIENCE');
         }
         expList.innerHTML = '';
-        (a.experience || []).forEach(exp => {
+        expListItems.forEach(exp => {
           const item = document.createElement('div');
           item.className = 'matrix-exp-item';
           item.innerHTML = `
@@ -816,7 +1205,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           heading.textContent = getCleanHeading('achievements', secAch && secAch.title, 'ACHIEVEMENTS');
         }
         achList.innerHTML = '';
-        (a.achievements || []).forEach(ach => {
+        achListItems.forEach(ach => {
           const item = document.createElement('div');
           item.className = 'matrix-achieve-item';
           item.innerHTML = `
@@ -848,7 +1237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           heading.textContent = getCleanHeading('competitions', secComp && secComp.title, 'COMPETITIONS & EXTRACURRICULAR');
         }
         compList.innerHTML = '';
-        (a.competitions || []).forEach(c => {
+        compListItems.forEach(c => {
           const item = document.createElement('div');
           item.className = 'matrix-comp-item';
           item.innerHTML = `
@@ -1280,9 +1669,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (activeLayout === 'grid') {
       if (gridEl) {
+        const curY = window.scrollY;
+        const prevH = gridEl.offsetHeight;
+        if (prevH > 0) gridEl.style.minHeight = prevH + 'px';
+
         gridEl.style.display = totalVisible > 0 ? 'grid' : 'none';
-        gridEl.innerHTML = '';
-        filteredProjs.forEach((p, idx) => gridEl.appendChild(buildCard(p, idx)));
+        const fragment = document.createDocumentFragment();
+        filteredProjs.forEach((p, idx) => fragment.appendChild(buildCard(p, idx)));
+        gridEl.replaceChildren(fragment);
+        gridEl.style.minHeight = '';
+        if (curY > 0 && !isInitialLoad) {
+          window.scrollTo({ top: curY, behavior: 'instant' });
+        }
       }
       if (tableStage) tableStage.style.display = 'none';
     } else {
@@ -1290,13 +1688,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (tableStage) {
         tableStage.style.display = totalVisible > 0 ? 'block' : 'none';
         if (tableBody) {
-          tableBody.innerHTML = '';
+          const fragment = document.createDocumentFragment();
           filteredProjs.forEach(p => {
             const tr = document.createElement('tr');
             tr.className = 'spec-row';
             tr.setAttribute('data-id', p.id);
             const firstImg = p.images && p.images[0] ? (typeof p.images[0] === 'string' ? p.images[0] : (p.images[0].url || '')) : '';
-      const cover = p.coverImage || firstImg || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80';
+            const cover = p.coverImage || firstImg || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80';
             const mainSec = getProjectMainSection(p);
             const subLabels = getProjectSubLabels(p);
             const secClass = `sec-${mainSec.toLowerCase()}`;
@@ -1320,8 +1718,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             tr.addEventListener('click', () => {
               window.location.hash = `project/${p.id}`;
             });
-            tableBody.appendChild(tr);
+            fragment.appendChild(tr);
           });
+          tableBody.replaceChildren(fragment);
         }
       }
     }
@@ -1442,10 +1841,81 @@ document.addEventListener('DOMContentLoaded', async () => {
     return u;
   }
 
+  function formatVideoEmbedUrl(rawUrl) {
+    if (!rawUrl) return '';
+    let u = rawUrl.trim();
+
+    // If user pasted an iframe embed code (e.g. from YouTube Share -> Embed)
+    if (u.includes('<iframe') || u.startsWith('<iframe')) {
+      const srcMatch = u.match(/src=["']([^"']+)["']/i);
+      if (srcMatch && srcMatch[1]) {
+        u = srcMatch[1].trim();
+      }
+    }
+
+    // 1. YouTube
+    if (u.includes('youtube.com') || u.includes('youtu.be')) {
+      if (u.includes('/embed/')) return u;
+
+      // youtu.be/VIDEO_ID
+      const shortMatch = u.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);
+      if (shortMatch && shortMatch[1]) {
+        return `https://www.youtube.com/embed/${shortMatch[1]}?rel=0&modestbranding=1`;
+      }
+
+      // youtube.com/shorts/VIDEO_ID
+      const shortsMatch = u.match(/\/shorts\/([a-zA-Z0-9_-]+)/);
+      if (shortsMatch && shortsMatch[1]) {
+        return `https://www.youtube.com/embed/${shortsMatch[1]}?rel=0&modestbranding=1`;
+      }
+
+      // youtube.com/live/VIDEO_ID
+      const liveMatch = u.match(/\/live\/([a-zA-Z0-9_-]+)/);
+      if (liveMatch && liveMatch[1]) {
+        return `https://www.youtube.com/embed/${liveMatch[1]}?rel=0&modestbranding=1`;
+      }
+
+      // youtube.com/watch?v=VIDEO_ID
+      const vMatch = u.match(/[?&]v=([a-zA-Z0-9_-]+)/);
+      if (vMatch && vMatch[1]) {
+        return `https://www.youtube.com/embed/${vMatch[1]}?rel=0&modestbranding=1`;
+      }
+
+      // youtube.com/v/VIDEO_ID or /e/VIDEO_ID
+      const pathMatch = u.match(/\/(?:v|e)\/([a-zA-Z0-9_-]+)/);
+      if (pathMatch && pathMatch[1]) {
+        return `https://www.youtube.com/embed/${pathMatch[1]}?rel=0&modestbranding=1`;
+      }
+    }
+
+    // 2. Vimeo
+    if (u.includes('vimeo.com')) {
+      if (u.includes('player.vimeo.com')) return u;
+      const vimeoMatch = u.match(/vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|video\/|)(\d+)/);
+      if (vimeoMatch && vimeoMatch[1]) {
+        return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+      }
+      const simpleMatch = u.match(/vimeo\.com\/(\d+)/);
+      if (simpleMatch && simpleMatch[1]) {
+        return `https://player.vimeo.com/video/${simpleMatch[1]}`;
+      }
+    }
+
+    // 3. Bilibili
+    if (u.includes('bilibili.com')) {
+      const bMatch = u.match(/video\/(BV[a-zA-Z0-9]+)/);
+      if (bMatch && bMatch[1]) {
+        return `https://player.bilibili.com/player.html?bvid=${bMatch[1]}&page=1`;
+      }
+    }
+
+    return u;
+  }
+
   function renderProjectDetail(projectId) {
     if (!portfolioData || !portfolioData.projects) return;
     const projs = portfolioData.projects || [];
-    const currentIndex = projs.findIndex(p => p.id === projectId || p.index === projectId);
+    const currentIndex = findProjectIndex(projs, projectId);
     const project = projs[currentIndex] || projs[0];
 
     if (!project) {
@@ -1537,7 +2007,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           card.className = 'portrait-image-card';
           card.innerHTML = `
             <div class="portrait-img-box">
-              <img src="${imgUrl}" alt="${project.title || 'Project showcase'}" loading="lazy" />
+              <img src="${imgUrl}" alt="${project.title || 'Project showcase'}" loading="lazy" decoding="async" />
             </div>
           `;
           portraitImagesStack.appendChild(card);
@@ -1550,11 +2020,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Video Section
     if (detailVideoSection && videoPlayerContainer) {
       if (project.videoUrl && project.videoUrl.trim() !== '') {
+        const vUrl = project.videoUrl.trim();
+        const embedUrl = formatVideoEmbedUrl(vUrl);
         detailVideoSection.style.display = 'block';
-        if (project.videoUrl.includes('youtube.com') || project.videoUrl.includes('youtu.be') || project.videoUrl.includes('vimeo.com')) {
-          videoPlayerContainer.innerHTML = `<iframe src="${project.videoUrl}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+        if (
+          vUrl.includes('youtube.com') ||
+          vUrl.includes('youtu.be') ||
+          vUrl.includes('vimeo.com') ||
+          vUrl.includes('bilibili.com') ||
+          embedUrl.includes('/embed/') ||
+          embedUrl.includes('player.')
+        ) {
+          videoPlayerContainer.innerHTML = `<iframe src="${embedUrl}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>`;
         } else {
-          videoPlayerContainer.innerHTML = `<video controls src="${project.videoUrl}"></video>`;
+          videoPlayerContainer.innerHTML = `<video controls playsinline preload="metadata" src="${embedUrl}"></video>`;
         }
       } else {
         detailVideoSection.style.display = 'none';
@@ -1562,34 +2041,137 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    // Supplementary Gallery
+    // Supplementary Gallery (Horizontal Scrolling Photo Gallery with Hover Text & Mouse Drag-to-Scroll)
     if (detailScrollGallerySection && scrollGalleryTrack) {
       const gallery = project.gallery || [];
       if (gallery.length > 0) {
         detailScrollGallerySection.style.display = 'block';
         scrollGalleryTrack.innerHTML = '';
-        gallery.forEach(url => {
+        gallery.forEach((gItem, gIdx) => {
+          const url = typeof gItem === 'string' ? gItem : (gItem.url || '');
+          const text = typeof gItem === 'string' ? '' : (gItem.text !== undefined ? gItem.text : (gItem.caption || ''));
+          if (!url) return;
+
           const item = document.createElement('div');
           item.className = 'scroll-gallery-item';
-          item.innerHTML = `<img src="${url}" alt="Gallery exhibit" loading="lazy" />`;
+
+          const imgEl = document.createElement('img');
+          imgEl.src = url;
+          imgEl.alt = text || `Gallery exhibit 0${gIdx + 1}`;
+          imgEl.loading = 'lazy';
+          imgEl.decoding = 'async';
+          item.appendChild(imgEl);
+
+          if (text && text.trim()) {
+            const overlay = document.createElement('div');
+            overlay.className = 'scroll-gallery-overlay';
+
+            const badge = document.createElement('div');
+            badge.className = 'gallery-overlay-badge';
+            badge.textContent = `[ 0${gIdx + 1} • EXHIBIT ]`;
+            overlay.appendChild(badge);
+
+            const textEl = document.createElement('div');
+            textEl.className = 'gallery-overlay-text';
+            textEl.textContent = text.trim();
+            overlay.appendChild(textEl);
+
+            item.appendChild(overlay);
+          }
+
           scrollGalleryTrack.appendChild(item);
         });
 
-        if (scrollGalleryStage && project.autoScrollImages !== false) {
-          let isInteracting = false;
-          scrollGalleryStage.addEventListener('pointerdown', () => { isInteracting = true; }, { passive: true });
-          window.addEventListener('pointerup', () => { isInteracting = false; }, { passive: true });
-          scrollGalleryStage.addEventListener('touchstart', () => { isInteracting = true; }, { passive: true });
-          window.addEventListener('touchend', () => { isInteracting = false; }, { passive: true });
+        if (scrollGalleryStage) {
+          if (autoScrollInterval) {
+            clearInterval(autoScrollInterval);
+            autoScrollInterval = null;
+          }
 
-          autoScrollInterval = setInterval(() => {
-            if (scrollGalleryStage && !isInteracting) {
-              scrollGalleryStage.scrollLeft += 1.2;
-              if (scrollGalleryStage.scrollLeft >= (scrollGalleryStage.scrollWidth - scrollGalleryStage.clientWidth - 2)) {
-                scrollGalleryStage.scrollLeft = 0;
-              }
+          let isDown = false;
+          let startX = 0;
+          let scrollLeftStart = 0;
+          let isDragging = false;
+          let userDragActive = false;
+          let resumeTimer = null;
+
+          scrollGalleryStage.style.cursor = 'grab';
+
+          const onMouseDown = (e) => {
+            isDown = true;
+            isDragging = false;
+            userDragActive = true;
+            startX = e.pageX - scrollGalleryStage.offsetLeft;
+            scrollLeftStart = scrollGalleryStage.scrollLeft;
+            scrollGalleryStage.style.cursor = 'grabbing';
+            clearTimeout(resumeTimer);
+          };
+
+          const onMouseMove = (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - scrollGalleryStage.offsetLeft;
+            const walk = (x - startX);
+            if (Math.abs(walk) > 4) {
+              isDragging = true;
             }
-          }, 32);
+            scrollGalleryStage.scrollLeft = scrollLeftStart - walk;
+          };
+
+          const onMouseUp = () => {
+            if (isDown) {
+              isDown = false;
+              scrollGalleryStage.style.cursor = 'grab';
+              clearTimeout(resumeTimer);
+              resumeTimer = setTimeout(() => {
+                userDragActive = false;
+                isDragging = false;
+              }, 450);
+            }
+          };
+
+          const onTouchStart = () => {
+            userDragActive = true;
+            clearTimeout(resumeTimer);
+          };
+
+          const onTouchEnd = () => {
+            clearTimeout(resumeTimer);
+            resumeTimer = setTimeout(() => {
+              userDragActive = false;
+            }, 800);
+          };
+
+          scrollGalleryStage.onmousedown = onMouseDown;
+          window.onmousemove = onMouseMove;
+          window.onmouseup = onMouseUp;
+          scrollGalleryStage.ontouchstart = onTouchStart;
+          scrollGalleryStage.ontouchend = onTouchEnd;
+
+          // Wheel scroll support (mouse wheel over track horizontally scrolls)
+          scrollGalleryStage.onwheel = (e) => {
+            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+              scrollGalleryStage.scrollLeft += e.deltaY * 0.85;
+              userDragActive = true;
+              clearTimeout(resumeTimer);
+              resumeTimer = setTimeout(() => {
+                userDragActive = false;
+              }, 700);
+            }
+          };
+
+          // Continuous auto-scroll loop
+          if (project.autoScrollImages !== false) {
+            autoScrollInterval = setInterval(() => {
+              if (scrollGalleryStage && !userDragActive && !isDown && !isPageScrolling) {
+                scrollGalleryStage.scrollLeft += 1.0;
+                const max = scrollGalleryStage.scrollWidth - scrollGalleryStage.clientWidth;
+                if (max > 0 && scrollGalleryStage.scrollLeft >= max - 2) {
+                  scrollGalleryStage.scrollLeft = 0;
+                }
+              }
+            }, 28);
+          }
         }
       } else {
         detailScrollGallerySection.style.display = 'none';
@@ -1618,7 +2200,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         let innerHtml = `
           <div class="section-label-bar custom-section-header">
             <span class="custom-section-title">${title.toUpperCase()}</span>
-            <span class="custom-section-index">[ 0${idx + 1} &bull; EXHIBIT ]</span>
           </div>
         `;
 
@@ -1645,7 +2226,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (isEmbedMode) {
             const embedSrc = formatProcessEmbedUrl(linkUrl);
             const embedH = parseInt(cs.embedHeight, 10) || 620;
-            const speed = parseFloat(cs.autoScrollSpeed) || 1;
             innerHtml += `
               <div class="custom-section-pdf-viewer">
                 <div class="pdf-viewer-bar">
@@ -1654,11 +2234,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <span class="pdf-bar-doc-title">${(linkText || title).toUpperCase()}</span>
                   </div>
                   <div class="pdf-bar-actions">
-                    <button type="button" class="btn-pdf-control btn-pdf-autoscroll" data-speed="${speed}" title="Auto-scroll through document">
-                      <span class="pdf-ctrl-icon">▶</span>
-                      <span class="pdf-ctrl-text">AUTO-SCROLL</span>
-                    </button>
-                    <a href="${linkUrl}" target="_blank" rel="noopener noreferrer" class="btn-pdf-control btn-pdf-open" title="Open full PDF in new tab to scroll yourself">
+                    <a href="${linkUrl}" target="_blank" rel="noopener noreferrer" class="btn-pdf-control btn-pdf-open" title="Open full PDF in new tab">
                       <span class="pdf-ctrl-text">OPEN FULL</span>
                       <span class="pdf-ctrl-icon">&nearr;</span>
                     </a>
@@ -1670,7 +2246,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="pdf-viewer-footer">
                   <div class="pdf-footer-hint">
                     <span class="hint-bullet">&bull;</span>
-                    <span>PROCESS DOCUMENTATION &bull; SCROLL MANUALLY WITH TOUCH / MOUSE, OR CLICK <strong>AUTO-SCROLL</strong> FOR HANDS-FREE VIEWING.</span>
+                    <span>PROCESS DOCUMENTATION &bull; SCROLL THROUGH THE DOCUMENT, OR CLICK <strong>OPEN FULL &nearr;</strong> TO VIEW IN A NEW TAB.</span>
                   </div>
                 </div>
               </div>
@@ -1690,70 +2266,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         secBlock.innerHTML = innerHtml;
         customSecsContainer.appendChild(secBlock);
-
-        if (isEmbedMode) {
-          const btnAutoScroll = secBlock.querySelector('.btn-pdf-autoscroll');
-          const viewport = secBlock.querySelector('.pdf-viewer-viewport');
-          if (btnAutoScroll && viewport) {
-            let isAutoScrolling = false;
-            let scrollTimer = null;
-            const speed = parseFloat(btnAutoScroll.dataset.speed) || 1;
-            const scrollStep = 1.2 * speed;
-
-            function stopAutoScroll() {
-              if (!isAutoScrolling) return;
-              isAutoScrolling = false;
-              clearInterval(scrollTimer);
-              scrollTimer = null;
-              btnAutoScroll.classList.remove('is-active');
-              const icon = btnAutoScroll.querySelector('.pdf-ctrl-icon');
-              const text = btnAutoScroll.querySelector('.pdf-ctrl-text');
-              if (icon) icon.textContent = '▶';
-              if (text) text.textContent = 'AUTO-SCROLL';
-            }
-
-            function startAutoScroll() {
-              isAutoScrolling = true;
-              btnAutoScroll.classList.add('is-active');
-              const icon = btnAutoScroll.querySelector('.pdf-ctrl-icon');
-              const text = btnAutoScroll.querySelector('.pdf-ctrl-text');
-              if (icon) icon.textContent = '⏸';
-              if (text) text.textContent = 'PAUSE SCROLL';
-
-              const rect = viewport.getBoundingClientRect();
-              if (rect.top < 60 || rect.top > window.innerHeight - 200) {
-                viewport.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }
-
-              clearInterval(scrollTimer);
-              scrollTimer = setInterval(() => {
-                if (viewport.scrollHeight > viewport.clientHeight + 4) {
-                  viewport.scrollTop += scrollStep;
-                  if (viewport.scrollTop >= (viewport.scrollHeight - viewport.clientHeight - 2)) {
-                    stopAutoScroll();
-                  }
-                } else {
-                  window.scrollBy({ top: scrollStep, behavior: 'instant' });
-                  const currentRect = viewport.getBoundingClientRect();
-                  if (currentRect.bottom <= 140) {
-                    stopAutoScroll();
-                  }
-                }
-              }, 32);
-            }
-
-            btnAutoScroll.addEventListener('click', () => {
-              if (isAutoScrolling) {
-                stopAutoScroll();
-              } else {
-                startAutoScroll();
-              }
-            });
-
-            viewport.addEventListener('wheel', stopAutoScroll, { passive: true });
-            viewport.addEventListener('touchstart', stopAutoScroll, { passive: true });
-          }
-        }
       });
 
       customSecsContainer.style.display = customSecs.length > 0 ? 'flex' : 'none';
@@ -1831,6 +2343,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (row) row.style.display = 'none';
       }
     }
+
+    // View Resume Button
+    const resumeBtn = document.getElementById('contact-resume-btn');
+    const resumeBox = document.getElementById('contact-resume-action-box');
+    const resumeVal = (p.resumeUrl || p.cvUrl || '').trim();
+    if (resumeBtn && resumeBox) {
+      if (resumeVal) {
+        resumeBox.style.display = 'flex';
+        resumeBtn.href = resumeVal.startsWith('http') ? resumeVal : `https://${resumeVal}`;
+      } else {
+        resumeBox.style.display = 'flex';
+        resumeBtn.href = 'https://drive.google.com';
+      }
+      const labelText = (p.resumeBtnText || p.resumeText || 'VIEW RESUME').trim() || 'VIEW RESUME';
+      const btnTextEl = resumeBtn.querySelector('.resume-btn-text');
+      if (btnTextEl) {
+        btnTextEl.textContent = labelText;
+      }
+    }
   }
 
   /* ================= 6B. TOP HEADERS & CONTACT STAGE DYNAMIC RENDER ================= */
@@ -1840,33 +2371,75 @@ document.addEventListener('DOMContentLoaded', async () => {
     const proj = h.projects || {};
     const contact = h.contact || {};
 
+    const order = (portfolioData && Array.isArray(portfolioData.pageOrder))
+      ? portfolioData.pageOrder
+      : ['home', 'projects', 'about', 'contact'];
+    const subpages = order.filter(k => k !== 'home');
+
+    function formatSeqIndex(pageKey, rawVal, fallback) {
+      const pos = subpages.indexOf(pageKey);
+      const val = rawVal || fallback;
+      if (pos !== -1 && /^\d+\s*[\/\-•]/.test(val)) {
+        const numStr = String(pos + 1).padStart(2, '0');
+        return val.replace(/^\d+/, numStr);
+      }
+      return val;
+    }
+
     // About top header
     const abIdx = document.getElementById('about-top-index');
-    if (abIdx) abIdx.textContent = about.index || '01 / ABOUT ME';
+    if (abIdx) abIdx.textContent = formatSeqIndex('about', about.index, '01 / ABOUT ME');
     const abTitle = document.getElementById('about-top-title');
     if (abTitle) abTitle.textContent = about.title || 'ABOUT';
     const abDisc = document.getElementById('about-top-discipline');
-    if (abDisc) abDisc.textContent = about.discipline || 'INTERACTIVE SPATIAL DESIGN';
+    if (abDisc) {
+      const disc = (about.discipline !== undefined ? about.discipline : 'INTERACTIVE SPATIAL DESIGN').trim();
+      if (disc) {
+        abDisc.textContent = disc;
+        abDisc.style.display = '';
+      } else {
+        abDisc.textContent = '';
+        abDisc.style.display = 'none';
+      }
+    }
     const abDesc = document.getElementById('about-top-desc');
     if (abDesc) abDesc.textContent = about.description || 'Background, education, capabilities and the experiences driving my practice.';
 
     // Projects top header
     const prIdx = document.getElementById('projects-top-index');
-    if (prIdx) prIdx.textContent = proj.index || '02 / VIEW PROJECT';
+    if (prIdx) prIdx.textContent = formatSeqIndex('projects', proj.index, '02 / VIEW PROJECT');
     const prTitle = document.getElementById('projects-top-title');
     if (prTitle) prTitle.textContent = proj.title || 'PROJECTS';
     const prDisc = document.getElementById('projects-top-discipline');
-    if (prDisc) prDisc.textContent = proj.discipline || 'INTERACTIVE SPATIAL DESIGN';
+    if (prDisc) {
+      const disc = (proj.discipline !== undefined ? proj.discipline : 'INTERACTIVE SPATIAL DESIGN').trim();
+      if (disc) {
+        prDisc.textContent = disc;
+        prDisc.style.display = '';
+      } else {
+        prDisc.textContent = '';
+        prDisc.style.display = 'none';
+      }
+    }
     const prDesc = document.getElementById('projects-top-desc');
     if (prDesc) prDesc.textContent = proj.description || 'Seventeen works across academic study, competitions and professional practice.';
 
     // Contact top header
     const coIdx = document.getElementById('contact-top-index');
-    if (coIdx) coIdx.textContent = contact.index || '03 / GET IN TOUCH';
+    if (coIdx) coIdx.textContent = formatSeqIndex('contact', contact.index, '03 / GET IN TOUCH');
     const coTitle = document.getElementById('contact-top-title');
     if (coTitle) coTitle.textContent = contact.title || 'CONTACT';
     const coDisc = document.getElementById('contact-top-discipline');
-    if (coDisc) coDisc.textContent = contact.discipline || 'INTERACTIVE SPATIAL DESIGN';
+    if (coDisc) {
+      const disc = (contact.discipline !== undefined ? contact.discipline : 'INTERACTIVE SPATIAL DESIGN').trim();
+      if (disc) {
+        coDisc.textContent = disc;
+        coDisc.style.display = '';
+      } else {
+        coDisc.textContent = '';
+        coDisc.style.display = 'none';
+      }
+    }
     const coDesc = document.getElementById('contact-top-desc');
     if (coDesc) coDesc.textContent = contact.description || 'Available for collaborations, internships and thoughtful creative opportunities.';
 
@@ -1883,11 +2456,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   /* ================= 7. MASTER RENDER & LIVE SYNC ================= */
   function renderAll() {
+    if (!portfolioData) return;
+    const savedY = window.scrollY;
     try { renderHomeScreen(); } catch(e) { console.warn('Render Home error:', e); }
     try { renderAboutScreen(); } catch(e) { console.warn('Render About error:', e); }
     try { renderProjectsCatalog(); } catch(e) { console.warn('Render Projects error:', e); }
     try { renderContactScreen(); } catch(e) { console.warn('Render Contact error:', e); }
     try { renderTopHeaders(); } catch(e) { console.warn('Render Headers error:', e); }
+    try { applyPageOrder(); } catch(e) { console.warn('Apply Page Order error:', e); }
+    try { applyPageVisibility(); } catch(e) { console.warn('Apply Page Visibility error:', e); }
+    try { applySectionVisibility(); } catch(e) { console.warn('Apply Section Visibility error:', e); }
+    if (savedY > 0 && !isInitialLoad) {
+      window.scrollTo({ top: savedY, behavior: 'instant' });
+    }
   }
 
 
@@ -2173,7 +2754,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (user.toUpperCase() === (currentAuth.username || '').toUpperCase() && pass === currentAuth.password) {
         sessionStorage.setItem('renee_admin_authenticated', 'true');
-        localStorage.setItem('renee_admin_authenticated', 'true');
+        try { localStorage.removeItem('renee_admin_authenticated'); } catch(e) {}
         if (window.PortfolioDB && window.PortfolioDB.channel) {
           try {
             window.PortfolioDB.channel.postMessage({ type: 'AUTH_LOGIN' });
@@ -2792,22 +3373,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (isVisible) {
-          // Faint connecting lines between close neighbor + nodes on screen
-          for (let j = i + 1; j < nodes.length; j++) {
-            const other = nodes[j];
-            const otherScreenY = other.worldY - scrollY;
-            if (otherScreenY >= -50 && otherScreenY <= height + 50) {
-              const ndx = node.x - other.x;
-              const ndy = screenY - otherScreenY;
-              const nDist = Math.sqrt(ndx * ndx + ndy * ndy);
-              if (nDist < 90) {
-                const lineAlpha = (1 - nDist / 90) * (isNavy ? 0.16 : 0.10);
-                ctx.beginPath();
-                ctx.strokeStyle = getColor((node.x + other.x) / 2, (screenY + otherScreenY) / 2, lineAlpha / (isNavy ? 0.32 : 0.22));
-                ctx.lineWidth = 0.55;
-                ctx.moveTo(node.x, screenY);
-                ctx.lineTo(other.x, otherScreenY);
-                ctx.stroke();
+          // Faint connecting lines between close neighbor + nodes on screen (skip on mobile for buttery smooth 60fps scrolling)
+          if (!isTouch) {
+            for (let j = i + 1; j < nodes.length; j++) {
+              const other = nodes[j];
+              const otherScreenY = other.worldY - scrollY;
+              if (otherScreenY >= -50 && otherScreenY <= height + 50) {
+                const ndx = node.x - other.x;
+                const ndy = screenY - otherScreenY;
+                const nDist = Math.sqrt(ndx * ndx + ndy * ndy);
+                if (nDist < 90) {
+                  const lineAlpha = (1 - nDist / 90) * (isNavy ? 0.16 : 0.10);
+                  ctx.beginPath();
+                  ctx.strokeStyle = getColor((node.x + other.x) / 2, (screenY + otherScreenY) / 2, lineAlpha / (isNavy ? 0.32 : 0.22));
+                  ctx.lineWidth = 0.55;
+                  ctx.moveTo(node.x, screenY);
+                  ctx.lineTo(other.x, otherScreenY);
+                  ctx.stroke();
+                }
               }
             }
           }

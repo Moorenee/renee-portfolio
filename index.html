@@ -14,9 +14,16 @@
     gtag('config', 'G-L3RMZZSKTZ');
   </script>
 
-  <!-- Instant Route Pre-activation: Prevents flash/glitch of home screen on page refresh -->
+  <!-- Instant Route & Anti-FOUC Pre-activation: Prevents flash of old/previous version on reload & navigation -->
   <script>
     (function() {
+      // 1. Anti-FOUC: Prevent painting stale fallback HTML until first dynamic render
+      document.documentElement.classList.add('anti-fouc');
+      setTimeout(function() {
+        document.documentElement.classList.remove('anti-fouc');
+      }, 300);
+
+      // 2. Early route switch to requested section
       var h = (window.location.hash || '').replace('#', '') || 'home';
       var v = 'home';
       if (h.startsWith('project/')) {
@@ -1197,6 +1204,14 @@
               <div class="table-row">
                 <span class="row-label">LINKTREE</span>
                 <a href="https://linktr.ee/reneemoo" target="_blank" rel="noopener" class="row-val link-val" id="contact-linktree-link">linktr.ee/ReneeMoo</a>
+              </div>
+
+              <!-- Action: View Resume Button (Aligned bottom with direct contact) -->
+              <div class="contact-resume-wrap" id="contact-resume-action-box">
+                <a href="https://drive.google.com" target="_blank" rel="noopener noreferrer" class="contact-resume-btn" id="contact-resume-btn" title="Open and view full Resume / CV">
+                  <span class="resume-btn-text">VIEW RESUME</span>
+                  <span class="resume-btn-arrow" aria-hidden="true">&nearr;</span>
+                </a>
               </div>
             </div>
 

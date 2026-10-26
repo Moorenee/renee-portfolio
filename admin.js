@@ -31,8 +31,8 @@ async function initAdmin() {
     }, 3200);
   }
 
-  // Base64 helper for image uploads with high-efficiency automatic compression
-  function fileToBase64(file, maxWidth = 1200) {
+  // Base64 helper for image uploads with high-resolution clarity and crisp rendering
+  function fileToBase64(file, maxWidth = 2048, quality = 0.88) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = error => reject(error);
@@ -58,8 +58,8 @@ async function initAdmin() {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, w, h);
-          // Standardize on JPEG quality 0.74 for compact 30-60KB uploads that easily fit into Firestore
-          resolve(canvas.toDataURL('image/jpeg', 0.74));
+          // High-resolution JPEG quality 0.88 for tack-sharp detail on Retina/4K displays
+          resolve(canvas.toDataURL('image/jpeg', quality));
         };
         img.src = rawResult;
       };
@@ -76,8 +76,8 @@ async function initAdmin() {
   const btnLogout = document.getElementById('btn-admin-logout');
 
   function checkAdminAuth() {
-    const isAuth = sessionStorage.getItem('renee_admin_authenticated') === 'true' ||
-                   localStorage.getItem('renee_admin_authenticated') === 'true';
+    try { localStorage.removeItem('renee_admin_authenticated'); } catch(e) {}
+    const isAuth = sessionStorage.getItem('renee_admin_authenticated') === 'true';
     if (!isAuth) {
       if (loginOverlay) {
         loginOverlay.classList.add('open');
@@ -113,7 +113,7 @@ async function initAdmin() {
 
       if (u.toUpperCase() === (currentAuth.username || '').toUpperCase() && p === currentAuth.password) {
         sessionStorage.setItem('renee_admin_authenticated', 'true');
-        localStorage.setItem('renee_admin_authenticated', 'true');
+        try { localStorage.removeItem('renee_admin_authenticated'); } catch(e) {}
         if (loginOverlay) {
           loginOverlay.classList.remove('open');
           loginOverlay.style.display = 'none';
@@ -286,11 +286,16 @@ async function initAdmin() {
       renderMainCategories();
       renderSublabels();
       renderProjectsGrid();
+      renderPageVisibilityManager();
     } else if (tabId === 'tab-about') {
       renderAboutTab();
+      renderPageVisibilityManager();
+    } else if (tabId === 'tab-identity') {
+      renderPageVisibilityManager();
     } else if (tabId === 'tab-headers') {
       populateHeadersForm();
     } else if (tabId === 'tab-backup') {
+      renderPageVisibilityManager();
       populateCredentialsForm();
       updateRawJsonInspector();
     }
@@ -442,6 +447,10 @@ async function initAdmin() {
     document.getElementById('id-github').value = p.githubUrl || '';
     document.getElementById('id-instagram').value = p.instagramUrl || '';
     document.getElementById('id-tags').value = (p.tags || []).join(', ');
+    const resEl = document.getElementById('id-resume-url');
+    if (resEl) resEl.value = p.resumeUrl || '';
+    const resTextEl = document.getElementById('id-resume-btn-text');
+    if (resTextEl) resTextEl.value = p.resumeBtnText || 'VIEW RESUME';
 
     // Homepage Hero inputs (Image 2)
     const sv = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
@@ -480,7 +489,7 @@ async function initAdmin() {
     idPhotoFile.addEventListener('change', async (e) => {
       const file = e.target.files && e.target.files[0];
       if (file) {
-        const b64 = await fileToBase64(file, 800);
+        const b64 = await fileToBase64(file, 1000, 0.88);
         idPhotoUrl.value = b64;
         if (idPhotoPreview) idPhotoPreview.src = b64;
         const abPrev = document.getElementById('about-photo-preview-tab2');
@@ -492,6 +501,36 @@ async function initAdmin() {
       }
     });
   }
+
+  // Real-time synchronization helper for Resume button URL & Text across all tabs
+  const setupResumeSync = (urlId, textId) => {
+    const urlEl = document.getElementById(urlId);
+    const textEl = document.getElementById(textId);
+    if (urlEl) {
+      urlEl.addEventListener('input', () => {
+        if (!currentData.profile) currentData.profile = {};
+        currentData.profile.resumeUrl = urlEl.value.trim();
+        ['id-resume-url', 'about-resume-url', 'hdr-contact-resume-url'].forEach(id => {
+          if (id !== urlId) { const el = document.getElementById(id); if (el) el.value = urlEl.value.trim(); }
+        });
+        triggerRealtimeSync(120);
+      });
+    }
+    if (textEl) {
+      textEl.addEventListener('input', () => {
+        if (!currentData.profile) currentData.profile = {};
+        currentData.profile.resumeBtnText = textEl.value.trim() || 'VIEW RESUME';
+        ['id-resume-btn-text', 'about-resume-btn-text', 'hdr-contact-resume-text'].forEach(id => {
+          if (id !== textId) { const el = document.getElementById(id); if (el) el.value = textEl.value.trim(); }
+        });
+        triggerRealtimeSync(120);
+      });
+    }
+  };
+
+  setupResumeSync('id-resume-url', 'id-resume-btn-text');
+  setupResumeSync('about-resume-url', 'about-resume-btn-text');
+  setupResumeSync('hdr-contact-resume-url', 'hdr-contact-resume-text');
 
   function collectIdentityData() {
     if (!currentData.profile) currentData.profile = {};
@@ -512,8 +551,12 @@ async function initAdmin() {
     p.githubUrl = document.getElementById('id-github').value.trim();
     p.instagramUrl = document.getElementById('id-instagram').value.trim();
     p.tags = document.getElementById('id-tags').value.split(',').map(s => s.trim()).filter(Boolean);
+    const idResEl = document.getElementById('id-resume-url');
+    if (idResEl) p.resumeUrl = idResEl.value.trim();
+    const idResTextEl = document.getElementById('id-resume-btn-text');
+    if (idResTextEl) p.resumeBtnText = idResTextEl.value.trim() || 'VIEW RESUME';
 
-    // Mirror to Tab 02 About Profile inputs
+    // Mirror to Tab 02 About Profile inputs & Tab 04
     const mirrorToTab2 = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
     mirrorToTab2('about-profile-name-tab2', p.name);
     mirrorToTab2('about-profile-phone-tab2', p.phone);
@@ -523,6 +566,10 @@ async function initAdmin() {
     mirrorToTab2('about-profile-tags-tab2', (p.tags || []).join(', '));
     mirrorToTab2('about-profile-headline-tab2', p.headline);
     mirrorToTab2('about-profile-bio-tab2', p.shortBio);
+    mirrorToTab2('about-resume-url', p.resumeUrl);
+    mirrorToTab2('about-resume-btn-text', p.resumeBtnText);
+    mirrorToTab2('hdr-contact-resume-url', p.resumeUrl);
+    mirrorToTab2('hdr-contact-resume-text', p.resumeBtnText);
 
     // Collect Homepage Hero & Bottom Bar inputs (Images 1 & 2)
     if (!currentData.home) currentData.home = {};
@@ -565,6 +612,45 @@ async function initAdmin() {
 
   /* ================= 4. TAB 02: ABOUT & RESUME ================= */
   function renderAboutTab() {
+    if (!currentData.about) currentData.about = {};
+    if (!currentData.profile) currentData.profile = {};
+    const defAbout = (window.DEFAULT_PORTFOLIO_DATA && window.DEFAULT_PORTFOLIO_DATA.about) || {};
+    const defProf = (window.DEFAULT_PORTFOLIO_DATA && window.DEFAULT_PORTFOLIO_DATA.profile) || {};
+
+    if (!Array.isArray(currentData.about.technicalSkills) || currentData.about.technicalSkills.length === 0) {
+      currentData.about.technicalSkills = [...(defAbout.technicalSkills || ["UI/UX DESIGN", "GAME DESIGN", "AR/VR DEVELOPMENT", "GRAPHIC DESIGN", "CODING", "3D MODELING"])];
+    }
+    if (!Array.isArray(currentData.about.personalSkills) || currentData.about.personalSkills.length === 0) {
+      currentData.about.personalSkills = [...(defAbout.personalSkills || ["TEAMWORK", "CREATIVITY", "TIME MANAGEMENT", "RESPONSIBILITY", "WILLINGNESS TO LEARN", "ORGANIZATION"])];
+    }
+    if (!Array.isArray(currentData.about.languages) || currentData.about.languages.length === 0) {
+      currentData.about.languages = JSON.parse(JSON.stringify(defAbout.languages || [
+        { language: "Chinese", proficiency: "NATIVE" },
+        { language: "English", proficiency: "FLUENT" },
+        { language: "Malay", proficiency: "CONVERSATIONAL" }
+      ]));
+    }
+    if (!Array.isArray(currentData.about.experience) || currentData.about.experience.length === 0) {
+      currentData.about.experience = JSON.parse(JSON.stringify(defAbout.experience || []));
+    }
+    if (!Array.isArray(currentData.about.achievements) || currentData.about.achievements.length === 0) {
+      currentData.about.achievements = JSON.parse(JSON.stringify(defAbout.achievements || []));
+    }
+    if (!Array.isArray(currentData.about.competitions) || currentData.about.competitions.length === 0) {
+      currentData.about.competitions = JSON.parse(JSON.stringify(defAbout.competitions || []));
+    }
+    if (!Array.isArray(currentData.about.education) || currentData.about.education.length === 0) {
+      currentData.about.education = JSON.parse(JSON.stringify(defAbout.education || []));
+    }
+    if (!Array.isArray(currentData.profile.stats) || currentData.profile.stats.length === 0) {
+      currentData.profile.stats = JSON.parse(JSON.stringify(defProf.stats || [
+        { number: "6+", label: "YEARS STUDYING DESIGN" },
+        { number: "2+", label: "PROJECTS COMPLETED" },
+        { number: "10", label: "COMPETITIONS ENTERED" },
+        { number: "7", label: "AWARDS & RECOGNITIONS" }
+      ]));
+    }
+
     renderAboutHeaderAndProfileEditor();
     renderColumnTitlesEditor();
     renderStatsEditor();
@@ -593,7 +679,7 @@ async function initAdmin() {
 
     if (abIdx) abIdx.value = about.index || '01 / ABOUT ME';
     if (abTitle) abTitle.value = about.title || 'ABOUT';
-    if (abDisc) abDisc.value = about.discipline || 'INTERACTIVE SPATIAL DESIGN';
+    if (abDisc) abDisc.value = about.discipline !== undefined ? about.discipline : 'INTERACTIVE SPATIAL DESIGN';
     if (abDesc) abDesc.value = about.description || 'Background, education, capabilities and the experiences driving my practice.';
 
     // Synchronize header changes in real-time with Tab 04 if present
@@ -637,13 +723,17 @@ async function initAdmin() {
     if (profTags) profTags.value = (p.tags || []).join(', ');
     if (profHeadline) profHeadline.value = p.headline || '';
     if (profBio) profBio.value = p.shortBio || '';
+    const profResume = document.getElementById('about-resume-url');
+    if (profResume) profResume.value = p.resumeUrl || '';
+    const profResumeText = document.getElementById('about-resume-btn-text');
+    if (profResumeText) profResumeText.value = p.resumeBtnText || 'VIEW RESUME';
 
     // Photo file upload in Tab 02
     if (profFile) {
       profFile.onchange = async (e) => {
         const file = e.target.files && e.target.files[0];
         if (file) {
-          const b64 = await fileToBase64(file, 800);
+          const b64 = await fileToBase64(file, 1000, 0.88);
           if (profUrl) profUrl.value = b64;
           if (profPrev) profPrev.src = b64;
           if (idPhotoUrl) idPhotoUrl.value = b64;
@@ -727,6 +817,10 @@ async function initAdmin() {
     if (tab2Bio) p.shortBio = tab2Bio;
     const photoVal = getVal('about-photo-url-tab2');
     if (photoVal) p.photoUrl = photoVal;
+    const tab2Resume = getVal('about-resume-url');
+    if (tab2Resume) p.resumeUrl = tab2Resume;
+    const tab2ResumeText = getVal('about-resume-btn-text');
+    if (tab2ResumeText) p.resumeBtnText = tab2ResumeText;
   }
 
   function collectAboutData() {
@@ -792,16 +886,40 @@ async function initAdmin() {
   }
 
   // Stat Metric Counters (Auto-Calculates Projects & Competitions + Allows Adding New Metrics)
+  // Stat Metric Counters (100% Manually Keyed In + Optional Section Toggle)
   function renderStatsEditor() {
     const container = document.getElementById('about-stats-editor-grid');
     if (!container) return;
     container.innerHTML = '';
     const stats = currentData.profile.stats || [
       { number: "6+", label: "YEARS STUDYING DESIGN" },
-      { number: "17+", label: "PROJECTS COMPLETED" },
+      { number: "2+", label: "PROJECTS COMPLETED" },
       { number: "10", label: "COMPETITIONS ENTERED" },
       { number: "7", label: "AWARDS & RECOGNITIONS" }
     ];
+
+    // Optional Section Toggle (Include or Exclude Section on About Page)
+    const toggleStats = document.getElementById('toggle-stats-visible');
+    const toggleStatsText = document.getElementById('toggle-stats-text');
+    const isStatsVisible = currentData.profile.showStats !== false;
+    if (toggleStats) {
+      toggleStats.checked = isStatsVisible;
+      if (toggleStatsText) {
+        toggleStatsText.textContent = isStatsVisible ? 'SECTION VISIBLE' : 'SECTION HIDDEN';
+        toggleStatsText.style.color = isStatsVisible ? '#15803d' : '#b91c1c';
+      }
+      toggleStats.onchange = () => {
+        currentData.profile.showStats = toggleStats.checked;
+        if (toggleStatsText) {
+          toggleStatsText.textContent = toggleStats.checked ? 'SECTION VISIBLE' : 'SECTION HIDDEN';
+          toggleStatsText.style.color = toggleStats.checked ? '#15803d' : '#b91c1c';
+        }
+        container.style.opacity = toggleStats.checked ? '1' : '0.45';
+        triggerRealtimeSync(0);
+        showToast(`Stat counters section is now ${toggleStats.checked ? 'VISIBLE' : 'HIDDEN'} on About page!`);
+      };
+    }
+    container.style.opacity = isStatsVisible ? '1' : '0.45';
 
     // Sync layout active state
     const currentLayout = currentData.profile.statsLayout || 'beside';
@@ -817,31 +935,23 @@ async function initAdmin() {
       }
     }
 
-    const projCount = (currentData.projects || []).length;
-    const compCount = (currentData.about.competitions || []).length;
-
     stats.forEach((st, idx) => {
       const box = document.createElement('div');
       box.className = 'stat-card-editor';
-      const upperLabel = (st.label || '').toUpperCase();
-      const isAutoProj = upperLabel.includes('PROJECT');
-      const isAutoComp = upperLabel.includes('COMPETITION');
-
-      let badgeHtml = '';
-      if (isAutoProj) {
-        badgeHtml = `<span class="stat-auto-badge">⚡ Auto-calculated: ${projCount}+ live</span>`;
-      } else if (isAutoComp) {
-        badgeHtml = `<span class="stat-auto-badge">⚡ Auto-calculated: ${compCount} live</span>`;
-      }
 
       box.innerHTML = `
         <div class="stat-card-header">
           <span class="stat-card-badge">METRIC #0${idx + 1}</span>
-          ${idx >= 4 ? `<button type="button" class="btn-del-row btn-del-stat" title="Delete Metric">&times;</button>` : ''}
+          <button type="button" class="btn-del-row btn-del-stat" title="Delete Metric">&times;</button>
         </div>
-        ${badgeHtml}
-        <input type="text" class="editor-input stat-val-input" value="${isAutoProj ? projCount + '+' : (isAutoComp ? compCount : (st.number || ''))}" placeholder="e.g. 17+" ${isAutoProj || isAutoComp ? 'title="Automatically calculated from portfolio catalog"' : ''} />
-        <input type="text" class="editor-input stat-lbl-input" value="${st.label || ''}" placeholder="LABEL (e.g. YEARS STUDYING DESIGN)" />
+        <div style="margin-top: 6px;">
+          <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #777; display: block; margin-bottom: 3px; font-weight: 700;">METRIC VALUE / NUMBER</label>
+          <input type="text" class="editor-input stat-val-input" value="${st.number || ''}" placeholder="e.g. 6+, 2+, 10" />
+        </div>
+        <div style="margin-top: 8px;">
+          <label style="font-family: var(--font-mono); font-size: 0.65rem; color: #777; display: block; margin-bottom: 3px; font-weight: 700;">LABEL / DESCRIPTION</label>
+          <input type="text" class="editor-input stat-lbl-input" value="${st.label || ''}" placeholder="e.g. PROJECTS COMPLETED" />
+        </div>
       `;
 
       const valInp = box.querySelector('.stat-val-input');
@@ -1741,7 +1851,9 @@ async function initAdmin() {
     projects.forEach(p => {
       const card = document.createElement('div');
       card.className = 'editor-proj-card';
-      const thumbUrl = p.coverImage || (p.images && p.images[0] && p.images[0].url) || (p.gallery && p.gallery[0]) || '';
+      const galFirst = p.gallery && p.gallery[0] ? (typeof p.gallery[0] === 'string' ? p.gallery[0] : (p.gallery[0].url || '')) : '';
+      const sliceFirst = p.images && p.images[0] ? (typeof p.images[0] === 'string' ? p.images[0] : (p.images[0].url || '')) : '';
+      const thumbUrl = p.coverImage || sliceFirst || galFirst || '';
       const subLabelsText = (p.subLabels && p.subLabels.length > 0) ? p.subLabels.join(' • ') : (p.discipline || 'PROJECT');
 
       card.innerHTML = `
@@ -1937,7 +2049,14 @@ async function initAdmin() {
     }
 
     const vidEl = document.getElementById('edit-proj-video');
-    if (vidEl) activeProject.videoUrl = vidEl.value.trim();
+    if (vidEl) {
+      let vVal = vidEl.value.trim();
+      if (vVal.includes('<iframe')) {
+        const m = vVal.match(/src=["']([^"']+)["']/i);
+        if (m && m[1]) vVal = m[1].trim();
+      }
+      activeProject.videoUrl = vVal;
+    }
     const gapEl = document.getElementById('edit-proj-gap');
     if (gapEl) activeProject.hasGap = gapEl.value === 'true';
     const asEl = document.getElementById('edit-proj-autoscroll');
@@ -1981,19 +2100,32 @@ async function initAdmin() {
     const galWrap = document.getElementById('modal-gallery-container');
     if (galWrap) {
       const scrapedGal = [];
-      galWrap.querySelectorAll('.editor-dynamic-row').forEach(row => {
-        const inp = row.querySelector('.editor-input');
-        if (inp && inp.value.trim()) {
-          scrapedGal.push(inp.value.trim());
+      // Support new rich gallery cards
+      galWrap.querySelectorAll('.gal-item-card').forEach(card => {
+        const urlInp = card.querySelector('.gal-url-input');
+        const textInp = card.querySelector('.gal-text-input');
+        const url = urlInp ? urlInp.value.trim() : '';
+        const text = textInp ? textInp.value.trim() : '';
+        if (url) {
+          scrapedGal.push({ url, text });
         }
       });
+      // Fallback for legacy rows if present
+      if (scrapedGal.length === 0) {
+        galWrap.querySelectorAll('.editor-dynamic-row').forEach(row => {
+          const inp = row.querySelector('.editor-input');
+          if (inp && inp.value.trim()) {
+            scrapedGal.push({ url: inp.value.trim(), text: '' });
+          }
+        });
+      }
       activeProject.gallery = scrapedGal;
     }
 
     // 4. Scrape Custom Project Sections from modal DOM
     const secContainer = document.getElementById('modal-project-custom-sections-container');
     if (secContainer) {
-      const cards = secContainer.querySelectorAll('.custom-sec-card');
+      const cards = secContainer.querySelectorAll('.custom-section-edit-card, .custom-sec-card');
       const scrapedSecs = [];
       cards.forEach((card, cIdx) => {
         const titleInp = card.querySelector('.sec-title-input');
@@ -2037,9 +2169,7 @@ async function initAdmin() {
           embedHeight
         });
       });
-      if (cards.length > 0) {
-        activeProject.customSections = scrapedSecs;
-      }
+      activeProject.customSections = scrapedSecs;
     }
 
     // Synchronize to currentData.projects immediately!
@@ -2089,7 +2219,7 @@ async function initAdmin() {
       const file = e.target.files && e.target.files[0];
       if (file) {
         try {
-          const b64 = await fileToBase64(file, 1200);
+          const b64 = await fileToBase64(file, 2048, 0.88);
           if (coverUrlInp) coverUrlInp.value = b64;
           if (coverPrevImg) {
             coverPrevImg.src = b64;
@@ -2241,11 +2371,12 @@ async function initAdmin() {
         <button type="button" class="btn-del-row" title="Delete Link">&times;</button>
       `;
       const inps = row.querySelectorAll('.editor-input');
-      inps[0].addEventListener('input', ev => { link.title = ev.target.value.toUpperCase(); });
-      inps[1].addEventListener('input', ev => { link.url = ev.target.value; });
+      inps[0].addEventListener('input', ev => { link.title = ev.target.value.toUpperCase(); syncActiveProjectLive(); });
+      inps[1].addEventListener('input', ev => { link.url = ev.target.value; syncActiveProjectLive(); });
       row.querySelector('.btn-del-row').addEventListener('click', () => {
         activeProject.relatedLinks.splice(idx, 1);
         renderModalRelatedLinks();
+        syncActiveProjectLive();
       });
       wrap.appendChild(row);
     });
@@ -2257,6 +2388,7 @@ async function initAdmin() {
       activeProject.relatedLinks = activeProject.relatedLinks || [];
       activeProject.relatedLinks.push({ title: "PROJECT DOCUMENTATION", url: "https://behance.net/reneemoo" });
       renderModalRelatedLinks();
+      syncActiveProjectLive();
     });
   }
 
@@ -2271,20 +2403,79 @@ async function initAdmin() {
       const row = document.createElement('div');
       row.className = 'editor-dynamic-row';
       row.innerHTML = `
-        <div style="width: 50px; height: 50px; background:#ddd; overflow:hidden; flex-shrink:0;">
-          <img src="${img.url}" style="width:100%;height:100%;object-fit:cover;" />
+        <div class="slice-thumb-box" style="width: 50px; height: 50px; background:#e0ded8; overflow:hidden; flex-shrink:0; cursor:pointer; position:relative; border:1px solid #d5d2c8;" title="Click to browse image file">
+          <img src="${img.url || ''}" style="width:100%;height:100%;object-fit:cover;${img.url ? '' : 'display:none;'}" />
+          <span style="font-size:0.58rem; color:#888; font-family:var(--font-mono); text-align:center; position:absolute; inset:0; display:${img.url ? 'none' : 'flex'}; align-items:center; justify-content:center;">FILE</span>
+          <input type="file" class="slice-row-file" accept="image/*" style="display:none;" />
         </div>
-        <input type="text" class="editor-input" style="flex: 2;" placeholder="Image URL (https://...)" value="${img.url || ''}" />
-        <input type="text" class="editor-input" style="flex: 1.5;" placeholder="Optional Slice Caption" value="${img.caption || ''}" />
+        <input type="text" class="editor-input slice-url-inp" style="flex: 2;" placeholder="Image URL or upload file..." value="${img.url || ''}" />
+        <label class="editor-btn-xs" style="cursor:pointer; margin:0; padding:4px 8px; font-size:0.7rem; flex-shrink:0; display:inline-flex; align-items:center;">
+          Upload
+          <input type="file" class="slice-row-file-btn" accept="image/*" style="display:none;" />
+        </label>
+        <input type="text" class="editor-input slice-caption-inp" style="flex: 1.5;" placeholder="Optional Slice Caption" value="${img.caption || ''}" />
         <button type="button" class="btn-del-row" title="Remove Slice">&times;</button>
       `;
-      const inps = row.querySelectorAll('.editor-input');
-      inps[0].addEventListener('input', ev => { img.url = ev.target.value; });
-      inps[1].addEventListener('input', ev => { img.caption = ev.target.value; });
+
+      const thumbBox = row.querySelector('.slice-thumb-box');
+      const fileInp1 = row.querySelector('.slice-row-file');
+      const fileInp2 = row.querySelector('.slice-row-file-btn');
+      const urlInp = row.querySelector('.slice-url-inp');
+      const captionInp = row.querySelector('.slice-caption-inp');
+      const thumbImg = row.querySelector('img');
+      const thumbSpan = row.querySelector('span');
+
+      const handleSliceFile = async (file) => {
+        if (!file) return;
+        try {
+          showToast('Optimizing slice image in high quality...');
+          const b64 = await fileToBase64(file, 2048, 0.88);
+          img.url = b64;
+          urlInp.value = b64;
+          thumbImg.src = b64;
+          thumbImg.style.display = 'block';
+          if (thumbSpan) thumbSpan.style.display = 'none';
+          syncActiveProjectLive();
+          showToast('Slice image updated!');
+        } catch(e) {
+          showToast('Failed to process image');
+        }
+      };
+
+      if (thumbBox && fileInp1) {
+        thumbBox.addEventListener('click', (e) => {
+          if (e.target !== fileInp1) fileInp1.click();
+        });
+        fileInp1.addEventListener('change', (e) => handleSliceFile(e.target.files && e.target.files[0]));
+      }
+      if (fileInp2) {
+        fileInp2.addEventListener('change', (e) => handleSliceFile(e.target.files && e.target.files[0]));
+      }
+
+      urlInp.addEventListener('input', ev => {
+        img.url = ev.target.value.trim();
+        if (img.url) {
+          thumbImg.src = img.url;
+          thumbImg.style.display = 'block';
+          if (thumbSpan) thumbSpan.style.display = 'none';
+        } else {
+          thumbImg.style.display = 'none';
+          if (thumbSpan) thumbSpan.style.display = 'flex';
+        }
+        syncActiveProjectLive();
+      });
+
+      captionInp.addEventListener('input', ev => {
+        img.caption = ev.target.value;
+        syncActiveProjectLive();
+      });
+
       row.querySelector('.btn-del-row').addEventListener('click', () => {
         activeProject.images.splice(idx, 1);
         renderModalImages();
+        syncActiveProjectLive();
       });
+
       stream.appendChild(row);
     });
   }
@@ -2297,11 +2488,12 @@ async function initAdmin() {
         activeProject.images = activeProject.images || [];
         activeProject.images.push({ url: url.trim(), caption: `Installation View 0${activeProject.images.length + 1}` });
         renderModalImages();
+        syncActiveProjectLive();
       }
     });
   }
 
-  // Batch Image Upload via Dropzone
+  // Batch Image Upload via Dropzone (Showcase Slices)
   const batchFileInput = document.getElementById('batch-file-input');
   const btnBatchBrowse = document.getElementById('btn-batch-browse');
   const modalDropzone = document.getElementById('modal-dropzone');
@@ -2313,50 +2505,269 @@ async function initAdmin() {
     modalDropzone.addEventListener('click', (e) => {
       if (e.target !== btnBatchBrowse) batchFileInput.click();
     });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      modalDropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        modalDropzone.classList.add('drag-active');
+      }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+      modalDropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        modalDropzone.classList.remove('drag-active');
+      }, false);
+    });
+    modalDropzone.addEventListener('drop', async (e) => {
+      const dt = e.dataTransfer;
+      const files = Array.from(dt.files || []).filter(f => f.type.startsWith('image/'));
+      if (files.length > 0) {
+        showToast(`Processing ${files.length} high-res image slice(s)...`);
+        activeProject.images = activeProject.images || [];
+        for (const file of files) {
+          const b64 = await fileToBase64(file, 2048, 0.88);
+          activeProject.images.push({ url: b64, caption: file.name.replace(/\.[^/.]+$/, '') });
+        }
+        renderModalImages();
+        syncActiveProjectLive();
+        showToast('High quality image slices loaded seamlessly!');
+      }
+    });
   }
 
   if (batchFileInput) {
     batchFileInput.addEventListener('change', async (e) => {
       const files = Array.from(e.target.files || []);
       if (files.length > 0) {
-        showToast(`Processing ${files.length} image slice(s)...`);
+        showToast(`Processing ${files.length} high-res image slice(s)...`);
         for (const file of files) {
-          const b64 = await fileToBase64(file, 1200);
+          const b64 = await fileToBase64(file, 2048, 0.88);
           activeProject.images = activeProject.images || [];
           activeProject.images.push({ url: b64, caption: file.name.replace(/\.[^/.]+$/, '') });
         }
         renderModalImages();
-        showToast('Image slices loaded seamlessly!');
+        syncActiveProjectLive();
+        showToast('High quality image slices loaded seamlessly!');
       }
+      batchFileInput.value = '';
     });
   }
 
-  // Supplementary Gallery Images
+  // Supplementary Gallery Images (Photo Gallery with Upload & Hover Text)
   function renderModalGallery() {
     const wrap = document.getElementById('modal-gallery-container');
     if (!wrap) return;
     wrap.innerHTML = '';
-    activeProject.gallery = activeProject.gallery || [];
+    activeProject.gallery = Array.isArray(activeProject.gallery) ? activeProject.gallery : [];
 
-    activeProject.gallery.forEach((url, idx) => {
-      const row = document.createElement('div');
-      row.className = 'editor-dynamic-row';
-      row.innerHTML = `
-        <div style="width: 44px; height: 44px; background:#ddd; overflow:hidden; flex-shrink:0;">
-          <img src="${url}" style="width:100%;height:100%;object-fit:cover;" />
+    if (activeProject.gallery.length === 0) {
+      wrap.innerHTML = `
+        <div style="padding: 1.25rem; border: 1px dashed #d5d2c8; text-align: center; color: #888; font-family: var(--font-mono, monospace); font-size: 0.72rem; letter-spacing: 0.08em; background: #faf9f6;">
+          NO GALLERY EXHIBITS ATTACHED YET. DRAG &amp; DROP PHOTOS ABOVE OR CLICK "+ UPLOAD PHOTO(S)".
         </div>
-        <input type="text" class="editor-input" style="flex: 1;" placeholder="Gallery Image URL" value="${url || ''}" />
-        <button type="button" class="btn-del-row" title="Remove">&times;</button>
       `;
-      row.querySelector('.editor-input').addEventListener('input', ev => {
-        activeProject.gallery[idx] = ev.target.value;
+      return;
+    }
+
+    activeProject.gallery.forEach((rawItem, idx) => {
+      const url = typeof rawItem === 'string' ? rawItem : (rawItem.url || '');
+      const text = typeof rawItem === 'string' ? '' : (rawItem.text !== undefined ? rawItem.text : (rawItem.caption || ''));
+
+      const safeUrl = (url || '').replace(/"/g, '&quot;');
+      const safeText = (text || '').replace(/"/g, '&quot;');
+
+      const card = document.createElement('div');
+      card.className = 'gal-item-card';
+      card.innerHTML = `
+        <div class="gal-card-thumb-wrap" title="Click to replace image file">
+          <img src="${safeUrl}" alt="Gallery Thumb" class="gal-thumb-img" onerror="this.style.opacity='0.25';" />
+          <div class="gal-thumb-overlay">REPLACE<br/>PHOTO</div>
+          <input type="file" class="gal-single-file-inp" accept="image/*" style="display:none;" />
+        </div>
+
+        <div class="gal-card-inputs">
+          <div class="gal-row-line">
+            <span class="gal-row-label">IMAGE URL:</span>
+            <input type="text" class="editor-input gal-url-input" placeholder="Paste image URL (https://...)" value="${safeUrl}" style="flex:1; font-size:0.8rem; padding:5px 8px;" />
+            <button type="button" class="editor-btn-xs btn-gal-upload-trigger" title="Upload local image file" style="padding:4px 8px; font-size:0.7rem; flex-shrink:0;">Upload</button>
+          </div>
+          <div class="gal-row-line">
+            <span class="gal-row-label strong">HOVER TEXT:</span>
+            <input type="text" class="editor-input gal-text-input" placeholder="Text displayed on hover / tap (e.g. Model detail, Material study)..." value="${safeText}" style="flex:1; font-size:0.82rem; padding:6px 8px; border-color:#000;" />
+          </div>
+        </div>
+
+        <div class="gal-card-actions">
+          <button type="button" class="btn-gal-move btn-gal-up" title="Move Up" ${idx === 0 ? 'disabled style="opacity:0.25;cursor:default;"' : ''}>&uarr;</button>
+          <button type="button" class="btn-gal-move btn-gal-down" title="Move Down" ${idx === activeProject.gallery.length - 1 ? 'disabled style="opacity:0.25;cursor:default;"' : ''}>&darr;</button>
+          <button type="button" class="btn-del-row" title="Delete Photo" style="font-size:1.3rem; margin-top:2px;">&times;</button>
+        </div>
+      `;
+
+      const thumbWrap = card.querySelector('.gal-card-thumb-wrap');
+      const thumbImg = card.querySelector('.gal-thumb-img');
+      const fileInp = card.querySelector('.gal-single-file-inp');
+      const urlInp = card.querySelector('.gal-url-input');
+      const textInp = card.querySelector('.gal-text-input');
+      const uploadTriggerBtn = card.querySelector('.btn-gal-upload-trigger');
+      const btnUp = card.querySelector('.btn-gal-up');
+      const btnDown = card.querySelector('.btn-gal-down');
+      const btnDel = card.querySelector('.btn-del-row');
+
+      // Click thumb or button -> open file dialog
+      thumbWrap.addEventListener('click', (e) => {
+        if (e.target !== fileInp) fileInp.click();
       });
-      row.querySelector('.btn-del-row').addEventListener('click', () => {
+      uploadTriggerBtn.addEventListener('click', () => fileInp.click());
+
+      // File replace listener
+      fileInp.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file) {
+          try {
+            showToast('Loading gallery photo in high quality...');
+            const b64 = await fileToBase64(file, 1600, 0.86);
+            const currentText = textInp.value.trim() || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+            activeProject.gallery[idx] = {
+              url: b64,
+              text: currentText
+            };
+            urlInp.value = b64;
+            thumbImg.src = b64;
+            thumbImg.style.opacity = '1';
+            textInp.value = currentText;
+            syncActiveProjectLive();
+            showToast('Gallery image updated!');
+          } catch(err) {
+            console.error('Failed to replace gallery photo:', err);
+            showToast('Failed to load image file.');
+          }
+        }
+      });
+
+      // Inputs
+      urlInp.addEventListener('input', () => {
+        const newUrl = urlInp.value.trim();
+        activeProject.gallery[idx] = {
+          url: newUrl,
+          text: textInp.value.trim()
+        };
+        thumbImg.src = newUrl;
+        thumbImg.style.opacity = '1';
+        syncActiveProjectLive();
+      });
+
+      textInp.addEventListener('input', () => {
+        activeProject.gallery[idx] = {
+          url: urlInp.value.trim(),
+          text: textInp.value.trim()
+        };
+        syncActiveProjectLive();
+      });
+
+      // Reorder Up
+      if (btnUp && idx > 0) {
+        btnUp.addEventListener('click', () => {
+          const temp = activeProject.gallery[idx];
+          activeProject.gallery[idx] = activeProject.gallery[idx - 1];
+          activeProject.gallery[idx - 1] = temp;
+          renderModalGallery();
+          syncActiveProjectLive();
+        });
+      }
+
+      // Reorder Down
+      if (btnDown && idx < activeProject.gallery.length - 1) {
+        btnDown.addEventListener('click', () => {
+          const temp = activeProject.gallery[idx];
+          activeProject.gallery[idx] = activeProject.gallery[idx + 1];
+          activeProject.gallery[idx + 1] = temp;
+          renderModalGallery();
+          syncActiveProjectLive();
+        });
+      }
+
+      // Delete
+      btnDel.addEventListener('click', () => {
         activeProject.gallery.splice(idx, 1);
         renderModalGallery();
+        syncActiveProjectLive();
       });
-      wrap.appendChild(row);
+
+      wrap.appendChild(card);
     });
+  }
+
+  // Batch Gallery Upload via Dropzone & Browse Button
+  const galleryFileInput = document.getElementById('gallery-file-input');
+  const btnBrowseGalleryFiles = document.getElementById('btn-browse-gallery-files');
+  const btnGalleryBrowseAlt = document.getElementById('btn-gallery-browse-alt');
+  const modalGalleryDropzone = document.getElementById('modal-gallery-dropzone');
+
+  if (btnBrowseGalleryFiles && galleryFileInput) {
+    btnBrowseGalleryFiles.addEventListener('click', () => galleryFileInput.click());
+  }
+  if (btnGalleryBrowseAlt && galleryFileInput) {
+    btnGalleryBrowseAlt.addEventListener('click', () => galleryFileInput.click());
+  }
+  if (modalGalleryDropzone && galleryFileInput) {
+    modalGalleryDropzone.addEventListener('click', (e) => {
+      if (e.target !== btnGalleryBrowseAlt) galleryFileInput.click();
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      modalGalleryDropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        modalGalleryDropzone.classList.add('drag-active');
+      }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+      modalGalleryDropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        modalGalleryDropzone.classList.remove('drag-active');
+      }, false);
+    });
+    modalGalleryDropzone.addEventListener('drop', async (e) => {
+      const dt = e.dataTransfer;
+      const files = Array.from(dt.files || []).filter(f => f.type.startsWith('image/'));
+      if (files.length > 0) {
+        await processGalleryBatchFiles(files);
+      }
+    });
+  }
+
+  if (galleryFileInput) {
+    galleryFileInput.addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files || []);
+      if (files.length > 0) {
+        await processGalleryBatchFiles(files);
+      }
+      galleryFileInput.value = '';
+    });
+  }
+
+  async function processGalleryBatchFiles(files) {
+    showToast(`Processing ${files.length} gallery photo(s)...`);
+    activeProject.gallery = Array.isArray(activeProject.gallery) ? activeProject.gallery : [];
+    for (const file of files) {
+      try {
+        const b64 = await fileToBase64(file, 1600, 0.86);
+        const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        activeProject.gallery.push({
+          url: b64,
+          text: cleanName
+        });
+      } catch(err) {
+        console.error('Failed to process gallery file:', err);
+      }
+    }
+    renderModalGallery();
+    syncActiveProjectLive();
+    showToast(`Added ${files.length} gallery exhibit(s)!`);
   }
 
   const btnAddModalGallery = document.getElementById('btn-add-modal-gallery');
@@ -2364,9 +2775,14 @@ async function initAdmin() {
     btnAddModalGallery.addEventListener('click', () => {
       const url = prompt('Enter Gallery Image URL:');
       if (url && url.trim()) {
-        activeProject.gallery = activeProject.gallery || [];
-        activeProject.gallery.push(url.trim());
+        const hoverText = prompt('Optional Hover Text / Caption (or leave blank):', '') || '';
+        activeProject.gallery = Array.isArray(activeProject.gallery) ? activeProject.gallery : [];
+        activeProject.gallery.push({
+          url: url.trim(),
+          text: hoverText.trim()
+        });
         renderModalGallery();
+        syncActiveProjectLive();
       }
     });
   }
@@ -2389,7 +2805,7 @@ async function initAdmin() {
 
     activeProject.customSections.forEach((sec, idx) => {
       const card = document.createElement('div');
-      card.className = 'custom-section-edit-card';
+      card.className = 'custom-section-edit-card custom-sec-card';
       const cType = sec.contentType || 'mixed';
 
       card.innerHTML = `
@@ -2450,7 +2866,7 @@ async function initAdmin() {
           
           <div class="sec-link-mode-bar" style="display:flex; gap:8px; margin: 6px 0 10px 0; flex-wrap:wrap;">
             <button type="button" class="btn-link-mode-toggle ${sec.linkMode !== 'button_only' ? 'active' : ''}" data-mode="embed" style="padding:6px 12px; font-size:0.68rem; font-weight:700; font-family:var(--font-mono, monospace); cursor:pointer; border:1px solid #d5d2c8; background:${sec.linkMode !== 'button_only' ? '#111' : '#fff'}; color:${sec.linkMode !== 'button_only' ? '#fff' : '#444'};">
-              📄 EMBEDDED PDF PROCESS VIEWER (In-Page &bull; Auto-Scroll & Manual Scroll)
+              📄 EMBEDDED PDF PROCESS VIEWER (In-Page Document Viewer)
             </button>
             <button type="button" class="btn-link-mode-toggle ${sec.linkMode === 'button_only' ? 'active' : ''}" data-mode="button_only" style="padding:6px 12px; font-size:0.68rem; font-weight:700; font-family:var(--font-mono, monospace); cursor:pointer; border:1px solid #d5d2c8; background:${sec.linkMode === 'button_only' ? '#111' : '#fff'}; color:${sec.linkMode === 'button_only' ? '#fff' : '#444'};">
               🔗 DIRECT LINK BUTTON (Open in new tab &bull; Scroll yourself)
@@ -2481,17 +2897,9 @@ async function initAdmin() {
                   <option value="920" ${sec.embedHeight == 920 ? 'selected' : ''}>Extended (920px)</option>
                 </select>
               </div>
-              <div style="display:flex; align-items:center; gap:6px;">
-                <span style="font-size:0.68rem; color:#555;">Auto-Scroll Speed:</span>
-                <select class="editor-input sec-speed-select" style="padding:2px 8px; font-size:0.72rem; width:auto;">
-                  <option value="0.7" ${sec.autoScrollSpeed == 0.7 ? 'selected' : ''}>Gentle (Slow)</option>
-                  <option value="1" ${(!sec.autoScrollSpeed || sec.autoScrollSpeed == 1) ? 'selected' : ''}>Standard (Normal)</option>
-                  <option value="1.8" ${sec.autoScrollSpeed == 1.8 ? 'selected' : ''}>Brisk (Fast)</option>
-                </select>
-              </div>
             </div>
             <div style="font-size:0.64rem; color:#666; font-style:italic; margin-top:6px;">
-              💡 Paste any Google Drive link, direct PDF file URL, Canva presentation, or Figma prototype. When set to Embedded, visitors can view hands-free with Auto-Scroll or scroll manually at their own pace!
+              💡 Paste any Google Drive link, direct PDF file URL, Canva presentation, or Figma prototype to embed and view directly inside the page.
             </div>
           </div>
         </div>
@@ -2519,28 +2927,26 @@ async function initAdmin() {
           sec.linkMode = mode;
           linkModeButtons.forEach(b => {
             const isActive = b.dataset.mode === mode;
+            b.classList.toggle('active', isActive);
             b.style.background = isActive ? '#111' : '#fff';
             b.style.color = isActive ? '#fff' : '#444';
           });
           if (embedPanel) {
             embedPanel.style.display = mode === 'embed' ? 'block' : 'none';
           }
+          syncActiveProjectLive();
         });
       });
 
       if (heightSelect) {
         heightSelect.addEventListener('change', () => {
           sec.embedHeight = parseInt(heightSelect.value, 10) || 620;
-        });
-      }
-      if (speedSelect) {
-        speedSelect.addEventListener('change', () => {
-          sec.autoScrollSpeed = parseFloat(speedSelect.value) || 1;
+          syncActiveProjectLive();
         });
       }
 
-      titleInp.addEventListener('input', () => { sec.title = titleInp.value; });
-      textInp.addEventListener('input', () => { sec.text = textInp.value; sec.content = textInp.value; });
+      titleInp.addEventListener('input', () => { sec.title = titleInp.value; syncActiveProjectLive(); });
+      textInp.addEventListener('input', () => { sec.text = textInp.value; sec.content = textInp.value; syncActiveProjectLive(); });
       imgUrlInp.addEventListener('input', () => {
         sec.imageUrl = imgUrlInp.value.trim();
         if (sec.imageUrl) {
@@ -2552,6 +2958,7 @@ async function initAdmin() {
           imgPrev.style.display = 'none';
           imgPlaceholder.style.display = 'block';
         }
+        syncActiveProjectLive();
       });
 
       if (imgFileInp) {
@@ -2559,12 +2966,13 @@ async function initAdmin() {
           const file = e.target.files && e.target.files[0];
           if (file) {
             try {
-              const b64 = await fileToBase64(file, 1200);
+              const b64 = await fileToBase64(file, 2048, 0.88);
               sec.imageUrl = b64;
               imgUrlInp.value = b64;
               imgPrev.src = b64;
               imgPrev.style.display = 'block';
               imgPlaceholder.style.display = 'none';
+              syncActiveProjectLive();
             } catch (err) {
               alert('Error reading image file');
             }
@@ -2579,12 +2987,13 @@ async function initAdmin() {
           imgPrev.src = '';
           imgPrev.style.display = 'none';
           imgPlaceholder.style.display = 'block';
+          syncActiveProjectLive();
         });
       }
 
-      captionInp.addEventListener('input', () => { sec.imageCaption = captionInp.value; });
-      linkTextInp.addEventListener('input', () => { sec.linkText = linkTextInp.value; });
-      linkUrlInp.addEventListener('input', () => { sec.linkUrl = linkUrlInp.value; });
+      captionInp.addEventListener('input', () => { sec.imageCaption = captionInp.value; syncActiveProjectLive(); });
+      linkTextInp.addEventListener('input', () => { sec.linkText = linkTextInp.value; syncActiveProjectLive(); });
+      linkUrlInp.addEventListener('input', () => { sec.linkUrl = linkUrlInp.value; syncActiveProjectLive(); });
 
       // Type Pills
       const pills = card.querySelectorAll('.sec-type-pill');
@@ -2616,6 +3025,7 @@ async function initAdmin() {
             fImg.style.display = 'none';
             fLink.style.display = 'block';
           }
+          syncActiveProjectLive();
         });
       });
 
@@ -2626,6 +3036,7 @@ async function initAdmin() {
           const item = activeProject.customSections.splice(idx, 1)[0];
           activeProject.customSections.splice(idx - 1, 0, item);
           renderModalCustomSections();
+          syncActiveProjectLive();
         });
       }
 
@@ -2636,6 +3047,7 @@ async function initAdmin() {
           const item = activeProject.customSections.splice(idx, 1)[0];
           activeProject.customSections.splice(idx + 1, 0, item);
           renderModalCustomSections();
+          syncActiveProjectLive();
         });
       }
 
@@ -2644,6 +3056,7 @@ async function initAdmin() {
         if (confirm(`Delete section "${sec.title || 'Untitled'}"?`)) {
           activeProject.customSections.splice(idx, 1);
           renderModalCustomSections();
+          syncActiveProjectLive();
         }
       });
 
@@ -2670,6 +3083,7 @@ async function initAdmin() {
         embedHeight: 620
       });
       renderModalCustomSections();
+      syncActiveProjectLive();
     });
   }
 
@@ -2677,11 +3091,24 @@ async function initAdmin() {
   if (projectForm) {
     projectForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      syncActiveProjectLive();
-      const titleToSave = (activeProject && activeProject.title) || 'PROJECT';
-      closeProjectEditor();
-      renderProjectsGrid();
-      await executeSave(`PROJECT "${titleToSave}"`);
+      const saveBtn = projectForm.querySelector('button[type="submit"]');
+      const originalText = saveBtn ? saveBtn.textContent : 'SAVE PROJECT';
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'SAVING...';
+      }
+      try {
+        syncActiveProjectLive();
+        const titleToSave = (activeProject && activeProject.title) || 'PROJECT';
+        closeProjectEditor();
+        renderProjectsGrid();
+        await executeSave(`PROJECT "${titleToSave}"`);
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = originalText;
+        }
+      }
     });
   }
 
@@ -2795,21 +3222,27 @@ async function initAdmin() {
 
     document.getElementById('hdr-about-index').value = about.index || '01 / ABOUT ME';
     document.getElementById('hdr-about-title').value = about.title || 'ABOUT';
-    document.getElementById('hdr-about-disc').value = about.discipline || 'INTERACTIVE SPATIAL DESIGN';
+    document.getElementById('hdr-about-disc').value = about.discipline !== undefined ? about.discipline : 'INTERACTIVE SPATIAL DESIGN';
     document.getElementById('hdr-about-desc').value = about.description || 'Background, education, capabilities and the experiences driving my practice.';
 
     document.getElementById('hdr-projects-index').value = proj.index || '02 / VIEW PROJECT';
     document.getElementById('hdr-projects-title').value = proj.title || 'PROJECTS';
-    document.getElementById('hdr-projects-disc').value = proj.discipline || 'INTERACTIVE SPATIAL DESIGN';
+    document.getElementById('hdr-projects-disc').value = proj.discipline !== undefined ? proj.discipline : 'INTERACTIVE SPATIAL DESIGN';
     document.getElementById('hdr-projects-desc').value = proj.description || 'Seventeen works across academic study, competitions and professional practice.';
 
     document.getElementById('hdr-contact-index').value = contact.index || '03 / GET IN TOUCH';
     document.getElementById('hdr-contact-title').value = contact.title || 'CONTACT';
-    document.getElementById('hdr-contact-disc').value = contact.discipline || 'INTERACTIVE SPATIAL DESIGN';
+    document.getElementById('hdr-contact-disc').value = contact.discipline !== undefined ? contact.discipline : 'INTERACTIVE SPATIAL DESIGN';
     document.getElementById('hdr-contact-desc').value = contact.description || 'Available for collaborations, internships and thoughtful creative opportunities.';
 
     document.getElementById('hdr-contact-start-heading').value = contact.startProjectHeading || 'START A\nPROJECT';
     document.getElementById('hdr-contact-callout').value = contact.startProjectCallout || "Available for collaborations, freelance projects, and full-time opportunities. Let's build something meaningful together.";
+
+    const p = currentData.profile || {};
+    const hdrResUrl = document.getElementById('hdr-contact-resume-url');
+    if (hdrResUrl) hdrResUrl.value = p.resumeUrl || '';
+    const hdrResText = document.getElementById('hdr-contact-resume-text');
+    if (hdrResText) hdrResText.value = p.resumeBtnText || 'VIEW RESUME';
   }
 
   function collectHeadersData() {
@@ -2839,6 +3272,16 @@ async function initAdmin() {
       startProjectHeading: document.getElementById('hdr-contact-start-heading').value.trim(),
       startProjectCallout: document.getElementById('hdr-contact-callout').value.trim()
     };
+
+    if (!currentData.profile) currentData.profile = {};
+    const hdrResUrl = document.getElementById('hdr-contact-resume-url');
+    if (hdrResUrl) currentData.profile.resumeUrl = hdrResUrl.value.trim();
+    const hdrResText = document.getElementById('hdr-contact-resume-text');
+    if (hdrResText) currentData.profile.resumeBtnText = hdrResText.value.trim() || 'VIEW RESUME';
+    mirrorToTab2('id-resume-url', currentData.profile.resumeUrl);
+    mirrorToTab2('id-resume-btn-text', currentData.profile.resumeBtnText);
+    mirrorToTab2('about-resume-url', currentData.profile.resumeUrl);
+    mirrorToTab2('about-resume-btn-text', currentData.profile.resumeBtnText);
   }
 
   const btnSaveHeaders = document.getElementById('btn-save-headers');
@@ -3146,6 +3589,378 @@ async function initAdmin() {
     });
   }
 
+  /* ================= 9B. PAGE ORDER & SEQUENCE CONTROLLER ================= */
+  const PAGE_ORDER_INFO = {
+    home: {
+      key: 'home',
+      title: 'HOME PAGE',
+      icon: '🏛️',
+      desc: 'Front landing page with brutalist hero letters, designer meta, and live summary boxes.'
+    },
+    projects: {
+      key: 'projects',
+      title: 'PROJECTS CATALOG',
+      icon: '📁',
+      desc: 'Projects gallery showcase, dynamic category filter tabs, and case study viewer.'
+    },
+    about: {
+      key: 'about',
+      title: 'ABOUT PAGE',
+      icon: '👤',
+      desc: 'Studio biography, software toolkits, education history, and skills matrix.'
+    },
+    contact: {
+      key: 'contact',
+      title: 'CONTACT PAGE',
+      icon: '✉️',
+      desc: 'Direct channels, email/phone links, start-a-project callout, and resume button.'
+    }
+  };
+
+  function renderPageOrderManager() {
+    if (!currentData.pageOrder || !Array.isArray(currentData.pageOrder) || currentData.pageOrder.length === 0) {
+      currentData.pageOrder = ['home', 'projects', 'about', 'contact'];
+    } else {
+      ['home', 'projects', 'about', 'contact'].forEach(k => {
+        if (!currentData.pageOrder.includes(k)) currentData.pageOrder.push(k);
+      });
+    }
+
+    if (!currentData.pageVisibility) {
+      currentData.pageVisibility = { home: true, about: true, projects: true, contact: true };
+    }
+    const pv = currentData.pageVisibility;
+    const po = currentData.pageOrder;
+
+    const grid = document.getElementById('page-order-manager-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    po.forEach((pageKey, idx) => {
+      const info = PAGE_ORDER_INFO[pageKey] || {
+        key: pageKey,
+        title: pageKey.toUpperCase() + ' PAGE',
+        icon: '📄',
+        desc: ''
+      };
+      const isVis = pv[pageKey] !== false;
+
+      const card = document.createElement('div');
+      card.className = 'page-order-card' + (isVis ? '' : ' is-hidden');
+      card.innerHTML = `
+        <div>
+          <div class="page-order-top-row">
+            <span class="page-order-pos-badge">ORDER 0${idx + 1}</span>
+            <span class="page-vis-badge ${isVis ? 'visible' : 'hidden'}">
+              ${isVis ? '● VISIBLE' : '✕ HIDDEN'}
+            </span>
+          </div>
+          <h4 class="page-vis-title" style="margin-top: 0.65rem;">${info.icon} ${info.title}</h4>
+          <p class="page-vis-desc" style="margin-top: 0.4rem;">${info.desc}</p>
+        </div>
+
+        <div>
+          <!-- Move Up / Down Buttons -->
+          <div class="page-order-actions-row">
+            <button type="button" class="btn-order-move btn-order-up" ${idx === 0 ? 'disabled' : ''} title="Move page earlier in sequence">
+              ▲ MOVE UP
+            </button>
+            <button type="button" class="btn-order-move btn-order-down" ${idx === po.length - 1 ? 'disabled' : ''} title="Move page later in sequence">
+              ▼ MOVE DOWN
+            </button>
+          </div>
+
+          <!-- Show / Hide Button -->
+          <button type="button" class="page-vis-btn ${isVis ? 'btn-hide' : 'btn-show'}" style="margin-top: 0.5rem;" data-page="${pageKey}">
+            ${isVis ? '✕ HIDE THIS PAGE' : '✓ SHOW THIS PAGE'}
+          </button>
+        </div>
+      `;
+
+      // Move Up handler
+      const btnUp = card.querySelector('.btn-order-up');
+      if (btnUp && idx > 0) {
+        btnUp.addEventListener('click', () => {
+          const temp = po[idx];
+          po[idx] = po[idx - 1];
+          po[idx - 1] = temp;
+          renderPageOrderManager();
+          triggerRealtimeSync(0);
+          showToast(`Page sequence: ${po.map((k, i) => `${i + 1}. ${k.toUpperCase()}`).join(' → ')}`);
+        });
+      }
+
+      // Move Down handler
+      const btnDown = card.querySelector('.btn-order-down');
+      if (btnDown && idx < po.length - 1) {
+        btnDown.addEventListener('click', () => {
+          const temp = po[idx];
+          po[idx] = po[idx + 1];
+          po[idx + 1] = temp;
+          renderPageOrderManager();
+          triggerRealtimeSync(0);
+          showToast(`Page sequence: ${po.map((k, i) => `${i + 1}. ${k.toUpperCase()}`).join(' → ')}`);
+        });
+      }
+
+      // Show/Hide handler
+      const btnVis = card.querySelector('.page-vis-btn');
+      if (btnVis) {
+        btnVis.addEventListener('click', () => {
+          pv[pageKey] = !isVis;
+          renderPageOrderManager();
+          renderSectionVisibilityManager();
+          triggerRealtimeSync(0);
+          showToast(`Page "${info.title}" is now ${pv[pageKey] ? 'VISIBLE' : 'HIDDEN'} on visitor website!`);
+        });
+      }
+
+      grid.appendChild(card);
+    });
+
+    // Reset button
+    const btnReset = document.getElementById('btn-reset-page-order');
+    if (btnReset) {
+      btnReset.onclick = () => {
+        currentData.pageOrder = ['home', 'projects', 'about', 'contact'];
+        renderPageOrderManager();
+        triggerRealtimeSync(0);
+        showToast('Page sequence reset to default order (Home → Projects → About → Contact)!');
+      };
+    }
+  }
+
+  /* ================= 9C. MASTER SECTION VISIBILITY CONTROLLER ================= */
+  let currentSecVisFilter = 'all';
+  let currentSecVisSearch = '';
+
+  const ALL_SECTIONS_REGISTRY = [
+    // HOME PAGE
+    { key: 'homeHero', page: 'home', pageTitle: 'HOME', title: 'Monumental Hero Letters ("PORT / FOLIO")', desc: 'Central brutalist animated letters and compass drafting watermark.' },
+    { key: 'homeMetaLeft', page: 'home', pageTitle: 'HOME', title: 'Left Designer & Discipline Meta', desc: 'DES. BY MOO RENEE, Interactive Spatial Design, and copyright year.' },
+    { key: 'homeMetaRight', page: 'home', pageTitle: 'HOME', title: 'Right Academic Degree & Years Meta', desc: 'Bachelor in Interactive Spatial Design (Hons) 2024 - 2026.' },
+    { key: 'homeBottomBar', page: 'home', pageTitle: 'HOME', title: 'Bottom Connected Info Bar', desc: 'Full bottom bar container with email, phone, behance and enter links.' },
+    { key: 'homeEmail', page: 'home', pageTitle: 'HOME', title: 'Bottom Email Cell', desc: 'Direct email mailto link in the bottom grid bar.' },
+    { key: 'homePhone', page: 'home', pageTitle: 'HOME', title: 'Bottom Phone Cell', desc: 'Direct phone tel link in the bottom grid bar.' },
+    { key: 'homeBehance', page: 'home', pageTitle: 'HOME', title: 'Bottom Behance Cell', desc: 'Direct external Behance profile link in the bottom grid bar.' },
+    { key: 'homeEnterPortfolio', page: 'home', pageTitle: 'HOME', title: 'Bottom "Enter Portfolio ->" Link', desc: 'Action button that navigates directly to your portfolio catalog.' },
+
+    // ABOUT PAGE
+    { key: 'aboutHeader', page: 'about', pageTitle: 'ABOUT', title: 'About Top Editorial Header Stage', desc: '6-column architectural header with index, giant ABOUT title, and intro description.' },
+    { key: 'aboutProfileCard', page: 'about', pageTitle: 'ABOUT', title: 'Portrait Photo & Studio Profile Card', desc: 'Headshot portrait image, designer name, and direct social links.' },
+    { key: 'aboutBio', page: 'about', pageTitle: 'ABOUT', title: 'Headline Title & Biography Narrative', desc: 'Design manifesto headline, short bio paragraph, and focus pills.' },
+    { key: 'aboutSkillsTags', page: 'about', pageTitle: 'ABOUT', title: 'Core Focus Skill Pills', desc: 'Upper pill tags (UI/UX, AR/VR, GAME DESIGN, 3D MODELING, etc.).' },
+    { key: 'aboutStats', page: 'about', pageTitle: 'ABOUT', title: '4-Column Stat Counters Row', desc: 'Studying design, completed projects, competitions & awards counters.' },
+    { key: 'aboutEducation', page: 'about', pageTitle: 'ABOUT', title: 'Education History Checklist', desc: 'Chronological timeline of schools, college, degrees, and CGPA.' },
+    { key: 'aboutSoftware', page: 'about', pageTitle: 'ABOUT', title: 'Software Toolkits Grid', desc: 'Tiles showing software tool logos (AU, AN, AE, AI, DW, UN, BL, FG).' },
+    { key: 'aboutLanguages', page: 'about', pageTitle: 'ABOUT', title: 'Languages Proficiency Table', desc: 'Languages spoken and fluency levels (Chinese, English, Malay).' },
+    { key: 'aboutTechnical', page: 'about', pageTitle: 'ABOUT', title: 'Technical Skills Matrix', desc: 'Interactive pills for UI/UX, 3D Modeling, AR/VR, Coding, etc.' },
+    { key: 'aboutPersonal', page: 'about', pageTitle: 'ABOUT', title: 'Personal Skills Matrix', desc: 'Pills for Teamwork, Creativity, Time Management, Responsibility, etc.' },
+    { key: 'aboutExperience', page: 'about', pageTitle: 'ABOUT', title: 'Professional Experience Timeline', desc: 'Internships, industry roles, and company affiliations.' },
+    { key: 'aboutAchievements', page: 'about', pageTitle: 'ABOUT', title: 'Honors & Achievements List', desc: 'Competitions awards, dean\'s list, and recognitions.' },
+    { key: 'aboutCompetitions', page: 'about', pageTitle: 'ABOUT', title: 'Competitions & Extracurricular List', desc: 'Timeline of design competitions and extracurricular events entered.' },
+
+    // PROJECTS PAGE
+    { key: 'projectsHeader', page: 'projects', pageTitle: 'PROJECTS', title: 'Projects Top Editorial Header Stage', desc: '6-column architectural header with index, giant PROJECTS title, and description.' },
+    { key: 'projectsFilterBar', page: 'projects', pageTitle: 'PROJECTS', title: 'Multi-Tier Category & Sub-Label Filter Bar', desc: 'Main section pills (Academic, Competition, Internship) and sub-label tags.' },
+    { key: 'projectsGrid', page: 'projects', pageTitle: 'PROJECTS', title: 'Projects Catalog Cards Grid & Spec Table', desc: 'Main showcase of all project cards with thumbnails and links.' },
+
+    // CONTACT PAGE
+    { key: 'contactHeader', page: 'contact', pageTitle: 'CONTACT', title: 'Contact Top Editorial Header Stage', desc: '6-column architectural header with index, giant CONTACT title, and description.' },
+    { key: 'contactStartProject', page: 'contact', pageTitle: 'CONTACT', title: '"START A PROJECT" Callout & Studio Heading', desc: 'Large bold typography statement and creative collaboration callout.' },
+    { key: 'contactChannels', page: 'contact', pageTitle: 'CONTACT', title: 'Direct Contact Channels Table', desc: 'Direct email, phone number, Behance, and Linktree links.' },
+    { key: 'contactResumeBtn', page: 'contact', pageTitle: 'CONTACT', title: '"VIEW RESUME" Action Button', desc: 'Customizable button with direct link to view resume/CV.' },
+
+    // GLOBAL
+    { key: 'siteFooter', page: 'global', pageTitle: 'GLOBAL', title: 'Global Bottom Footer Bar', desc: 'Bottom website bar with designer name, secret trigger, and university meta.' }
+  ];
+
+  function renderSectionVisibilityManager() {
+    if (!currentData.sectionVisibility || typeof currentData.sectionVisibility !== 'object') {
+      currentData.sectionVisibility = {};
+    }
+    const sv = currentData.sectionVisibility;
+
+    // Update count labels
+    const countAll = document.getElementById('count-sec-all');
+    if (countAll) countAll.textContent = ALL_SECTIONS_REGISTRY.length;
+    ['home', 'about', 'projects', 'contact', 'global'].forEach(pKey => {
+      const cEl = document.getElementById(`count-sec-${pKey}`);
+      if (cEl) {
+        cEl.textContent = ALL_SECTIONS_REGISTRY.filter(s => s.page === pKey).length;
+      }
+    });
+
+    const grid = document.getElementById('section-visibility-manager-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    // Filter items
+    const query = (currentSecVisSearch || '').trim().toLowerCase();
+    const filtered = ALL_SECTIONS_REGISTRY.filter(item => {
+      if (currentSecVisFilter !== 'all' && item.page !== currentSecVisFilter) return false;
+      if (query) {
+        const hay = `${item.title} ${item.desc} ${item.pageTitle} ${item.key}`.toLowerCase();
+        if (!hay.includes(query)) return false;
+      }
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      grid.innerHTML = `
+        <div style="grid-column: 1 / -1; padding: 2rem; text-align: center; font-family: var(--font-mono); color: #777; border: 1.5px dashed #ccc;">
+          NO SECTIONS FOUND MATCHING "${currentSecVisSearch.toUpperCase()}".
+        </div>
+      `;
+      return;
+    }
+
+    filtered.forEach(sec => {
+      const isVis = sv[sec.key] !== false;
+      const card = document.createElement('div');
+      card.className = 'sec-vis-card' + (isVis ? '' : ' is-hidden');
+      card.innerHTML = `
+        <div>
+          <div class="sec-vis-card-header">
+            <span class="sec-vis-page-tag">${sec.pageTitle}</span>
+            <span class="page-vis-badge ${isVis ? 'visible' : 'hidden'}">
+              ${isVis ? '● VISIBLE' : '✕ HIDDEN'}
+            </span>
+          </div>
+          <h4 class="sec-vis-title" style="margin-top: 0.6rem;">${sec.title}</h4>
+          <p class="sec-vis-desc" style="margin-top: 0.35rem;">${sec.desc}</p>
+        </div>
+        <button type="button" class="sec-vis-btn ${isVis ? 'btn-hide' : 'btn-show'}" data-key="${sec.key}">
+          ${isVis ? '✕ HIDE THIS SECTION' : '✓ SHOW THIS SECTION'}
+        </button>
+      `;
+
+      const btn = card.querySelector('.sec-vis-btn');
+      btn.addEventListener('click', () => {
+        const newVal = !isVis;
+        sv[sec.key] = newVal;
+
+        // Synchronize with specific sub-fields
+        if (sec.key === 'aboutStats' && currentData.profile) {
+          currentData.profile.showStats = newVal;
+        }
+        if (currentData.about && currentData.about.sectionSettings) {
+          const mapToSS = {
+            aboutEducation: 'education',
+            aboutSoftware: 'software',
+            aboutLanguages: 'languages',
+            aboutTechnical: 'technicalSkills',
+            aboutPersonal: 'personalSkills',
+            aboutExperience: 'experience',
+            aboutAchievements: 'achievements',
+            aboutCompetitions: 'competitions'
+          };
+          const ssKey = mapToSS[sec.key];
+          if (ssKey && currentData.about.sectionSettings[ssKey]) {
+            currentData.about.sectionSettings[ssKey].enabled = newVal;
+          }
+        }
+
+        renderSectionVisibilityManager();
+        triggerRealtimeSync(0);
+        showToast(`Section "${sec.title}" is now ${newVal ? 'VISIBLE' : 'HIDDEN'} on live website!`);
+      });
+
+      grid.appendChild(card);
+    });
+
+    // Wire filter pills
+    document.querySelectorAll('.sec-filter-pill').forEach(pill => {
+      pill.onclick = () => {
+        document.querySelectorAll('.sec-filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        currentSecVisFilter = pill.getAttribute('data-sec-filter') || 'all';
+        renderSectionVisibilityManager();
+      };
+    });
+
+    // Wire search input
+    const searchInput = document.getElementById('sec-vis-search-input');
+    if (searchInput && !searchInput.dataset.wired) {
+      searchInput.dataset.wired = 'true';
+      searchInput.addEventListener('input', (e) => {
+        currentSecVisSearch = e.target.value;
+        renderSectionVisibilityManager();
+      });
+    }
+
+    // Wire Show All button
+    const btnShowAll = document.getElementById('btn-sec-vis-show-all');
+    if (btnShowAll) {
+      btnShowAll.onclick = () => {
+        ALL_SECTIONS_REGISTRY.forEach(s => {
+          sv[s.key] = true;
+        });
+        if (currentData.profile) currentData.profile.showStats = true;
+        if (currentData.about && currentData.about.sectionSettings) {
+          Object.values(currentData.about.sectionSettings).forEach(ss => { if (ss) ss.enabled = true; });
+        }
+        renderSectionVisibilityManager();
+        triggerRealtimeSync(0);
+        showToast('All sections are now VISIBLE on live website!');
+      };
+    }
+
+    // Wire Reset Defaults button
+    const btnResetDefaults = document.getElementById('btn-sec-vis-reset-defaults');
+    if (btnResetDefaults) {
+      btnResetDefaults.onclick = () => {
+        const def = (window.DEFAULT_PORTFOLIO_DATA && window.DEFAULT_PORTFOLIO_DATA.sectionVisibility) || {};
+        currentData.sectionVisibility = Object.assign({}, def);
+        if (currentData.profile) currentData.profile.showStats = true;
+        if (currentData.about && currentData.about.sectionSettings) {
+          Object.values(currentData.about.sectionSettings).forEach(ss => { if (ss) ss.enabled = true; });
+        }
+        renderSectionVisibilityManager();
+        triggerRealtimeSync(0);
+        showToast('Section visibility reset to defaults!');
+      };
+    }
+  }
+
+  /* ================= 9D. PAGE VISIBILITY MASTER CONTROLLER ================= */
+  function renderPageVisibilityManager() {
+    renderPageOrderManager();
+    renderSectionVisibilityManager();
+
+    if (!currentData.pageVisibility) {
+      currentData.pageVisibility = { home: true, about: true, projects: true, contact: true };
+    }
+    const pv = currentData.pageVisibility;
+
+    // Render Individual Top Banners in Tab 01, Tab 02, Tab 03
+    ['contact', 'about', 'projects'].forEach(pageKey => {
+      const banner = document.getElementById(`banner-vis-${pageKey}`);
+      if (banner) {
+        const isVis = pv[pageKey] !== false;
+        const pageTitle = pageKey.toUpperCase() + ' PAGE';
+        banner.innerHTML = `
+          <div class="page-vis-banner-info">
+            <span class="page-vis-banner-title">${pageTitle} VISIBILITY:</span>
+            <span class="page-vis-badge ${isVis ? 'visible' : 'hidden'}">
+              ${isVis ? '● VISIBLE ON WEBSITE' : '✕ HIDDEN FROM VISITORS'}
+            </span>
+          </div>
+          <button type="button" class="editor-btn-sm" style="${isVis ? 'color: #b91c1c; border-color: #b91c1c;' : 'background: #112250; color: #fff; border-color: #112250;'}">
+            ${isVis ? '✕ HIDE THIS PAGE FROM VISITORS' : '✓ SHOW THIS PAGE ON WEBSITE'}
+          </button>
+        `;
+        const btn = banner.querySelector('button');
+        btn.addEventListener('click', () => {
+          pv[pageKey] = !isVis;
+          renderPageVisibilityManager();
+          triggerRealtimeSync(0);
+          showToast(`Page "${pageTitle}" is now ${pv[pageKey] ? 'VISIBLE' : 'HIDDEN'} on visitor website!`);
+        });
+      }
+    });
+  }
+
   /* ================= 9C. ADMIN CREDENTIALS UI ================= */
   function populateCredentialsForm() {
     let auth = { username: 'RENEE@MOO081706', password: '36987@RENEE6667' };
@@ -3245,6 +4060,7 @@ async function initAdmin() {
     renderProjectsGrid();
     populateHeadersForm();
     populateCredentialsForm();
+    renderPageVisibilityManager();
     updateRawJsonInspector();
     updateCloudUI();
   }

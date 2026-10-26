@@ -135,8 +135,11 @@
         <div class="editor-inner-box">
           <div class="pane-title-bar">
             <span class="pane-title-num">01</span>
-            <h2 class="pane-title-text">IDENTITY</h2>
+            <h2 class="pane-title-text">IDENTITY &amp; CONTACT</h2>
           </div>
+
+          <!-- Quick Page Visibility Banner -->
+          <div class="page-vis-banner" id="banner-vis-contact" data-page="contact"></div>
 
           <form id="form-identity" class="editor-clean-form" novalidate>
             <!-- Row 1: Display Name & Role -->
@@ -224,6 +227,20 @@
               <div class="editor-field">
                 <label for="id-linktree">LINKTREE PROFILE URL <span class="mono-help" style="display:inline; margin-left:4px; font-weight:normal;">(OPTIONAL)</span></label>
                 <input type="url" id="id-linktree" class="editor-input" placeholder="https://linktr.ee/reneemoo (Optional - leave blank to hide)" />
+              </div>
+            </div>
+
+            <!-- Resume / CV Button Name and Document Link -->
+            <div class="form-row-2" style="margin-top: 0.5rem;">
+              <div class="editor-field">
+                <label for="id-resume-btn-text">RESUME BUTTON NAME / TEXT</label>
+                <input type="text" id="id-resume-btn-text" class="editor-input" placeholder="VIEW RESUME" />
+                <p class="mono-help">Label shown on the Contact page button (e.g. VIEW RESUME, MY CV).</p>
+              </div>
+              <div class="editor-field">
+                <label for="id-resume-url">RESUME / CV DOCUMENT LINK</label>
+                <input type="url" id="id-resume-url" class="editor-input" placeholder="https://drive.google.com/... or direct PDF / document URL" />
+                <p class="mono-help">Visitors can click this button in the Contact section to open your CV.</p>
               </div>
             </div>
 
@@ -346,6 +363,9 @@
             <h2 class="pane-title-text">ABOUT &amp; RESUME</h2>
           </div>
 
+          <!-- Quick Page Visibility Banner -->
+          <div class="page-vis-banner" id="banner-vis-about" data-page="about"></div>
+
           <p class="pane-section-desc">
             Edit education history, software toolkits, languages, matrix columns, profile information, and custom sections.
           </p>
@@ -367,8 +387,8 @@
             </div>
             <div class="form-row-2">
               <div class="editor-field">
-                <label for="about-hdr-disc-tab2">DISCIPLINE META</label>
-                <input type="text" id="about-hdr-disc-tab2" class="editor-input" placeholder="INTERACTIVE SPATIAL DESIGN" />
+                <label for="about-hdr-disc-tab2">DISCIPLINE META <span class="mono-help-inline" style="font-size: 0.72rem; opacity: 0.7; font-weight: normal;">(OPTIONAL)</span></label>
+                <input type="text" id="about-hdr-disc-tab2" class="editor-input" placeholder="e.g. INTERACTIVE SPATIAL DESIGN (or leave empty to hide)" />
               </div>
               <div class="editor-field">
                 <label for="about-hdr-desc-tab2">INTRO DESCRIPTION</label>
@@ -429,6 +449,20 @@
               </div>
             </div>
 
+            <!-- Resume / CV Button Name and Document Link -->
+            <div class="form-row-2" style="margin-top: 0.5rem;">
+              <div class="editor-field">
+                <label for="about-resume-btn-text">RESUME BUTTON NAME / TEXT</label>
+                <input type="text" id="about-resume-btn-text" class="editor-input" placeholder="VIEW RESUME" />
+                <p class="mono-help">Label shown on the Contact page button (e.g. VIEW RESUME, MY CV).</p>
+              </div>
+              <div class="editor-field">
+                <label for="about-resume-url">RESUME / CV DOCUMENT LINK</label>
+                <input type="url" id="about-resume-url" class="editor-input" placeholder="https://drive.google.com/... or direct PDF / document URL" />
+                <p class="mono-help">Link to your Resume / CV (Google Drive, Dropbox, Canva, or PDF file).</p>
+              </div>
+            </div>
+
             <div class="form-row-2">
               <div class="editor-field">
                 <label for="about-profile-headline-tab2">LEFT BIO &bull; MAIN HEADLINE</label>
@@ -442,11 +476,18 @@
           </div>
 
           <!-- Stat Metric Counters -->
-          <div class="editor-sub-card">
-            <div class="sub-card-header">
-              <div>
-                <span class="sub-card-title">STAT METRIC COUNTERS</span>
-                <p class="mono-help">Projects Completed &amp; Competitions auto-calculate live from catalog. You can edit manual values and add new metric cards.</p>
+          <div class="editor-sub-card" id="about-stats-editor-subcard">
+            <div class="sub-card-header" style="flex-wrap: wrap; gap: 12px;">
+              <div style="flex: 1; min-width: 260px;">
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                  <span class="sub-card-title">STAT METRIC COUNTERS</span>
+                  <label class="switch-pill-label" title="Toggle section visibility on portfolio website">
+                    <input type="checkbox" id="toggle-stats-visible" class="switch-pill-input" checked />
+                    <span class="switch-pill-track"><span class="switch-pill-thumb"></span></span>
+                    <span class="switch-pill-text" id="toggle-stats-text">SECTION VISIBLE</span>
+                  </label>
+                </div>
+                <p class="mono-help">Manually key in all counter values and labels. Use the toggle switch above to choose whether to include this section or not.</p>
               </div>
               <button type="button" class="editor-btn-sm" id="btn-add-stat-metric">+ Add Metric Counter</button>
             </div>
@@ -597,6 +638,9 @@
             <h2 class="pane-title-text">PROJECT ARCHIVE</h2>
           </div>
 
+          <!-- Quick Page Visibility Banner -->
+          <div class="page-vis-banner" id="banner-vis-projects" data-page="projects"></div>
+
           <p class="pane-section-desc">
             Manage projects, organize main categories and sub-labels, edit video links and related documentation links.
           </p>
@@ -682,8 +726,8 @@
               </div>
               <div class="form-row-2">
                 <div class="editor-field">
-                  <label for="hdr-about-disc">DISCIPLINE META</label>
-                  <input type="text" id="hdr-about-disc" class="editor-input" placeholder="INTERACTIVE SPATIAL DESIGN" />
+                  <label for="hdr-about-disc">DISCIPLINE META <span class="mono-help-inline" style="font-size: 0.72rem; opacity: 0.7; font-weight: normal;">(OPTIONAL)</span></label>
+                  <input type="text" id="hdr-about-disc" class="editor-input" placeholder="e.g. INTERACTIVE SPATIAL DESIGN (or leave empty to hide)" />
                 </div>
                 <div class="editor-field">
                   <label for="hdr-about-desc">INTRO DESCRIPTION</label>
@@ -709,8 +753,8 @@
               </div>
               <div class="form-row-2">
                 <div class="editor-field">
-                  <label for="hdr-projects-disc">DISCIPLINE META</label>
-                  <input type="text" id="hdr-projects-disc" class="editor-input" placeholder="INTERACTIVE SPATIAL DESIGN" />
+                  <label for="hdr-projects-disc">DISCIPLINE META <span class="mono-help-inline" style="font-size: 0.72rem; opacity: 0.7; font-weight: normal;">(OPTIONAL)</span></label>
+                  <input type="text" id="hdr-projects-disc" class="editor-input" placeholder="e.g. INTERACTIVE SPATIAL DESIGN (or leave empty to hide)" />
                 </div>
                 <div class="editor-field">
                   <label for="hdr-projects-desc">INTRO DESCRIPTION</label>
@@ -736,8 +780,8 @@
               </div>
               <div class="form-row-2">
                 <div class="editor-field">
-                  <label for="hdr-contact-disc">DISCIPLINE META</label>
-                  <input type="text" id="hdr-contact-disc" class="editor-input" placeholder="INTERACTIVE SPATIAL DESIGN" />
+                  <label for="hdr-contact-disc">DISCIPLINE META <span class="mono-help-inline" style="font-size: 0.72rem; opacity: 0.7; font-weight: normal;">(OPTIONAL)</span></label>
+                  <input type="text" id="hdr-contact-disc" class="editor-input" placeholder="e.g. INTERACTIVE SPATIAL DESIGN (or leave empty to hide)" />
                 </div>
                 <div class="editor-field">
                   <label for="hdr-contact-desc">INTRO DESCRIPTION</label>
@@ -759,6 +803,16 @@
                 <label for="hdr-contact-callout">CALLOUT INVITATION TEXT</label>
                 <textarea id="hdr-contact-callout" class="editor-textarea" rows="2" placeholder="Available for collaborations, freelance projects, and full-time opportunities. Let's build something meaningful together."></textarea>
               </div>
+              <div class="form-row-2">
+                <div class="editor-field">
+                  <label for="hdr-contact-resume-text">RESUME BUTTON NAME / TEXT</label>
+                  <input type="text" id="hdr-contact-resume-text" class="editor-input" placeholder="VIEW RESUME" />
+                </div>
+                <div class="editor-field">
+                  <label for="hdr-contact-resume-url">RESUME / CV DOCUMENT LINK</label>
+                  <input type="url" id="hdr-contact-resume-url" class="editor-input" placeholder="https://drive.google.com/... or direct PDF / document URL" />
+                </div>
+              </div>
             </div>
 
             <div class="pane-action-footer">
@@ -775,6 +829,68 @@
           <div class="pane-title-bar">
             <span class="pane-title-num">05</span>
             <h2 class="pane-title-text">SETTINGS &amp; DATABASE</h2>
+          </div>
+
+          <!-- 1. PAGE SEQUENCE & NAVIGATION ORDER CONTROLLER -->
+          <div class="editor-sub-card" style="margin-bottom: 1.5rem; border: 2px solid #112250; background: #ffffff;">
+            <div class="sub-card-header">
+              <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span class="sub-card-title" style="color: #112250; font-weight: 700; font-size: 0.95rem;">🔄 PAGE SEQUENCE &amp; NAVIGATION ORDER</span>
+                  <span style="font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700; padding: 4px 10px; border-radius: 2px; background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe;">FLEXIBLE REORDERING</span>
+                </div>
+                <button type="button" class="editor-btn-sm" id="btn-reset-page-order" title="Reset to default sequence (Home → Projects → About → Contact)">
+                  ⟲ RESET TO DEFAULT ORDER
+                </button>
+              </div>
+            </div>
+
+            <p class="mono-help" style="margin-top: 8px; line-height: 1.6; color: #444;">
+              Reorganize the sequence of pages freely (for example, make <strong>Projects</strong> appear first, then <strong>Contact</strong>, then <strong>About</strong>, or <strong>About</strong> then <strong>Contact</strong> then <strong>Projects</strong>).
+              Use the <strong>▲ MOVE UP</strong> and <strong>▼ MOVE DOWN</strong> buttons on each page card to shift its position. Navigation tabs, mobile menu numbers, and page links update automatically. You can also hide any entire page with a single click.
+            </p>
+
+            <div class="page-order-grid" id="page-order-manager-grid">
+              <!-- Dynamically populated page order cards with Move Up, Move Down & Hide controls -->
+            </div>
+          </div>
+
+          <!-- 2. MASTER SECTION VISIBILITY CONTROLLER (SELECT ANY SECTION TO SHOW / HIDE) -->
+          <div class="editor-sub-card" style="margin-bottom: 1.5rem; border: 2px solid #112250; background: #ffffff;">
+            <div class="sub-card-header">
+              <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span class="sub-card-title" style="color: #112250; font-weight: 700; font-size: 0.95rem;">👁️ MASTER SECTION VISIBILITY CONTROLLER</span>
+                  <span style="font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700; padding: 4px 10px; border-radius: 2px; background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe;">SELECT ANY SECTION</span>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                  <button type="button" class="editor-btn-sm" id="btn-sec-vis-show-all">✓ SHOW ALL SECTIONS</button>
+                  <button type="button" class="editor-btn-sm" id="btn-sec-vis-reset-defaults" style="color: #555;">⟲ DEFAULTS</button>
+                </div>
+              </div>
+            </div>
+
+            <p class="mono-help" style="margin-top: 8px; line-height: 1.6; color: #444;">
+              Select <strong>ANY</strong> individual section across Home, About, Projects, or Contact to make it visible or hidden on the live website. Hiding a section only hides that specific component without affecting any other elements.
+            </p>
+
+            <!-- Filter tabs by page -->
+            <div class="sec-vis-filter-bar">
+              <button type="button" class="sec-filter-pill active" data-sec-filter="all">ALL SECTIONS (<span id="count-sec-all">25</span>)</button>
+              <button type="button" class="sec-filter-pill" data-sec-filter="home">HOME (<span id="count-sec-home">8</span>)</button>
+              <button type="button" class="sec-filter-pill" data-sec-filter="about">ABOUT (<span id="count-sec-about">12</span>)</button>
+              <button type="button" class="sec-filter-pill" data-sec-filter="projects">PROJECTS (<span id="count-sec-projects">3</span>)</button>
+              <button type="button" class="sec-filter-pill" data-sec-filter="contact">CONTACT (<span id="count-sec-contact">4</span>)</button>
+              <button type="button" class="sec-filter-pill" data-sec-filter="global">GLOBAL (<span id="count-sec-global">1</span>)</button>
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+              <input type="text" id="sec-vis-search-input" class="editor-input" placeholder="🔍 Search any section by title, keyword, or page..." style="max-width: 420px;" />
+            </div>
+
+            <div class="sec-vis-grid" id="section-visibility-manager-grid">
+              <!-- Dynamically populated section cards with Show / Hide toggles -->
+            </div>
           </div>
 
           <!-- ADMIN ACCESS CREDENTIALS (USERNAME & PASSWORD) CARD -->
@@ -1127,9 +1243,9 @@
 
           <!-- Video Link -->
           <div class="editor-field">
-            <label for="edit-proj-video">VIDEO LINK (YOUTUBE EMBED, VIMEO, OR MP4 URL)</label>
-            <input type="text" id="edit-proj-video" class="editor-input" placeholder="https://www.youtube.com/embed/..." />
-            <p class="mono-help">Embed URL for YouTube: <code>https://www.youtube.com/embed/VIDEO_ID</code></p>
+            <label for="edit-proj-video">VIDEO LINK (YOUTUBE, VIMEO, OR MP4 VIDEO)</label>
+            <input type="text" id="edit-proj-video" class="editor-input" placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..." />
+            <p class="mono-help">Paste any YouTube link (watch link, share link, Shorts, or embed code), Vimeo, or direct MP4 URL. Automatically converted into a playable video.</p>
           </div>
 
           <!-- Project Documentation Links (Title AND URL editable) -->
@@ -1187,9 +1303,21 @@
             <div class="sub-card-header">
               <div>
                 <span class="sub-card-title">SUPPLEMENTARY EXHIBITS (HORIZONTAL SCROLLING GALLERY)</span>
+                <p class="mono-help">Upload photos or paste URLs. Edit hover text/caption for each image (revealed on desktop hover or mobile tap).</p>
               </div>
-              <button type="button" class="editor-btn-sm" id="btn-add-modal-gallery">+ Add Gallery Image</button>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button type="button" class="editor-btn-sm" id="btn-browse-gallery-files">+ Upload Photo(s)</button>
+                <button type="button" class="editor-btn-sm" id="btn-add-modal-gallery">+ Add URL</button>
+              </div>
             </div>
+
+            <!-- Batch Dropzone for Gallery -->
+            <div class="modal-dropzone" id="modal-gallery-dropzone" style="margin-bottom: 1rem;">
+              <input type="file" id="gallery-file-input" accept="image/*" multiple style="display:none;" />
+              <div class="dropzone-text">DRAG &amp; DROP GALLERY PHOTOS OR CLICK TO BROWSE</div>
+              <button type="button" class="editor-btn-outline dark-btn" id="btn-gallery-browse-alt">Browse Photo Files...</button>
+            </div>
+
             <div class="editor-list-container" id="modal-gallery-container"></div>
           </div>
 
