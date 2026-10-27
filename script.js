@@ -2484,176 +2484,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   window.addEventListener('focus', refreshLiveState);
 
-  /* ================= 8. HERO INTERACTIVE ANIMATIONS & LETTER SOUNDS ================= */
-  // A. Architectural Web Audio Synthesizer (Zero asset dependencies)
-  let audioCtx = null;
-  function getAudioContext() {
-    if (!audioCtx) {
-      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtxClass) {
-        audioCtx = new AudioCtxClass();
-      }
-    }
-    if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
-    return audioCtx;
-  }
-
-  // Pure Solfège scale (Do Re Mi Fa So La Si Do)
-  const solfegeScale = {
-    'do':  261.63, // C4 (Do)
-    're':  293.66, // D4 (Re)
-    'mi':  329.63, // E4 (Mi)
-    'fa':  349.23, // F4 (Fa)
-    'so':  392.00, // G4 (So)
-    'la':  440.00, // A4 (La)
-    'si':  493.88, // B4 (Si / Ti)
-    'do8': 523.25, // C5 (High Do)
-    // Fallbacks by character
-    'P': 261.63, // Do
-    'O': 293.66, // Re
-    'R': 329.63, // Mi
-    'T': 349.23, // Fa
-    'F': 392.00, // So
-    'L': 493.88, // Si
-    'I': 523.25  // High Do
-  };
-
-  function playLetterNote(letterEl, isUnlock = false, comboIndex = 1) {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-
-    if (isUnlock) {
-      // Ascending triumphant celebratory scale run for admin unlock
-      const solfegeRun = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 783.99];
-      solfegeRun.forEach((freq, idx) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.042);
-        gain.gain.setValueAtTime(0.001, ctx.currentTime + idx * 0.042);
-        gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + idx * 0.042 + 0.012);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + idx * 0.042 + 0.32);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(ctx.currentTime + idx * 0.042);
-        osc.stop(ctx.currentTime + idx * 0.042 + 0.34);
-      });
-      return;
-    }
-
-    // Determine exact pitch from data-note or letter fallback
-    let freq = 261.63;
-    if (typeof letterEl === 'string') {
-      freq = solfegeScale[letterEl.toLowerCase()] || solfegeScale[letterEl.toUpperCase()] || 261.63;
-    } else if (letterEl && letterEl.dataset) {
-      const noteKey = (letterEl.dataset.note || '').toLowerCase();
-      const charKey = (letterEl.dataset.letter || letterEl.textContent || '').trim().toUpperCase();
-      freq = solfegeScale[noteKey] || solfegeScale[charKey] || 261.63;
-    }
-
-    // Pitch ascension during rapid consecutive taps on P (semitone progression)
-    if (comboIndex > 1) {
-      freq = freq * Math.pow(1.05946, Math.min(comboIndex - 1, 5));
-    }
-
-    const now = ctx.currentTime;
-
-    // 1. Primary fundamental chime oscillator
-    const osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, now);
-
-    // 2. Harmonic chime oscillator (warm octave overtone)
-    const harmonicOsc = ctx.createOscillator();
-    harmonicOsc.type = 'sine';
-    harmonicOsc.frequency.setValueAtTime(freq * 2, now);
-
-    // 3. Attack strike transient (wood/metal acoustic strike)
-    const strikeOsc = ctx.createOscillator();
-    strikeOsc.type = 'triangle';
-    strikeOsc.frequency.setValueAtTime(freq * 3, now);
-
-    // 4. Low-pass filter for acoustic warmth & resonance
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(3600, now);
-    filter.frequency.exponentialRampToValueAtTime(850, now + 0.35);
-
-    // Dynamic Envelopes
-    const mainGain = ctx.createGain();
-    mainGain.gain.setValueAtTime(0.001, now);
-    mainGain.gain.exponentialRampToValueAtTime(0.22, now + 0.004);
-    mainGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
-
-    const harmonicGain = ctx.createGain();
-    harmonicGain.gain.setValueAtTime(0.001, now);
-    harmonicGain.gain.exponentialRampToValueAtTime(0.09, now + 0.004);
-    harmonicGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
-
-    const strikeGain = ctx.createGain();
-    strikeGain.gain.setValueAtTime(0.001, now);
-    strikeGain.gain.exponentialRampToValueAtTime(0.06, now + 0.002);
-    strikeGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
-
-    osc.connect(mainGain);
-    harmonicOsc.connect(harmonicGain);
-    strikeOsc.connect(strikeGain);
-
-    mainGain.connect(filter);
-    harmonicGain.connect(filter);
-    strikeGain.connect(filter);
-
-    filter.connect(ctx.destination);
-
-    osc.start(now);
-    harmonicOsc.start(now);
-    strikeOsc.start(now);
-
-    osc.stop(now + 0.45);
-    harmonicOsc.stop(now + 0.45);
-    strikeOsc.stop(now + 0.06);
-  }
-
-  // B. Architectural Spark Particle Generator (+ symbol only)
-  const sparkSymbols = ['+'];
-  function spawnSparks(x, y) {
-    const count = 6;
-    for (let i = 0; i < count; i++) {
-      const spark = document.createElement('span');
-      spark.className = 'architectural-spark';
-      spark.textContent = sparkSymbols[Math.floor(Math.random() * sparkSymbols.length)];
-      
-      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
-      const dist = 30 + Math.random() * 45;
-      const tx = Math.cos(angle) * dist;
-      const ty = Math.sin(angle) * dist - 15;
-      const tr = (Math.random() - 0.5) * 120;
-
-      spark.style.left = `${x}px`;
-      spark.style.top = `${y}px`;
-      spark.style.setProperty('--tx', `${tx}px`);
-      spark.style.setProperty('--ty', `${ty}px`);
-      spark.style.setProperty('--tr', `${tr}deg`);
-
-      document.body.appendChild(spark);
-      setTimeout(() => {
-        spark.remove();
-      }, 700);
-    }
-  }
-
-  // C. Interactive Hero Letter Click Dispatcher (v1 Kinetic Animations)
-  const animClasses = [
-    'anim-rubber',
-    'anim-flip-3d',
-    'anim-jump-spin',
-    'anim-glitch',
-    'anim-barrel',
-    'anim-pop-wave'
-  ];
-
+  /* ================= 8. HERO INTERACTIVE LETTERS & STUDIO AUTH ================= */
   let pClickCount = 0;
   let pClickTimer = null;
   const RAPID_TAP_TIMEOUT = 650; // Must click within 650ms consecutively to count as fast
@@ -2671,7 +2502,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     pClickCount = 0;
     clearTimeout(pClickTimer);
     document.querySelectorAll('.secret-p-trigger, .hero-letter').forEach(el => {
-      el.classList.remove('p-unlocked', 'p-tap', 'p-active', 'p-clicked-1', 'p-clicked-2');
+      el.classList.remove('p-unlocked', 'p-tap', 'p-active', 'p-clicked-1', 'p-clicked-2', 'letter-clicked');
       el.style.opacity = '1';
       el.style.filter = '';
     });
@@ -2680,7 +2511,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   function openAuthModal() {
     pClickCount = 0;
     clearTimeout(pClickTimer);
-    playLetterNote(null, true);
     document.querySelectorAll('.secret-p-trigger').forEach(el => {
       el.style.opacity = '1';
       el.classList.remove('p-unlocked', 'p-active');
@@ -2755,7 +2585,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  function handleLetterClick(letterEl, clientX, clientY) {
+  function handleLetterClick(letterEl) {
     const char = (letterEl.dataset.letter || letterEl.textContent || '').trim().toUpperCase();
     const isP = char === 'P' || letterEl.classList.contains('secret-p-trigger');
 
@@ -2773,9 +2603,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       void letterEl.offsetWidth; // Reflow
       letterEl.classList.add('p-tap');
 
-      // Play note with rising pitch on rapid consecutive combo
-      playLetterNote(letterEl, false, pClickCount);
-
       if (pClickCount >= 6) {
         pClickCount = 0;
         clearTimeout(pClickTimer);
@@ -2789,24 +2616,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       // If ANY other letter is clicked, immediately reset the consecutive P combo to 0!
       resetSecretPState();
-      playLetterNote(letterEl, false, 1);
     }
 
-    // 2. Spawn Architectural Sparks (+ symbol) at click position
-    const rect = letterEl.getBoundingClientRect();
-    const sparkX = clientX !== undefined && clientX > 0 ? clientX : (rect.left + rect.width / 2);
-    const sparkY = clientY !== undefined && clientY > 0 ? clientY : (rect.top + rect.height / 2);
-    spawnSparks(sparkX, sparkY);
-
-    // 3. Trigger Dynamic Kinetic Animation (v1 original)
-    animClasses.forEach(cls => letterEl.classList.remove(cls));
+    // 2. Clean Hover Effect on Click for all letters (no sound, no sparks, subtle hover pulse)
+    letterEl.classList.remove('letter-clicked');
     void letterEl.offsetWidth; // Force reflow
-
-    const chosenAnim = animClasses[Math.floor(Math.random() * animClasses.length)];
-    letterEl.classList.add(chosenAnim);
+    letterEl.classList.add('letter-clicked');
     setTimeout(() => {
-      letterEl.classList.remove(chosenAnim);
-    }, 750);
+      letterEl.classList.remove('letter-clicked');
+    }, 380);
   }
 
   // Delegated click listener for all interactive letters
@@ -2816,7 +2634,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (letterTarget) {
       e.preventDefault();
       e.stopPropagation();
-      handleLetterClick(letterTarget, e.clientX, e.clientY);
+      handleLetterClick(letterTarget);
       return;
     }
     // If clicked anywhere else on page, reset P consecutive counter and restore full opacity

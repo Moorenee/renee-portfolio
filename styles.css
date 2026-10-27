@@ -242,7 +242,9 @@ body.theme-navy .nav-tab.active {
   color: #FAF8F5 !important;
 }
 
-body.theme-navy .hero-letter:hover {
+body.theme-navy .hero-letter:hover,
+body.theme-navy .hero-letter:active,
+body.theme-navy .hero-letter.letter-clicked {
   color: #FFFFFF !important;
   text-shadow: 0 14px 28px rgba(0, 0, 0, 0.6);
 }
@@ -258,10 +260,6 @@ body.theme-navy .bottom-cell a:hover {
 
 body.theme-navy .bottom-cell.cell-enter:hover {
   background-color: rgba(218, 209, 202, 0.12) !important;
-}
-
-body.theme-navy .architectural-spark {
-  color: #FAF8F5 !important;
 }
 
 /* CGPA Word Color: Pure Crisp White */
@@ -1245,7 +1243,8 @@ body.on-home .home-center-hero {
               filter 0.2s ease;
 }
 
-.hero-letter:hover {
+.hero-letter:hover,
+.hero-letter.letter-clicked {
   color: #000000;
   transform: translateY(-8px) scale(1.08);
   text-shadow: 0 14px 28px rgba(11, 11, 10, 0.16);
@@ -1253,148 +1252,59 @@ body.on-home .home-center-hero {
 }
 
 .hero-letter:active {
-  transform: translateY(2px) scale(0.92);
+  color: #000000;
+  transform: translateY(-6px) scale(1.05);
+  text-shadow: 0 10px 20px rgba(11, 11, 10, 0.14);
+  z-index: 10;
 }
 
-/* Special Secret P feedback */
+/* Subtle click animation matching clean hover effect */
+.hero-letter.letter-clicked {
+  animation: letterHoverTap 0.32s cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+@keyframes letterHoverTap {
+  0% { transform: translateY(-8px) scale(1.08); }
+  50% { transform: translateY(-11px) scale(1.11); }
+  100% { transform: translateY(-8px) scale(1.08); }
+}
+
+@media (hover: none) {
+  .hero-letter.letter-clicked {
+    animation: letterTouchTap 0.38s cubic-bezier(0.25, 1, 0.5, 1) both;
+  }
+}
+
+@keyframes letterTouchTap {
+  0% { transform: translateY(0) scale(1); }
+  45% { transform: translateY(-8px) scale(1.08); color: #000000; }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* Special Secret P feedback (matches clean hover effect) */
 .hero-letter.secret-p-trigger.p-tap,
 .hero-letter.secret-p-trigger.p-clicked-1,
 .hero-letter.secret-p-trigger.p-clicked-2 {
-  animation: pSecretPulse 0.32s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  animation: pSecretPulse 0.32s cubic-bezier(0.25, 1, 0.5, 1) both;
 }
 .hero-letter.secret-p-trigger {
   opacity: 1;
 }
 
 .hero-letter.secret-p-trigger.p-unlocked {
-  animation: pSecretUnlock 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: pSecretUnlock 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes pSecretPulse {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.22) translateY(-6px); filter: contrast(200%); color: #000; opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+  0% { transform: translateY(-8px) scale(1.08); opacity: 1; }
+  50% { transform: translateY(-12px) scale(1.11); opacity: 1; }
+  100% { transform: translateY(-8px) scale(1.08); opacity: 1; }
 }
 
 @keyframes pSecretUnlock {
-  0% { transform: scale(1); opacity: 1; }
-  35% { transform: scale(1.28) rotate(-8deg); filter: contrast(180%); opacity: 1; }
-  70% { transform: scale(1.12) rotate(2deg); filter: contrast(120%); opacity: 1; }
-  100% { transform: scale(1) rotate(0deg); opacity: 1; filter: none; }
-}
-
-/* Dynamic Animation 1: Rubber Squash & Stretch */
-.hero-letter.anim-rubber {
-  animation: letterRubber 0.65s cubic-bezier(0.28, 0.84, 0.42, 1) both;
-  z-index: 15;
-}
-@keyframes letterRubber {
-  0% { transform: scale(1, 1); }
-  30% { transform: scale(1.32, 0.72) translateY(4px); }
-  45% { transform: scale(0.78, 1.28) translateY(-14px); }
-  60% { transform: scale(1.16, 0.88) translateY(-4px); }
-  75% { transform: scale(0.94, 1.06) translateY(-1px); }
-  90% { transform: scale(1.02, 0.98); }
-  100% { transform: scale(1, 1); }
-}
-
-/* Dynamic Animation 2: 3D Barrel Flip */
-.hero-letter.anim-flip-3d {
-  animation: letterFlip3D 0.7s cubic-bezier(0.25, 1, 0.5, 1) both;
-  z-index: 15;
-}
-@keyframes letterFlip3D {
-  0% { transform: perspective(500px) rotateY(0deg) scale(1); }
-  50% { transform: perspective(500px) rotateY(180deg) scale(1.22); color: #000; }
-  100% { transform: perspective(500px) rotateY(360deg) scale(1); }
-}
-
-/* Dynamic Animation 3: High Arc Jump & Spin */
-.hero-letter.anim-jump-spin {
-  animation: letterJumpSpin 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
-  z-index: 15;
-}
-@keyframes letterJumpSpin {
-  0% { transform: translateY(0) rotate(0deg) scale(1); }
-  35% { transform: translateY(-28px) rotate(-14deg) scale(1.18); }
-  65% { transform: translateY(-6px) rotate(6deg) scale(1.04); }
-  85% { transform: translateY(-2px) rotate(-2deg); }
-  100% { transform: translateY(0) rotate(0deg) scale(1); }
-}
-
-/* Dynamic Animation 4: Cyber Glitch Burst (Blue Palette for Normal Mode) */
-.hero-letter.anim-glitch {
-  animation: letterGlitch 0.55s ease both;
-  z-index: 15;
-}
-@keyframes letterGlitch {
-  0% { transform: translate(0); text-shadow: none; }
-  18% { transform: translate(-5px, 3px); text-shadow: -3px 0 rgba(26, 86, 219, 0.85), 3px 0 rgba(56, 140, 255, 0.85), 0 -2px rgba(17, 34, 80, 0.75); }
-  36% { transform: translate(5px, -3px); text-shadow: 3px 0 rgba(26, 86, 219, 0.85), -3px 0 rgba(56, 140, 255, 0.85), 0 2px rgba(17, 34, 80, 0.75); }
-  54% { transform: translate(-3px, -2px); text-shadow: -2px 0 rgba(26, 86, 219, 0.85), 2px 0 rgba(56, 140, 255, 0.85), 0 -1px rgba(17, 34, 80, 0.75); }
-  72% { transform: translate(3px, 1px); text-shadow: 1px 0 rgba(26, 86, 219, 0.85), -1px 0 rgba(56, 140, 255, 0.85), 0 1px rgba(17, 34, 80, 0.75); }
-  100% { transform: translate(0); text-shadow: none; }
-}
-
-/* Dynamic Animation 4 in Blue Mode: Cyber Glitch Burst in Stark Black */
-body.theme-navy .hero-letter.anim-glitch,
-html[data-theme="navy"] .hero-letter.anim-glitch {
-  animation: letterGlitchNavy 0.55s ease both;
-}
-@keyframes letterGlitchNavy {
-  0% { transform: translate(0); text-shadow: none; }
-  18% { transform: translate(-5px, 3px); text-shadow: -3px 0 rgba(0, 0, 0, 0.95), 3px 0 rgba(10, 10, 10, 0.85), 0 -2px rgba(0, 0, 0, 0.75); }
-  36% { transform: translate(5px, -3px); text-shadow: 3px 0 rgba(0, 0, 0, 0.95), -3px 0 rgba(10, 10, 10, 0.85), 0 2px rgba(0, 0, 0, 0.75); }
-  54% { transform: translate(-3px, -2px); text-shadow: -2px 0 rgba(0, 0, 0, 0.95), 2px 0 rgba(10, 10, 10, 0.85), 0 -1px rgba(0, 0, 0, 0.75); }
-  72% { transform: translate(3px, 1px); text-shadow: 1px 0 rgba(0, 0, 0, 0.95), -1px 0 rgba(10, 10, 10, 0.85), 0 1px rgba(0, 0, 0, 0.75); }
-  100% { transform: translate(0); text-shadow: none; }
-}
-
-/* Dynamic Animation 5: Full Cartwheel Barrel Roll */
-.hero-letter.anim-barrel {
-  animation: letterBarrel 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-  z-index: 15;
-}
-@keyframes letterBarrel {
-  0% { transform: rotate(0deg) scale(1); }
-  50% { transform: rotate(180deg) scale(1.24) translateY(-10px); }
-  100% { transform: rotate(360deg) scale(1); }
-}
-
-/* Dynamic Animation 6: Invert Pop Wave */
-.hero-letter.anim-pop-wave {
-  animation: letterPopWave 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
-  z-index: 15;
-}
-@keyframes letterPopWave {
-  0% { transform: scale(1); filter: invert(0); }
-  45% { transform: scale(1.28) translateY(-12px); filter: invert(1); }
-  75% { transform: scale(0.96) translateY(-2px); filter: invert(0); }
-  100% { transform: scale(1); filter: invert(0); }
-}
-
-/* Architectural Particles (Click Sparks) */
-.architectural-spark {
-  position: absolute;
-  pointer-events: none;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  color: #0b0b0a;
-  z-index: 40;
-  user-select: none;
-  animation: sparkFloat 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes sparkFloat {
-  0% {
-    opacity: 1;
-    transform: translate(0, 0) scale(1.3);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(var(--tx, 0px), var(--ty, -30px)) scale(0.4) rotate(var(--tr, 0deg));
-  }
+  0% { transform: translateY(-8px) scale(1.08); }
+  50% { transform: translateY(-13px) scale(1.13); }
+  100% { transform: translateY(-8px) scale(1.08); }
 }
 
 /* Right Meta Column: Column 3 (25% width), aligning with bottom Cell 4 */
