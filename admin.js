@@ -32,7 +32,7 @@ async function initAdmin() {
   }
 
   // Base64 helper for image uploads with high-resolution clarity and crisp rendering
-  function fileToBase64(file, maxWidth = 2048, quality = 0.88) {
+  function fileToBase64(file, maxWidth = 2560, quality = 0.92) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = error => reject(error);
@@ -47,6 +47,11 @@ async function initAdmin() {
         img.onload = () => {
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
+          // If already within bounds and reasonable size (< 1.8MB), preserve raw file bytes to prevent generational compression artifacts
+          if (w <= maxWidth && file.size < 1800000) {
+            resolve(rawResult);
+            return;
+          }
           if (w > maxWidth) {
             h = Math.round((h * maxWidth) / w);
             w = maxWidth;
@@ -58,7 +63,14 @@ async function initAdmin() {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, w, h);
-          // High-resolution JPEG quality 0.88 for tack-sharp detail on Retina/4K displays
+          // Prefer high-quality WebP for tack-sharp detail without JPEG artifacts
+          try {
+            const webpUrl = canvas.toDataURL('image/webp', quality);
+            if (webpUrl && webpUrl.startsWith('data:image/webp')) {
+              resolve(webpUrl);
+              return;
+            }
+          } catch(we) {}
           resolve(canvas.toDataURL('image/jpeg', quality));
         };
         img.src = rawResult;
@@ -2219,7 +2231,7 @@ async function initAdmin() {
       const file = e.target.files && e.target.files[0];
       if (file) {
         try {
-          const b64 = await fileToBase64(file, 2048, 0.88);
+          const b64 = await fileToBase64(file, 2560, 0.92);
           if (coverUrlInp) coverUrlInp.value = b64;
           if (coverPrevImg) {
             coverPrevImg.src = b64;
@@ -2429,7 +2441,7 @@ async function initAdmin() {
         if (!file) return;
         try {
           showToast('Optimizing slice image in high quality...');
-          const b64 = await fileToBase64(file, 2048, 0.88);
+          const b64 = await fileToBase64(file, 2560, 0.92);
           img.url = b64;
           urlInp.value = b64;
           thumbImg.src = b64;
@@ -2527,7 +2539,7 @@ async function initAdmin() {
         showToast(`Processing ${files.length} high-res image slice(s)...`);
         activeProject.images = activeProject.images || [];
         for (const file of files) {
-          const b64 = await fileToBase64(file, 2048, 0.88);
+          const b64 = await fileToBase64(file, 2560, 0.92);
           activeProject.images.push({ url: b64, caption: file.name.replace(/\.[^/.]+$/, '') });
         }
         renderModalImages();
@@ -2543,7 +2555,7 @@ async function initAdmin() {
       if (files.length > 0) {
         showToast(`Processing ${files.length} high-res image slice(s)...`);
         for (const file of files) {
-          const b64 = await fileToBase64(file, 2048, 0.88);
+          const b64 = await fileToBase64(file, 2560, 0.92);
           activeProject.images = activeProject.images || [];
           activeProject.images.push({ url: b64, caption: file.name.replace(/\.[^/.]+$/, '') });
         }
@@ -2966,7 +2978,7 @@ async function initAdmin() {
           const file = e.target.files && e.target.files[0];
           if (file) {
             try {
-              const b64 = await fileToBase64(file, 2048, 0.88);
+              const b64 = await fileToBase64(file, 2560, 0.92);
               sec.imageUrl = b64;
               imgUrlInp.value = b64;
               imgPrev.src = b64;

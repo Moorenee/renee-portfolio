@@ -75,7 +75,7 @@ const DEFAULT_PORTFOLIO_DATA = {
     statusText: "AVAILABLE FOR COLLABORATIONS, INTERNSHIPS & CREATIVE OPPORTUNITIES",
     headline: "DESIGNING\nSYSTEMS &\nEXPERIENCES",
     shortBio: "Hi, I'm Renee — a Design student specialising in UI/UX, Visual Design, and 3D Modeling. Passionate about visual storytelling and problem-solving through design, I focus on enhancing user interactions with thoughtful storytelling techniques and intuitive digital experiences.",
-    photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80",
+    photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=2400&auto=format&fit=crop&q=90",
     phone: "+06 10-3687393",
     email: "moorenee481@gmail.com",
     resumeUrl: "https://drive.google.com",
@@ -307,16 +307,16 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["INSTALLATION", "3D", "PROJECTION", "ILLUSTRATION"],
       tag: "INSTALLATION",
       date: "2025",
-      coverImage: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=2400&auto=format&fit=crop&q=90",
       labels: ["INSTALLATION", "3D", "PROJECTION", "ILLUSTRATION"],
       shortDescription: "Interactive spatial installation exploring the threshold between darkness and breath dynamics through responsive lighting sensors and sound sculptures.",
       fullDescription: "Where the Demon Breathes is an immersive sensory installation exploring spatial threshold mythology. Ambient sensors detect participant breath cycles and proximity, dynamically manipulating localized acoustic reverberation and organic pneumatic light sculptures.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200&auto=format&fit=crop&q=80", caption: "Installation View 01 — Spatial light chamber" },
-        { url: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1200&auto=format&fit=crop&q=80", caption: "Installation View 02 — Pneumatic lung response" },
-        { url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80", caption: "Installation View 03 — Acoustic field schematic" }
+        { url: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=2400&auto=format&fit=crop&q=90", caption: "Installation View 01 — Spatial light chamber" },
+        { url: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=2400&auto=format&fit=crop&q=90", caption: "Installation View 02 — Pneumatic lung response" },
+        { url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=2400&auto=format&fit=crop&q=90", caption: "Installation View 03 — Acoustic field schematic" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -325,7 +325,7 @@ const DEFAULT_PORTFOLIO_DATA = {
       ],
       gallery: [
         {
-          url: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=800&auto=format&fit=crop&q=80",
+          url: "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=2400&auto=format&fit=crop&q=90",
           text: "Acoustic sensor array calibration & spatial testing"
         }
       ],
@@ -335,7 +335,7 @@ const DEFAULT_PORTFOLIO_DATA = {
           title: "RESEARCH & SPATIAL BLUEPRINTS",
           contentType: "mixed",
           text: "The initial investigation centered on sonic wave reflections within enclosed timber volumes. We mapped acoustic dampening across 16 geometric configurations to synthesize breath-rate resonance.",
-          imageUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1200&auto=format&fit=crop&q=80",
+          imageUrl: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=2400&auto=format&fit=crop&q=90",
           imageCaption: "Figure 1.1: Spatial Acoustic Field Calibration & Sensor Node Layout",
           linkText: "VIEW RESEARCH WHITE PAPER",
           linkUrl: "https://behance.net/reneemoo",
@@ -356,15 +356,15 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["UI/UX", "DIGITAL"],
       tag: "ART APPLICATION",
       date: "2025",
-      coverImage: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=2400&auto=format&fit=crop&q=90",
       labels: ["ART APPLICATION", "UI/UX", "REACT"],
       shortDescription: "A high-performance visual coding canvas and digital toolset built for rapid iterative spatial design explorations.",
       fullDescription: "QuickSight bridges generative digital logic and creative intuition. The application enables designers to manipulate generative shader arrays, test color gamut harmonies in real-time, and export responsive parametric geometry directly into production rendering engines.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&auto=format&fit=crop&q=80", caption: "QuickSight Workspace Interface" },
-        { url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&auto=format&fit=crop&q=80", caption: "Real-time Parametric Shader Node Graph" }
+        { url: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=2400&auto=format&fit=crop&q=90", caption: "QuickSight Workspace Interface" },
+        { url: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=2400&auto=format&fit=crop&q=90", caption: "Real-time Parametric Shader Node Graph" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -383,15 +383,15 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["3D", "GAME"],
       tag: "GAME DESIGN",
       date: "2024",
-      coverImage: "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=2400&auto=format&fit=crop&q=90",
       labels: ["GAME DESIGN", "UNITY", "3D MODELING"],
       shortDescription: "Atmospheric 3D puzzle-adventure game centering on non-Euclidean perspective shifts and harmonic spatial acoustics.",
       fullDescription: "In Quest for the Scattered Crystal, players traverse ancient mineral ruins where architectural scale is determined by visual perspective. Navigating through recursive chambers requires realigning geometric shadows to activate resonant crystal frequencies.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=1200&auto=format&fit=crop&q=80", caption: "Level 01 — Crystal Spires at Dusk" },
-        { url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1200&auto=format&fit=crop&q=80", caption: "Level 02 — Shifting Gravitational Hall" }
+        { url: "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=2400&auto=format&fit=crop&q=90", caption: "Level 01 — Crystal Spires at Dusk" },
+        { url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=2400&auto=format&fit=crop&q=90", caption: "Level 02 — Shifting Gravitational Hall" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -410,15 +410,15 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["UI/UX"],
       tag: "APPLICATION",
       date: "2024",
-      coverImage: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=2400&auto=format&fit=crop&q=90",
       labels: ["APPLICATION", "UI/UX", "FIGMA"],
       shortDescription: "A thoughtful wellness and spatial habit-tracking mobile application designed with tactile micro-interactions and soothing visual rhythms.",
       fullDescription: "MOJAY reimagines mobile user experiences through empathetic design. Rather than demanding continuous attention, it employs ambient color shifts and gentle spatial card transitions that encourage mindful daily reflection.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=1200&auto=format&fit=crop&q=80", caption: "MOJAY Design System & Flow" },
-        { url: "https://images.unsplash.com/photo-1551650975-87deedd944c3?w=1200&auto=format&fit=crop&q=80", caption: "Micro-interaction Detail Sheets" }
+        { url: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=2400&auto=format&fit=crop&q=90", caption: "MOJAY Design System & Flow" },
+        { url: "https://images.unsplash.com/photo-1551650975-87deedd944c3?w=2400&auto=format&fit=crop&q=90", caption: "Micro-interaction Detail Sheets" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -437,14 +437,14 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["UI/UX"],
       tag: "WEBSITE DESIGN",
       date: "2024",
-      coverImage: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=2400&auto=format&fit=crop&q=90",
       labels: ["WEBSITE DESIGN", "FRONT-END", "EDITORIAL"],
       shortDescription: "A minimalist digital archive and music album visualizer with fluid typography and interactive vinyl-style disc navigation.",
       fullDescription: "Deline Album explores modern web typography as an interactive musical instrument. Readers glide through track stems and lyrical prose while dynamic background gradations react to tempo and audio frequencies.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80", caption: "Editorial Visualizer Spread" }
+        { url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=2400&auto=format&fit=crop&q=90", caption: "Editorial Visualizer Spread" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -462,14 +462,14 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["3D", "PROJECTION"],
       tag: "PROJECTION MAPPING",
       date: "2024",
-      coverImage: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=2400&auto=format&fit=crop&q=90",
       labels: ["PROJECTION MAPPING", "BLENDER", "TOUCHDESIGNER"],
       shortDescription: "Immersive architectural projection mapping installation tracing ecological symbiosis and human-nature convergence.",
       fullDescription: "Entangled World wraps architectural interior surfaces in fluid bioluminescent root systems. Using TouchDesigner audio reactivity and Blender 3D simulations, the piece investigates nature reclaiming urban infrastructure.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1200&auto=format&fit=crop&q=80", caption: "Surface Projection Mapping Calibration" }
+        { url: "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=2400&auto=format&fit=crop&q=90", caption: "Surface Projection Mapping Calibration" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -487,14 +487,14 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["3D", "AR / VR"],
       tag: "METAVERSE",
       date: "2024",
-      coverImage: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=2400&auto=format&fit=crop&q=90",
       labels: ["METAVERSE", "AR / VR", "BLENDER"],
       shortDescription: "A virtual spatial art pavilion constructed in the metaverse for decentralized exhibitions and spatial audio performances.",
       fullDescription: "Aura Gallery eliminates physical spatial constraints to showcase digital sculptures. The pavilion features curved translucent light chambers, ambient generative acoustics, and seamless multi-user spatial presence.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=1200&auto=format&fit=crop&q=80", caption: "Aura Pavilion Exterior Render" }
+        { url: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=2400&auto=format&fit=crop&q=90", caption: "Aura Pavilion Exterior Render" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -512,14 +512,14 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["3D", "AR / VR"],
       tag: "METAVERSE",
       date: "2023",
-      coverImage: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=2400&auto=format&fit=crop&q=90",
       labels: ["METAVERSE", "HEALTHCARE", "SPATIAL DESIGN"],
       shortDescription: "Therapeutic spatial metaverse environment crafted for post-injury physical rehabilitation through gamified movement.",
       fullDescription: "Designed to make physical therapy engaging and accessible, this environment provides calibrated spatial markers that guide patient motor exercises in a tranquil biophilic setting.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200&auto=format&fit=crop&q=80", caption: "Ergonomic Rehab Zone Model" }
+        { url: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=2400&auto=format&fit=crop&q=90", caption: "Ergonomic Rehab Zone Model" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -537,14 +537,14 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["ILLUSTRATION"],
       tag: "ILLUSTRATION",
       date: "2023",
-      coverImage: "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=2400&auto=format&fit=crop&q=90",
       labels: ["ILLUSTRATION", "EDITORIAL", "STORYTELLING"],
       shortDescription: "A series of conceptual editorial illustrations exploring human perception, memory fragments, and urban solitude.",
       fullDescription: "Visual storytelling anthology rendered with precision linework and expressive monochromatic gradients, documenting personal reflections on growth and identity.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=1200&auto=format&fit=crop&q=80", caption: "Editorial Plate 01 — Memory Fragments" }
+        { url: "https://images.unsplash.com/photo-1513542789411-b6a5d4f31634?w=2400&auto=format&fit=crop&q=90", caption: "Editorial Plate 01 — Memory Fragments" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -564,14 +564,14 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["3D", "AR / VR"],
       tag: "AR FILTER",
       date: "2024",
-      coverImage: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=2400&auto=format&fit=crop&q=90",
       labels: ["AR FILTER", "SPARK AR", "COMPETITION"],
       shortDescription: "AR Fest KL Instagram wall painting filter creating a portal through historical murals into vibrant 3D animated worlds.",
       fullDescription: "Selected for AR Fest KL, Wonder Window allows pedestrians to scan urban wall murals, watching them dissolve into an interactive kinetic gateway with 3D spatial soundscapes.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&auto=format&fit=crop&q=80", caption: "AR Portal Activation on Street Wall" }
+        { url: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=2400&auto=format&fit=crop&q=90", caption: "AR Portal Activation on Street Wall" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -592,14 +592,14 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["3D", "GAME"],
       tag: "MR GAME",
       date: "2024",
-      coverImage: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=2400&auto=format&fit=crop&q=90",
       labels: ["MR GAME", "UNITY", "XR JAM"],
       shortDescription: "XR Jam 2024 Mental Health mixed reality game centering on cognitive decluttering and meditative spatial coordination.",
       fullDescription: "PIZ DI blends physical room awareness with augmented puzzle mechanics. Players arrange floating kinetic shards in synchronization with rhythmic breathing exercises to restore harmony to their space.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80", caption: "MR Spatial Play Boundary Setup" }
+        { url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=2400&auto=format&fit=crop&q=90", caption: "MR Spatial Play Boundary Setup" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -617,14 +617,14 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["3D", "PRODUCT"],
       tag: "PRODUCT DESIGN",
       date: "2024",
-      coverImage: "https://images.unsplash.com/photo-1581291518655-9523c932deda?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1581291518655-9523c932deda?w=2400&auto=format&fit=crop&q=90",
       labels: ["PRODUCT DESIGN", "SUSTAINABILITY", "HEALTHCARE"],
       shortDescription: "Taiwan International Student Design Competition entry featuring sustainable modular medical hardware.",
       fullDescription: "RE : AD tackles medical single-use waste by introducing an ergonomically contoured, sterilizable modular dispenser unit built with circular biomaterials for clinics across developing regions.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1581291518655-9523c932deda?w=1200&auto=format&fit=crop&q=80", caption: "RE : AD Industrial CAD exploded view" }
+        { url: "https://images.unsplash.com/photo-1581291518655-9523c932deda?w=2400&auto=format&fit=crop&q=90", caption: "RE : AD Industrial CAD exploded view" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -642,14 +642,14 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["PROJECTION", "INSTALLATION"],
       tag: "PROJECTION MAPPING",
       date: "2025",
-      coverImage: "https://images.unsplash.com/photo-1477959858617-67f30bc75b82?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1477959858617-67f30bc75b82?w=2400&auto=format&fit=crop&q=90",
       labels: ["PROJECTION MAPPING", "BDG LIGHT", "URBAN"],
       shortDescription: "BDG Light Competition projection mapping visualizing urban thermal heat islands across Southeast Asian metropolises.",
       fullDescription: "City 37°C translates satellite thermal imaging into an evocative projection mapping experience on concrete building surfaces, highlighting urgent conversations around urban deforestation.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1477959858617-67f30bc75b82?w=1200&auto=format&fit=crop&q=80", caption: "Thermal Simulation Mapping Render" }
+        { url: "https://images.unsplash.com/photo-1477959858617-67f30bc75b82?w=2400&auto=format&fit=crop&q=90", caption: "Thermal Simulation Mapping Render" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -667,14 +667,14 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["PROJECTION", "INSTALLATION"],
       tag: "PROJECTION MAPPING",
       date: "2025",
-      coverImage: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=2400&auto=format&fit=crop&q=90",
       labels: ["PROJECTION MAPPING", "TERANG", "FINALIST"],
       shortDescription: "Terang Projection Mapping Competition Finalist installation celebrating joy, cultural heritage, and shared communal light.",
       fullDescription: "A vibrant audiovisual celebration projected onto heritage architecture. Cheer Mori Cheer received the Finalist accolade at the 2025 Terang Competition for its energetic choreography and expressive color gradients.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80", caption: "Terang Competition Live Showcase" }
+        { url: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=2400&auto=format&fit=crop&q=90", caption: "Terang Competition Live Showcase" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -692,14 +692,14 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["ILLUSTRATION"],
       tag: "ILLUSTRATION",
       date: "2022",
-      coverImage: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=2400&auto=format&fit=crop&q=90",
       labels: ["ILLUSTRATION", "TIAN YAN CUP", "EXCELLENCE"],
       shortDescription: "Excellence Award & Distinction winning cartoon illustrations from Tian Yan Cup and Cross-Strait Pin Art exhibitions.",
       fullDescription: "Curated collection of award-winning traditional and digital illustrations exploring youth, resilience, and whimsical dreamscapes recognized by international youth art committees.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1200&auto=format&fit=crop&q=80", caption: "Award-Winning Exhibition Plate" }
+        { url: "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=2400&auto=format&fit=crop&q=90", caption: "Award-Winning Exhibition Plate" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -719,14 +719,14 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["3D", "UI/UX"],
       tag: "SOCIAL MEDIA POST",
       date: "2024",
-      coverImage: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=2400&auto=format&fit=crop&q=90",
       labels: ["SOCIAL MEDIA POST", "3D MODELING", "VTF"],
       shortDescription: "Social media visual branding campaigns and 3D icon design developed during internship at Virtualtech Frontier.",
       fullDescription: "Created high-engagement 3D visual assets, promotional motion banners, and campaign imagery for Virtualtech Frontier's flagship virtual events and digital spatial experiences.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=1200&auto=format&fit=crop&q=80", caption: "3D App Ecosystem Campaign Assets" }
+        { url: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=2400&auto=format&fit=crop&q=90", caption: "3D App Ecosystem Campaign Assets" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -745,14 +745,14 @@ const DEFAULT_PORTFOLIO_DATA = {
       subLabels: ["INSTALLATION"],
       tag: "PHOTO PROP",
       date: "2024",
-      coverImage: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800&auto=format&fit=crop&q=80",
+      coverImage: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=2400&auto=format&fit=crop&q=90",
       labels: ["PHOTO PROP", "FABRICATION", "EVENT"],
       shortDescription: "Physical event branding, spatial photo prop fabrication, and technical staging for AUK corporate training 2024.",
       fullDescription: "Designed and supervised spatial fabrication of interactive photo props, stage backdrops, and wayfinding signage for the AUK Technical Training 2024 gathering.",
       hasGap: false,
       autoScrollImages: true,
       images: [
-        { url: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=1200&auto=format&fit=crop&q=80", caption: "Event Staging & Photo Prop Installation" }
+        { url: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=2400&auto=format&fit=crop&q=90", caption: "Event Staging & Photo Prop Installation" }
       ],
       videoUrl: "",
       relatedLinks: [
@@ -908,6 +908,15 @@ class PortfolioDatabase {
 
   _ensureSchemaIntegrity(data) {
     if (!data) return data;
+
+    // Helper to auto-upgrade Unsplash image URLs to crisp 2400px Retina quality
+    const upgradeImgUrl = (url, targetWidth = 2400) => {
+      if (!url || typeof url !== 'string') return url;
+      if (url.includes('images.unsplash.com')) {
+        return url.replace(/w=\d+/, `w=${targetWidth}`).replace(/q=\d+/, 'q=90');
+      }
+      return url;
+    };
 
     // Admin Authentication Credentials schema
     if (!data.adminAuth) {
@@ -1106,20 +1115,26 @@ class PortfolioDatabase {
             p.subLabels = detected.length > 0 ? detected : [p.discipline || 'PROJECT'];
           }
         }
+        if (p.coverImage) p.coverImage = upgradeImgUrl(p.coverImage, 2400);
         p.videoUrl = p.videoUrl || '';
         p.aliases = Array.isArray(p.aliases) ? p.aliases : (d && Array.isArray(d.aliases) ? [...d.aliases] : []);
         p.keywords = Array.isArray(p.keywords) ? p.keywords : (d && Array.isArray(d.keywords) ? [...d.keywords] : []);
         p.relatedLinks = Array.isArray(p.relatedLinks) ? p.relatedLinks : [];
-        p.images = Array.isArray(p.images) ? p.images : [];
+        p.images = Array.isArray(p.images) ? p.images.map(img => {
+          if (typeof img === 'string') return upgradeImgUrl(img, 2400);
+          if (img && img.url) img.url = upgradeImgUrl(img.url, 2400);
+          return img;
+        }) : [];
         p.gallery = Array.isArray(p.gallery) ? p.gallery.map(g => {
-          if (typeof g === 'string') return { url: g, text: '' };
+          if (typeof g === 'string') return { url: upgradeImgUrl(g, 2000), text: '' };
           return {
-            url: (g && g.url) || '',
+            url: upgradeImgUrl((g && g.url) || '', 2000),
             text: (g && (g.text !== undefined ? g.text : g.caption)) || ''
           };
         }) : [];
         p.customSections = Array.isArray(p.customSections) ? p.customSections : [];
         p.customSections.forEach((cs, cIdx) => {
+          if (cs.imageUrl) cs.imageUrl = upgradeImgUrl(cs.imageUrl, 2400);
           if (!cs.id) cs.id = `sec_${p.id || 'p'}_${cIdx + 1}`;
           if (!cs.linkMode || cs.linkMode === 'button') cs.linkMode = 'embed';
           if (cs.autoScroll === undefined) cs.autoScroll = true;
@@ -1128,7 +1143,92 @@ class PortfolioDatabase {
         });
       });
     }
+
+    if (data.profile && data.profile.photoUrl) {
+      data.profile.photoUrl = upgradeImgUrl(data.profile.photoUrl, 1200);
+    }
     return data;
+  }
+
+  // Merges cloud data into local data without degrading high-res images that exist locally
+  _mergePreservingHighResImages(localData, incomingData) {
+    if (!localData || !incomingData) return incomingData || localData;
+    const merged = JSON.parse(JSON.stringify(incomingData));
+
+    // Preserve high-res profile photo if local copy has higher byte-count (higher resolution)
+    if (localData.profile && localData.profile.photoUrl && merged.profile && merged.profile.photoUrl) {
+      if (localData.profile.photoUrl.startsWith('data:image') &&
+          localData.profile.photoUrl.length > merged.profile.photoUrl.length) {
+        merged.profile.photoUrl = localData.profile.photoUrl;
+      }
+    }
+
+    // Preserve high-res project covers, continuous showcase slices, and gallery exhibits
+    if (Array.isArray(localData.projects) && Array.isArray(merged.projects)) {
+      const localMap = {};
+      localData.projects.forEach(lp => { if (lp && lp.id) localMap[lp.id] = lp; });
+
+      merged.projects.forEach(mp => {
+        if (!mp || !mp.id) return;
+        const lp = localMap[mp.id];
+        if (!lp) return;
+
+        // Preserve high-res coverImage
+        if (lp.coverImage && mp.coverImage &&
+            lp.coverImage.startsWith('data:image') &&
+            lp.coverImage.length > mp.coverImage.length) {
+          mp.coverImage = lp.coverImage;
+        }
+
+        // Preserve high-res showcase slices
+        if (Array.isArray(lp.images) && Array.isArray(mp.images)) {
+          mp.images.forEach((mImg, idx) => {
+            const lImg = lp.images[idx];
+            if (!mImg || !lImg) return;
+            const mUrl = typeof mImg === 'string' ? mImg : (mImg.url || '');
+            const lUrl = typeof lImg === 'string' ? lImg : (lImg.url || '');
+            if (lUrl.startsWith('data:image') && lUrl.length > mUrl.length) {
+              if (typeof mImg === 'string') {
+                mp.images[idx] = lUrl;
+              } else {
+                mImg.url = lUrl;
+              }
+            }
+          });
+        }
+
+        // Preserve high-res gallery
+        if (Array.isArray(lp.gallery) && Array.isArray(mp.gallery)) {
+          mp.gallery.forEach((mGal, idx) => {
+            const lGal = lp.gallery[idx];
+            if (!mGal || !lGal) return;
+            const mUrl = typeof mGal === 'string' ? mGal : (mGal.url || '');
+            const lUrl = typeof lGal === 'string' ? lGal : (lGal.url || '');
+            if (lUrl.startsWith('data:image') && lUrl.length > mUrl.length) {
+              if (typeof mGal === 'string') {
+                mp.gallery[idx] = lUrl;
+              } else {
+                mGal.url = lUrl;
+              }
+            }
+          });
+        }
+
+        // Preserve high-res customSections
+        if (Array.isArray(lp.customSections) && Array.isArray(mp.customSections)) {
+          mp.customSections.forEach((mSec, idx) => {
+            const lSec = lp.customSections[idx];
+            if (!mSec || !lSec) return;
+            if (lSec.imageUrl && mSec.imageUrl &&
+                lSec.imageUrl.startsWith('data:image') &&
+                lSec.imageUrl.length > mSec.imageUrl.length) {
+              mSec.imageUrl = lSec.imageUrl;
+            }
+          });
+        }
+      });
+    }
+    return merged;
   }
 
   initCloud() {
@@ -1236,7 +1336,7 @@ class PortfolioDatabase {
           // NEVER overwrite when local device has newer saved admin edits!
           if (!isLocalNewer && (cloudUpdated > localUpdated || localUpdated <= 10 || !hasLocalEdits)) {
             console.info('[PortfolioDB] Updating local to latest cloud dataset...');
-            this.memoryData = cloudData;
+            this.memoryData = this._mergePreservingHighResImages(this.memoryData, cloudData);
             await idbSet('current_portfolio_v3', this.memoryData);
             this.persistToLocal(this.memoryData);
             this.notifyListeners();
@@ -1372,7 +1472,8 @@ class PortfolioDatabase {
             // NEVER clobber local edits when local is newer or equal!
             if (!isLocalNewer && (cloudUpdated > localUpdated || localUpdated <= 10 || !hasLocalEdits)) {
               console.info('[PortfolioDB] Real-time cloud sync applied.');
-              this.memoryData = this._ensureSchemaIntegrity(cloudPayload.data);
+              const incoming = this._ensureSchemaIntegrity(cloudPayload.data);
+              this.memoryData = this._mergePreservingHighResImages(this.memoryData, incoming);
               idbSet('current_portfolio_v3', this.memoryData);
               this.persistToLocal(this.memoryData);
               this.notifyListeners();
@@ -1384,18 +1485,23 @@ class PortfolioDatabase {
     } catch (e) {}
   }
 
-  async _optimizePayloadForCloud(dataToOptimize) {
+  async _optimizePayloadForCloud(dataToOptimize, targetMaxDim = 2048, targetQuality = 0.88) {
     if (typeof window === 'undefined' || typeof document === 'undefined') return dataToOptimize;
     
-    // Helper to downscale large base64 image strings to compact ~35KB data URLs for Firestore
-    const shrinkBase64 = (b64, maxDim = 850, quality = 0.62) => {
+    // High-resolution image compressor: targets 2048px clarity at 0.88 quality
+    // Utilizes modern WebP (or high-quality JPEG) with high smoothing quality for tack-sharp detail
+    const shrinkBase64 = (b64, maxDim = targetMaxDim, quality = targetQuality) => {
       return new Promise(resolve => {
         if (!b64 || typeof b64 !== 'string' || !b64.startsWith('data:image')) {
           resolve(b64);
           return;
         }
-        // If already tiny (< 45KB), leave untouched
-        if (b64.length < 50000) {
+        if (b64.startsWith('data:image/svg')) {
+          resolve(b64);
+          return;
+        }
+        // If already tiny (< 80KB), preserve without alteration
+        if (b64.length < 100000) {
           resolve(b64);
           return;
         }
@@ -1415,6 +1521,13 @@ class PortfolioDatabase {
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, w, h);
+          try {
+            const webpUrl = canvas.toDataURL('image/webp', quality);
+            if (webpUrl && webpUrl.startsWith('data:image/webp')) {
+              resolve(webpUrl);
+              return;
+            }
+          } catch(e) {}
           resolve(canvas.toDataURL('image/jpeg', quality));
         };
         img.src = b64;
@@ -1423,38 +1536,38 @@ class PortfolioDatabase {
 
     try {
       if (dataToOptimize.profile && dataToOptimize.profile.photoUrl) {
-        dataToOptimize.profile.photoUrl = await shrinkBase64(dataToOptimize.profile.photoUrl, 650, 0.62);
+        dataToOptimize.profile.photoUrl = await shrinkBase64(dataToOptimize.profile.photoUrl, 1200, 0.88);
       }
       if (Array.isArray(dataToOptimize.projects)) {
         for (const p of dataToOptimize.projects) {
           if (p.coverImage) {
-            p.coverImage = await shrinkBase64(p.coverImage, 850, 0.62);
+            p.coverImage = await shrinkBase64(p.coverImage, targetMaxDim, targetQuality);
           }
           if (Array.isArray(p.images)) {
             for (let i = 0; i < p.images.length; i++) {
               if (p.images[i] && p.images[i].url) {
-                p.images[i].url = await shrinkBase64(p.images[i].url, 850, 0.62);
+                p.images[i].url = await shrinkBase64(p.images[i].url, targetMaxDim, targetQuality);
               }
             }
           }
           if (Array.isArray(p.gallery)) {
             for (let i = 0; i < p.gallery.length; i++) {
               if (p.gallery[i] && p.gallery[i].url) {
-                p.gallery[i].url = await shrinkBase64(p.gallery[i].url, 800, 0.6);
+                p.gallery[i].url = await shrinkBase64(p.gallery[i].url, Math.min(targetMaxDim, 1800), targetQuality);
               }
             }
           }
           if (Array.isArray(p.customSections)) {
             for (let i = 0; i < p.customSections.length; i++) {
               if (p.customSections[i] && p.customSections[i].imageUrl) {
-                p.customSections[i].imageUrl = await shrinkBase64(p.customSections[i].imageUrl, 850, 0.62);
+                p.customSections[i].imageUrl = await shrinkBase64(p.customSections[i].imageUrl, targetMaxDim, targetQuality);
               }
             }
           }
         }
       }
     } catch (e) {
-      console.warn('[PortfolioDB] Payload optimization fallback:', e);
+      console.warn('[PortfolioDB] Payload optimization notice:', e);
     }
     return dataToOptimize;
   }
@@ -1465,14 +1578,21 @@ class PortfolioDatabase {
       let cleanData = JSON.parse(JSON.stringify(data));
 
       // Guard Firestore 1 MiB hard document limit:
-      // If serialized size is over 750KB, safely compress base64 images so it never errors
+      // If serialized size is over 800KB, safely compress base64 images while preserving 2048px clarity
       try {
-        const estSize = JSON.stringify(cleanData).length;
-        if (estSize > 750000) {
-          console.info(`[PortfolioDB] Pre-sync payload is ${Math.round(estSize/1024)}KB. Compressing images for cloud sync...`);
-          cleanData = await this._optimizePayloadForCloud(cleanData);
-          const postSize = JSON.stringify(cleanData).length;
-          console.info(`[PortfolioDB] Cloud payload optimized to ${Math.round(postSize/1024)}KB.`);
+        let estSize = JSON.stringify(cleanData).length;
+        if (estSize > 800000) {
+          console.info(`[PortfolioDB] Pre-sync payload is ${Math.round(estSize/1024)}KB. Optimizing images to crisp 2048px for cloud sync...`);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 2048, 0.88);
+          estSize = JSON.stringify(cleanData).length;
+          console.info(`[PortfolioDB] Cloud payload optimized to ${Math.round(estSize/1024)}KB at 2048px resolution.`);
+
+          // If still over 950KB, do a gentle second pass at 1600px to guarantee Firestore write succeeds
+          if (estSize > 950000) {
+            cleanData = await this._optimizePayloadForCloud(cleanData, 1600, 0.82);
+            estSize = JSON.stringify(cleanData).length;
+            console.info(`[PortfolioDB] Cloud payload secondary pass: ${Math.round(estSize/1024)}KB at 1600px.`);
+          }
         }
       } catch(optErr) {
         console.warn('[PortfolioDB] Cloud payload size pre-check notice:', optErr);

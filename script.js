@@ -1594,7 +1594,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       card.style.setProperty('--card-idx', idx);
 
       const firstImg = p.images && p.images[0] ? (typeof p.images[0] === 'string' ? p.images[0] : (p.images[0].url || '')) : '';
-      const cover = p.coverImage || firstImg || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80';
+      let cover = p.coverImage || firstImg || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=2400&auto=format&fit=crop&q=90';
+      if (cover.includes('images.unsplash.com')) {
+        cover = cover.replace(/w=\d+/, 'w=2400').replace(/q=\d+/, 'q=90');
+      }
       const mainSec = getProjectMainSection(p);
       const subLabels = getProjectSubLabels(p);
       const subLabelStr = subLabels.join(' • ');
@@ -1678,7 +1681,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             tr.className = 'spec-row';
             tr.setAttribute('data-id', p.id);
             const firstImg = p.images && p.images[0] ? (typeof p.images[0] === 'string' ? p.images[0] : (p.images[0].url || '')) : '';
-            const cover = p.coverImage || firstImg || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80';
+            let cover = p.coverImage || firstImg || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=2400&auto=format&fit=crop&q=90';
+            if (cover.includes('images.unsplash.com')) {
+              cover = cover.replace(/w=\d+/, 'w=2400').replace(/q=\d+/, 'q=90');
+            }
             const mainSec = getProjectMainSection(p);
             const subLabels = getProjectSubLabels(p);
             const secClass = `sec-${mainSec.toLowerCase()}`;
@@ -1985,13 +1991,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (images.length > 0) {
         images.forEach((img, idx) => {
-          const imgUrl = typeof img === 'string' ? img : (img.url || '');
+          let imgUrl = typeof img === 'string' ? img : (img.url || '');
           if (!imgUrl) return;
+          if (imgUrl.includes('images.unsplash.com')) {
+            imgUrl = imgUrl.replace(/w=\d+/, 'w=2400').replace(/q=\d+/, 'q=90');
+          }
           const card = document.createElement('div');
           card.className = 'portrait-image-card';
+          const isAboveFold = idx === 0;
           card.innerHTML = `
             <div class="portrait-img-box">
-              <img src="${imgUrl}" alt="${project.title || 'Project showcase'}" loading="lazy" decoding="async" />
+              <img src="${imgUrl}" 
+                   alt="${project.title || 'Project showcase'}" 
+                   loading="${isAboveFold ? 'eager' : 'lazy'}" 
+                   fetchpriority="${isAboveFold ? 'high' : 'auto'}"
+                   decoding="${isAboveFold ? 'sync' : 'async'}" />
             </div>
           `;
           portraitImagesStack.appendChild(card);
@@ -2032,7 +2046,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         detailScrollGallerySection.style.display = 'block';
         scrollGalleryTrack.innerHTML = '';
         gallery.forEach((gItem, gIdx) => {
-          const url = typeof gItem === 'string' ? gItem : (gItem.url || '');
+          let url = typeof gItem === 'string' ? gItem : (gItem.url || '');
+          if (url.includes('images.unsplash.com')) {
+            url = url.replace(/w=\d+/, 'w=2000').replace(/q=\d+/, 'q=90');
+          }
           const text = typeof gItem === 'string' ? '' : (gItem.text !== undefined ? gItem.text : (gItem.caption || ''));
           if (!url) return;
 
@@ -2171,7 +2188,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       customSecs.forEach((cs, idx) => {
         const title = (cs.title || `SECTION 0${idx + 1}`).trim();
         const text = (cs.text || cs.content || '').trim();
-        const imgUrl = (cs.imageUrl || '').trim();
+        let imgUrl = (cs.imageUrl || '').trim();
+        if (imgUrl.includes('images.unsplash.com')) {
+          imgUrl = imgUrl.replace(/w=\d+/, 'w=2400').replace(/q=\d+/, 'q=90');
+        }
         const caption = (cs.imageCaption || '').trim();
         const linkUrl = (cs.linkUrl || '').trim();
         const linkText = (cs.linkText || 'EXPLORE EXTERNAL RESOURCE').trim();
