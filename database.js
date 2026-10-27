@@ -1270,6 +1270,7 @@ class PortfolioDatabase {
         if (idbUpdated >= currentUpdated) {
           this.memoryData = this._ensureSchemaIntegrity(idbData);
           this.persistToLocal(this.memoryData);
+          this.notifyListeners();
         }
       }
 
@@ -1364,6 +1365,16 @@ class PortfolioDatabase {
       await this.initPromise;
     }
     try {
+      // 1. Check IndexedDB for the most complete, updated dataset
+      const idbData = await idbGet('current_portfolio_v3');
+      if (idbData && idbData.profile && Array.isArray(idbData.projects)) {
+        const idbUpdated = idbData._lastUpdated || 0;
+        const memUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
+        if (idbUpdated >= memUpdated) {
+          this.memoryData = this._ensureSchemaIntegrity(idbData);
+        }
+      }
+      // 2. Check LocalStorage if newer
       const localStr = localStorage.getItem(DB_KEY);
       if (localStr) {
         const parsed = JSON.parse(localStr);

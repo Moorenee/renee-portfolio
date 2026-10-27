@@ -36,6 +36,10 @@
         style.id = 'early-route-style';
         style.textContent = '#view-home { display: none !important; opacity: 0 !important; } #view-' + v + ' { display: block !important; opacity: 1 !important; }';
         document.head.appendChild(style);
+        setTimeout(function() {
+          var es = document.getElementById('early-route-style');
+          if (es) es.remove();
+        }, 600);
       }
     })();
   </script>

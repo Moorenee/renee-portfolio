@@ -75,7 +75,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (viewId === 'project-detail' && param) {
       currentActiveProjectId = param;
-      if (portfolioData) renderProjectDetail(param);
+      if (portfolioData) {
+        try {
+          renderProjectDetail(param);
+        } catch(err) {
+          console.warn('renderProjectDetail safe catch:', err);
+        }
+      }
       const detailView = document.getElementById('view-project-detail');
       if (detailView) detailView.classList.add('active');
       if (portfolioData) {
@@ -91,6 +97,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       const targetView = document.getElementById('view-' + viewId);
       if (targetView) targetView.classList.add('active');
+    }
+
+    if (viewId !== 'project-detail') {
+      window.onmousemove = null;
+      window.onmouseup = null;
+      if (autoScrollInterval) {
+        clearInterval(autoScrollInterval);
+        autoScrollInterval = null;
+      }
     }
 
     document.body.classList.toggle('on-home', viewId === 'home');
@@ -333,14 +348,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   function handleHashChange() {
     const pv = (portfolioData && portfolioData.pageVisibility) || { home: true, about: true, projects: true, contact: true };
     let hash = window.location.hash.replace('#', '') || 'home';
-    if (hash.startsWith('project/')) {
+    if (hash.startsWith('project/') || hash === 'project') {
       if (pv.projects === false) {
         const fallback = getFirstVisibleView(pv);
         window.location.hash = '#' + fallback;
         navigateTo(fallback);
         return;
       }
-      const projId = hash.split('/')[1];
+      const rawId = hash.startsWith('project/') ? hash.split('/')[1] : null;
+      const firstProjId = (portfolioData && portfolioData.projects && portfolioData.projects[0] && portfolioData.projects[0].id) || 'p1';
+      const projId = rawId || currentActiveProjectId || firstProjId;
       navigateTo('project-detail', projId);
     } else if (['home', 'about', 'projects', 'contact'].includes(hash)) {
       if (pv[hash] === false) {
@@ -357,72 +374,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   window.addEventListener('hashchange', handleHashChange);
-
-  // Subscribe immediately to real-time database updates from Cloud Firestore & Admin
-  if (window.PortfolioDB && window.PortfolioDB.subscribe) {
-    window.PortfolioDB.subscribe((newData) => {
-      if (!newData) return;
-      const prevTime = (portfolioData && portfolioData._lastUpdated) || 0;
-      const freshTime = newData._lastUpdated || 0;
-      if (portfolioData && prevTime >= freshTime) return; // avoid duplicate renders & flicker
-      portfolioData = newData;
-      renderAll();
-      const hash = window.location.hash.replace('#', '');
-      const detailView = document.getElementById('view-project-detail');
-      const isDetailActive = detailView && detailView.classList.contains('active');
-      if (hash.startsWith('project/')) {
-        renderProjectDetail(hash.split('/')[1]);
-      } else if (isDetailActive && currentActiveProjectId) {
-        renderProjectDetail(currentActiveProjectId);
-      }
-    });
-  }
-
-  // Fast 60ms race to ensure latest IndexedDB data is ready before painting!
-  if (window.PortfolioDB && window.PortfolioDB.initPromise) {
-    try {
-      await Promise.race([
-        window.PortfolioDB.initPromise,
-        new Promise(res => setTimeout(res, 60))
-      ]);
-    } catch(e) {}
-  }
-
-  portfolioData = (window.PortfolioDB && window.PortfolioDB.getImmediateData)
-    ? window.PortfolioDB.getImmediateData()
-    : ((window.PortfolioDB && window.PortfolioDB.memoryData) ? window.PortfolioDB.memoryData : null);
-
-  // Synchronously switch to requested view from hash
-  handleHashChange();
-
-  // Instant synchronous first-frame render with 100% updated dataset!
-  if (portfolioData) {
-    try { renderAll(); } catch(e) { console.warn('Instant initial render notice:', e); }
-  }
-
-  // Reveal page immediately with updated version - zero flash of old/previous content!
-  document.documentElement.classList.remove('anti-fouc');
-
-  // Load database asynchronously without blocking the user
-  if (window.PortfolioDB && window.PortfolioDB.getData) {
-    window.PortfolioDB.getData().then(freshData => {
-      if (freshData) {
-        const prevTime = (portfolioData && portfolioData._lastUpdated) || 0;
-        const freshTime = freshData._lastUpdated || 0;
-        if (freshTime > prevTime || !portfolioData) {
-          portfolioData = freshData;
-          renderAll();
-        }
-      }
-    }).catch(err => {
-      console.warn('Async getData notice:', err);
-    });
-  }
-
-  // Log visitor count to Firebase if cloud enabled (ignores admin self-views)
-  if (window.PortfolioDB && window.PortfolioDB.recordVisit) {
-    window.PortfolioDB.recordVisit();
-  }
 
   // Active Filter States
   let activeMainSection = 'all';    // 'all' | 'competition' | 'internship' | 'academic'
@@ -2488,9 +2439,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const detailView = document.getElementById('view-project-detail');
         const isDetailActive = detailView && detailView.classList.contains('active');
         if (hash.startsWith('project/')) {
-          renderProjectDetail(hash.split('/')[1]);
+          try { renderProjectDetail(hash.split('/')[1]); } catch(e) {}
         } else if (isDetailActive && currentActiveProjectId) {
-          renderProjectDetail(currentActiveProjectId);
+          try { renderProjectDetail(currentActiveProjectId); } catch(e) {}
         }
       }
     } catch(e) {}
@@ -3271,8 +3222,75 @@ document.addEventListener('DOMContentLoaded', async () => {
   createSpatialCanvasEngine('contact-spatial-canvas', 'view-contact', { detectDark: true, nodeDensity: 11 });
   createSpatialCanvasEngine('detail-spatial-canvas', 'view-project-detail', { detectDark: false, nodeDensity: 9 });
 
-  // Initial execution
-  renderAll();
+  // ================= 9. COMPLETE INITIAL BOOT & REAL-TIME SYNC =================
+  // 1. Race to load IndexedDB data (up to 100ms)
+  if (window.PortfolioDB && window.PortfolioDB.initPromise) {
+    try {
+      await Promise.race([
+        window.PortfolioDB.initPromise,
+        new Promise(res => setTimeout(res, 100))
+      ]);
+    } catch(e) {}
+  }
+
+  // 2. Hydrate local memory database
+  portfolioData = (window.PortfolioDB && window.PortfolioDB.getImmediateData)
+    ? window.PortfolioDB.getImmediateData()
+    : ((window.PortfolioDB && window.PortfolioDB.memoryData) ? window.PortfolioDB.memoryData : null);
+
+  // 3. Render all pages and components with 100% updated data
+  if (portfolioData) {
+    try { renderAll(); } catch(e) { console.warn('Initial renderAll error:', e); }
+  }
+
+  // 4. Safely switch to active route (e.g. project-detail or home)
   handleHashChange();
+
+  // 5. Instantly reveal the page - remove anti-FOUC veil & early-route style
+  document.documentElement.classList.remove('anti-fouc');
+  const earlyStyle = document.getElementById('early-route-style');
+  if (earlyStyle) earlyStyle.remove();
   isInitialLoad = false;
+
+  // 6. Subscribe to real-time database updates from Cloud Firestore, Admin, and other tabs
+  if (window.PortfolioDB && window.PortfolioDB.subscribe) {
+    window.PortfolioDB.subscribe((newData) => {
+      if (!newData) return;
+      portfolioData = newData;
+      try { renderAll(); } catch(e) {}
+      const hash = window.location.hash.replace('#', '');
+      const detailView = document.getElementById('view-project-detail');
+      const isDetailActive = detailView && detailView.classList.contains('active');
+      if (hash.startsWith('project/')) {
+        try { renderProjectDetail(hash.split('/')[1]); } catch(e) {}
+      } else if (isDetailActive && currentActiveProjectId) {
+        try { renderProjectDetail(currentActiveProjectId); } catch(e) {}
+      }
+    });
+  }
+
+  // 7. Background fresh data verification
+  if (window.PortfolioDB && window.PortfolioDB.getData) {
+    window.PortfolioDB.getData().then(freshData => {
+      if (freshData) {
+        const prevTime = (portfolioData && portfolioData._lastUpdated) || 0;
+        const freshTime = freshData._lastUpdated || 0;
+        if (freshTime > prevTime || !portfolioData) {
+          portfolioData = freshData;
+          try { renderAll(); } catch(e) {}
+          const hash = window.location.hash.replace('#', '');
+          if (hash.startsWith('project/')) {
+            try { renderProjectDetail(hash.split('/')[1]); } catch(e) {}
+          }
+        }
+      }
+    }).catch(err => {
+      console.warn('Async getData notice:', err);
+    });
+  }
+
+  // 8. Log visitor count to Firebase if cloud enabled (ignores admin self-views)
+  if (window.PortfolioDB && window.PortfolioDB.recordVisit) {
+    window.PortfolioDB.recordVisit();
+  }
 });
