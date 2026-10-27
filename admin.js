@@ -291,8 +291,25 @@ async function initAdmin() {
       t.setAttribute('aria-selected', active ? 'true' : 'false');
     });
     panes.forEach(p => {
-      p.classList.toggle('active', p.id === tabId);
+      const isActive = (p.id === tabId);
+      p.classList.toggle('active', isActive);
+      if (isActive) {
+        try { p.scrollTop = 0; } catch(e) {}
+      }
     });
+
+    // Reset scroll back to top of all scrollable containers in Admin
+    try {
+      const mainContainer = document.querySelector('.editor-main');
+      if (mainContainer) mainContainer.scrollTop = 0;
+      const contentPane = document.querySelector('.editor-content-pane');
+      if (contentPane) contentPane.scrollTop = 0;
+      const appShell = document.querySelector('.editor-app-shell');
+      if (appShell) appShell.scrollTop = 0;
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    } catch(e) {}
 
     if (tabId === 'tab-projects') {
       renderMainCategories();
@@ -2020,6 +2037,11 @@ async function initAdmin() {
     updateHoverPreview();
 
     projectModal.classList.add('open');
+    try {
+      projectModal.scrollTop = 0;
+      const modalScrollArea = projectModal.querySelector('.editor-modal-body, .project-editor-modal-body, .modal-scroll-area, .editor-modal-container');
+      if (modalScrollArea) modalScrollArea.scrollTop = 0;
+    } catch(e) {}
   }
 
   function closeProjectEditor() {

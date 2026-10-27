@@ -971,12 +971,11 @@ button.drawer-link.drawer-logout-btn {
   display: none;
   width: 100%;
   opacity: 0;
-  transition: opacity 0.2s ease;
 }
 
 .page-view.active {
   display: block;
-  opacity: 1;
+  animation: pageViewFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 #view-home.page-view.active {
@@ -986,6 +985,27 @@ button.drawer-link.drawer-logout-btn {
   min-height: calc(100dvh - var(--header-height));
   height: auto;
   overflow: visible;
+  animation: pageViewFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes pageViewFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-view.active,
+  #view-home.page-view.active {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 body.on-home {
@@ -3969,6 +3989,7 @@ body.theme-navy .btn-pdf-control:hover {
 .detail-center-btns {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 1rem;
 }
 
@@ -3977,7 +3998,11 @@ body.theme-navy .btn-pdf-control:hover {
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.16em;
-  padding: 14px 28px;
+  padding: 0 1.5rem;
+  width: 240px;
+  min-width: 240px;
+  height: 52px;
+  box-sizing: border-box;
   border: 1px solid rgba(0, 0, 0, 0.22);
   background-color: #ffffff;
   color: #111111;
@@ -3988,6 +4013,8 @@ body.theme-navy .btn-pdf-control:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  white-space: nowrap;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
@@ -4390,15 +4417,21 @@ html, body {
 
 /* --- Breakpoint 2: Tablet Landscape & Architectural Transition (max-width: 900px) --- */
 @media (max-width: 900px) {
-  html, body {
+  html {
+    overflow-x: hidden !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
     overscroll-behavior-y: auto !important;
   }
+  body {
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
   body.on-home {
     height: auto !important;
     min-height: 100dvh !important;
-    overflow-y: auto !important;
+    overflow-y: visible !important;
     -webkit-overflow-scrolling: touch !important;
   }
   body.on-home #view-home.page-view.active,
@@ -4708,18 +4741,25 @@ html, body {
   }
   .detail-center-btns {
     width: 100% !important;
+    max-width: 520px !important;
+    margin: 0 auto !important;
     display: flex !important;
     flex-direction: row !important;
     gap: 0.65rem !important;
+    justify-content: center !important;
   }
-  .nav-case-btn {
-    flex: 1 !important;
-    padding: 12px 8px !important;
+  .detail-center-btns .nav-case-btn {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: 50% !important;
+    height: 48px !important;
+    padding: 12px 6px !important;
     font-size: 0.72rem !important;
     letter-spacing: 0.08em !important;
     white-space: nowrap !important;
     text-align: center !important;
     justify-content: center !important;
+    box-sizing: border-box !important;
   }
 
   /* 6. Contact View on Tablet / Mobile */
@@ -4802,6 +4842,16 @@ html, body {
   }
   .detail-center-btns {
     flex-direction: column !important;
+    width: 100% !important;
+    gap: 0.65rem !important;
+  }
+  .detail-center-btns .nav-case-btn {
+    flex: none !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    height: 48px !important;
+    padding: 12px 10px !important;
+    box-sizing: border-box !important;
   }
   .auth-modal-backdrop, .logout-modal-backdrop {
     padding: 1rem !important;
@@ -5163,4 +5213,156 @@ html, body {
 .btn-logout-cancel:hover {
   color: var(--text-dark);
   text-decoration: underline;
+}
+
+/* ================= 15. PROJECT IMAGE LIGHTBOX MODAL (PHONE & DESKTOP) ================= */
+.image-lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 99999;
+  background-color: rgba(10, 15, 35, 0.94);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  box-sizing: border-box;
+  animation: lightboxFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  cursor: zoom-out;
+}
+
+@keyframes lightboxFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+body.lightbox-open {
+  overflow: hidden !important;
+}
+
+.image-lightbox-topbar {
+  position: absolute;
+  top: 1rem;
+  left: 1.25rem;
+  right: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.image-lightbox-badge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: #DAD1CA;
+  background: rgba(17, 34, 80, 0.85);
+  border: 1px solid rgba(218, 209, 202, 0.35);
+  padding: 6px 14px;
+  border-radius: 2px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.image-lightbox-close {
+  pointer-events: auto;
+  background: rgba(17, 34, 80, 0.85);
+  border: 1px solid rgba(218, 209, 202, 0.4);
+  color: #FAF8F5;
+  width: 44px;
+  height: 44px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.image-lightbox-close:hover {
+  background: #DAD1CA;
+  color: #112250;
+  border-color: #DAD1CA;
+}
+
+.image-lightbox-content {
+  max-width: 96vw;
+  max-height: 86vh;
+  max-height: 86dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: zoom-out;
+}
+
+.lightbox-img {
+  max-width: 94vw;
+  max-height: 82vh;
+  max-height: 82dvh;
+  object-fit: contain;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(218, 209, 202, 0.25);
+  background-color: #0b0b0a;
+  image-rendering: -webkit-optimize-contrast;
+  border-radius: 2px;
+  transition: transform 0.2s ease;
+}
+
+.lightbox-caption {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: #DAD1CA;
+  background: rgba(10, 20, 50, 0.85);
+  border: 1px solid rgba(218, 209, 202, 0.25);
+  padding: 6px 14px;
+  margin-top: 10px;
+  border-radius: 2px;
+  max-width: 90vw;
+  text-align: center;
+  word-break: break-word;
+}
+
+/* Give project images zoom-in cursor so users clearly see they are tappable to enlarge */
+.portrait-img-box img,
+.scroll-gallery-item img,
+.detail-custom-section-block img {
+  cursor: zoom-in;
+  transition: opacity 0.2s ease, transform 0.25s ease;
+}
+
+.portrait-img-box:hover img,
+.scroll-gallery-item:hover img,
+.detail-custom-section-block:hover img {
+  opacity: 0.95;
+}
+
+@media (max-width: 600px) {
+  .image-lightbox-badge {
+    font-size: 0.65rem;
+    padding: 5px 10px;
+    letter-spacing: 0.08em;
+  }
+  .image-lightbox-close {
+    width: 40px;
+    height: 40px;
+    font-size: 1.4rem;
+  }
 }

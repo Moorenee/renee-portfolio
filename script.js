@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Only scroll to top if the view actually CHANGED (e.g. from home to projects), never on refresh or background data sync!
     if (!isInitialLoad && isViewChange) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo(0, 0);
     }
 
     if (mobileDrawer) {
@@ -3100,6 +3100,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         return; // STOP animation loop completely when this subpage is not active!
       }
 
+      // If mobile user is actively scrolling with touch, skip heavy frame redrawing to keep phone scrolling 100% butter-smooth!
+      if (isTouch && isPageScrolling) {
+        animId = requestAnimationFrame(draw);
+        return;
+      }
+
       ctx.clearRect(0, 0, width, height);
 
       const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
@@ -3222,13 +3228,91 @@ document.addEventListener('DOMContentLoaded', async () => {
   createSpatialCanvasEngine('contact-spatial-canvas', 'view-contact', { detectDark: true, nodeDensity: 11 });
   createSpatialCanvasEngine('detail-spatial-canvas', 'view-project-detail', { detectDark: false, nodeDensity: 9 });
 
+  // ================= 8. PROJECT IMAGE LIGHTBOX MODAL (PHONE & DESKTOP ENLARGED VIEW) =================
+  function initImageLightbox() {
+    const modal = document.getElementById('image-lightbox-modal');
+    const modalImg = document.getElementById('lightbox-img');
+    const modalCaption = document.getElementById('lightbox-caption');
+    const closeBtn = document.getElementById('lightbox-close-btn');
+    if (!modal || !modalImg) return;
+
+    function openLightbox(src, captionText = '') {
+      if (!src) return;
+      modalImg.src = src;
+      if (captionText && captionText.trim()) {
+        modalCaption.textContent = captionText.trim();
+        modalCaption.style.display = 'block';
+      } else {
+        modalCaption.textContent = '';
+        modalCaption.style.display = 'none';
+      }
+      modal.style.display = 'flex';
+      document.body.classList.add('lightbox-open');
+    }
+
+    function closeLightbox() {
+      modal.style.display = 'none';
+      modalImg.src = '';
+      document.body.classList.remove('lightbox-open');
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeLightbox();
+      });
+    }
+
+    modal.addEventListener('click', (e) => {
+      // Clicking/tapping backdrop or container closes enlarged view
+      if (e.target !== modalCaption) {
+        closeLightbox();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display === 'flex') {
+        closeLightbox();
+      }
+    });
+
+    // Delegate clicks on all project detail images (portrait slices, scroll gallery, custom sections, hero)
+    document.addEventListener('click', (e) => {
+      const detailView = document.getElementById('view-project-detail');
+      if (!detailView || !detailView.classList.contains('active')) return;
+
+      const imgTarget = e.target.closest(
+        '.portrait-img-box img, .scroll-gallery-item img, .detail-custom-section-block img, .detail-hero-box img'
+      );
+      if (imgTarget && imgTarget.src) {
+        e.preventDefault();
+        e.stopPropagation();
+        let caption = imgTarget.alt || '';
+        const galleryItem = imgTarget.closest('.scroll-gallery-item');
+        if (galleryItem) {
+          const capEl = galleryItem.querySelector('.gallery-overlay-text');
+          if (capEl && capEl.textContent) caption = capEl.textContent;
+        }
+        const customSec = imgTarget.closest('.detail-custom-section-block');
+        if (customSec) {
+          const capEl = customSec.querySelector('.custom-section-caption, .custom-section-title');
+          if (capEl && capEl.textContent) caption = capEl.textContent;
+        }
+        openLightbox(imgTarget.src, caption);
+      }
+    });
+  }
+
+  initImageLightbox();
+
   // ================= 9. COMPLETE INITIAL BOOT & REAL-TIME SYNC =================
-  // 1. Race to load IndexedDB data (up to 100ms)
+  // 1. Race to load IndexedDB data & cloud sync (up to 1200ms)
+  // Ensures returning & new visitor devices fetch latest cloud update BEFORE initial render!
   if (window.PortfolioDB && window.PortfolioDB.initPromise) {
     try {
       await Promise.race([
         window.PortfolioDB.initPromise,
-        new Promise(res => setTimeout(res, 100))
+        new Promise(res => setTimeout(res, 1200))
       ]);
     } catch(e) {}
   }
@@ -3256,6 +3340,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.PortfolioDB && window.PortfolioDB.subscribe) {
     window.PortfolioDB.subscribe((newData) => {
       if (!newData) return;
+      // Guard against glitching: only re-render if data is actually newer or modified!
+      const curTime = (portfolioData && portfolioData._lastUpdated) || 0;
+      const newTime = (newData && newData._lastUpdated) || 0;
+      if (newTime <= curTime && portfolioData) {
+        return; // Exact same version already rendered, don't glitch or flash!
+      }
       portfolioData = newData;
       try { renderAll(); } catch(e) {}
       const hash = window.location.hash.replace('#', '');

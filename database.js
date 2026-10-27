@@ -1290,22 +1290,18 @@ class PortfolioDatabase {
       } catch (e) {}
 
       // 3. Fast-boot Cloud Sync: Start listener immediately
-      // If local database is already present, sync non-blockingly in background so refresh is INSTANT (0-15ms)!
+      // On all devices (new and returning), race cloud fetch with a short 1200ms timeout
+      // so visitor devices receive the 100% freshest cloud update BEFORE the initial render,
+      // eliminating the flash/glitch of stale previous versions!
       if (this.firestore && this.isCloudEnabled) {
         this.setupCloudListener();
-        const hasLocalSavedData = !!(this.memoryData && ((this.memoryData._lastUpdated > 10) || this.memoryData._savedFromAdmin));
-        if (hasLocalSavedData) {
-          this.syncCloudInBackground().catch(e => console.warn('Background cloud sync notice:', e));
-        } else {
-          // Brand new visitor with virgin local database: race cloud fetch with 1200ms timeout
-          try {
-            await Promise.race([
-              this.syncCloudInBackground(),
-              new Promise(resolve => setTimeout(resolve, 1200))
-            ]);
-          } catch (e) {
-            console.warn('Initial cloud sync race notice:', e);
-          }
+        try {
+          await Promise.race([
+            this.syncCloudInBackground(),
+            new Promise(resolve => setTimeout(resolve, 1200))
+          ]);
+        } catch (e) {
+          console.warn('Initial cloud sync notice:', e);
         }
       }
 
@@ -1320,7 +1316,13 @@ class PortfolioDatabase {
     if (!this.firestore || !this.isCloudEnabled) return;
     try {
       const docRef = this.firestore.collection(CLOUD_COLLECTION).doc(CLOUD_DOC);
-      const docSnap = await docRef.get();
+      let docSnap = null;
+      // Fetch directly from server to bypass stale local Firestore cache
+      try {
+        docSnap = await docRef.get({ source: 'server' });
+      } catch (netErr) {
+        docSnap = await docRef.get();
+      }
       if (docSnap && docSnap.exists) {
         const cloudPayload = docSnap.data();
         if (cloudPayload && cloudPayload.data && cloudPayload.data.profile && Array.isArray(cloudPayload.data.projects)) {
