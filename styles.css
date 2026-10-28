@@ -4466,18 +4466,28 @@ html, body {
     font-size: clamp(3rem, 10vw, 5.5rem);
   }
 
-  /* Home Page transitions to 1-column architectural flow */
+  /* Home Page transitions to balanced architectural poster flow on mobile */
   .home-paper-stage {
-    padding: 1rem 1.25rem;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    padding: 0.75rem 0.75rem !important;
+    box-sizing: border-box !important;
   }
   .home-grid-container {
-    height: auto;
-    min-height: calc(100dvh - var(--header-height) - 2rem);
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    height: auto !important;
+    min-height: calc(100dvh - var(--header-height) - 1.5rem) !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
   }
   .home-grid-content {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    width: 100% !important;
     gap: 0;
   }
   .home-left-col {
@@ -4506,8 +4516,10 @@ html, body {
     display: none;
   }
   .home-left-col .home-year-copyright {
-    font-size: 10px;
-    color: #8c8984;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dark);
+    letter-spacing: 1.5px;
     white-space: nowrap;
   }
   body.theme-navy .home-left-col .home-year-copyright {
@@ -4517,8 +4529,9 @@ html, body {
     grid-column: auto;
     border-right: none;
     border-bottom: 1px solid var(--border-hairline);
-    padding: 3.5rem 1rem;
-    min-height: 320px;
+    padding: 2.5rem 1rem;
+    flex: 1 1 auto !important;
+    min-height: 260px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -4555,9 +4568,10 @@ html, body {
     color: var(--text-dark);
   }
   .home-right-years {
-    font-size: 10px;
+    font-size: 11px;
+    font-weight: 600;
     letter-spacing: 1.5px;
-    color: #8c8984;
+    color: var(--text-dark);
     white-space: nowrap;
   }
   body.theme-navy .home-right-years {
@@ -4789,12 +4803,37 @@ html, body {
 
 /* --- Breakpoint 4: Standard & Compact Mobile Phones (max-width: 520px) --- */
 @media (max-width: 520px) {
+  #view-home.page-view.active {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: calc(100dvh - var(--header-height)) !important;
+    height: auto !important;
+  }
   .home-paper-stage {
-    padding: 0.65rem 0.5rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    padding: 0.5rem 0.45rem !important;
+  }
+  .home-grid-container {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: calc(100dvh - var(--header-height) - 1rem) !important;
+    justify-content: space-between !important;
+  }
+  .home-grid-content {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
   }
   .home-center-hero {
-    padding: 2.75rem 0.75rem !important;
-    min-height: 270px !important;
+    flex: 1 1 auto !important;
+    min-height: 220px !important;
+    padding: 1.5rem 0.5rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
   .hero-wordmark-top,
   .hero-wordmark-bottom {
@@ -4811,7 +4850,32 @@ html, body {
   .bottom-cell {
     border-right: none !important;
     border-bottom: 1px solid var(--border-hairline) !important;
-    padding: 0.85rem 0.75rem !important;
+    padding: 0.75rem 0.75rem !important;
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .bottom-cell.cell-email {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.35rem !important;
+  }
+  .bottom-cell.cell-email a {
+    width: auto !important;
+    display: inline !important;
+  }
+  .bottom-cell.cell-email .dash {
+    display: inline !important;
+    margin-right: 0.25rem !important;
+  }
+  .bottom-cell.cell-enter {
+    background: rgba(17, 34, 80, 0.04) !important;
+    border-bottom: none !important;
+  }
+  body.theme-navy .bottom-cell.cell-enter {
+    background: rgba(218, 209, 202, 0.08) !important;
   }
   .bottom-cell:last-child {
     border-bottom: none !important;
