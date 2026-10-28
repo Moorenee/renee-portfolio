@@ -2532,7 +2532,7 @@ async function initAdmin() {
     });
   }
 
-  // Showcase Images (Continuous Roll / Connected Slices)
+  // Showcase Images (Continuous Roll / Connected Slices / Embedded Media)
   function renderModalImages() {
     const stream = document.getElementById('modal-images-container');
     if (!stream) return;
@@ -2542,13 +2542,22 @@ async function initAdmin() {
     activeProject.images.forEach((img, idx) => {
       const row = document.createElement('div');
       row.className = 'editor-dynamic-row';
+      const isEmbed = typeof img.url === 'string' && (
+        img.url.includes('<iframe') ||
+        img.url.includes('drive.google.com') ||
+        img.url.includes('figma.com') ||
+        img.url.includes('canva.com') ||
+        img.url.includes('docs.google.com')
+      );
+      const isImg = img.url && !isEmbed;
+
       row.innerHTML = `
-        <div class="slice-thumb-box" style="width: 50px; height: 50px; background:#e0ded8; overflow:hidden; flex-shrink:0; cursor:pointer; position:relative; border:1px solid #d5d2c8;" title="Click to browse image file">
-          <img src="${img.url || ''}" style="width:100%;height:100%;object-fit:cover;${img.url ? '' : 'display:none;'}" />
-          <span style="font-size:0.58rem; color:#888; font-family:var(--font-mono); text-align:center; position:absolute; inset:0; display:${img.url ? 'none' : 'flex'}; align-items:center; justify-content:center;">FILE</span>
+        <div class="slice-thumb-box" style="width: 50px; height: 50px; background:#e0ded8; overflow:hidden; flex-shrink:0; cursor:pointer; position:relative; border:1px solid #d5d2c8; display:flex; align-items:center; justify-content:center;" title="Click to browse image file or view embed status">
+          <img src="${isImg ? img.url : ''}" style="width:100%;height:100%;object-fit:cover;${isImg ? '' : 'display:none;'}" />
+          <span class="slice-thumb-badge" style="font-size:0.58rem; color:${isEmbed ? '#112250' : '#888'}; font-weight:${isEmbed ? '700' : '400'}; font-family:var(--font-mono); text-align:center; position:absolute; inset:0; display:${isImg ? 'none' : 'flex'}; align-items:center; justify-content:center; background:${isEmbed ? '#e8ebf5' : 'transparent'};">${isEmbed ? 'EMBED' : 'FILE'}</span>
           <input type="file" class="slice-row-file" accept="image/*" style="display:none;" />
         </div>
-        <input type="text" class="editor-input slice-url-inp" style="flex: 2;" placeholder="Image URL or upload file..." value="${img.url || ''}" />
+        <input type="text" class="editor-input slice-url-inp" style="flex: 2;" placeholder="Image URL, Google Drive link, <iframe> embed code, or upload file..." value="${img.url || ''}" />
         <label class="editor-btn-xs" style="cursor:pointer; margin:0; padding:4px 8px; font-size:0.7rem; flex-shrink:0; display:inline-flex; align-items:center;">
           Upload
           <input type="file" class="slice-row-file-btn" accept="image/*" style="display:none;" />
@@ -2563,7 +2572,7 @@ async function initAdmin() {
       const urlInp = row.querySelector('.slice-url-inp');
       const captionInp = row.querySelector('.slice-caption-inp');
       const thumbImg = row.querySelector('img');
-      const thumbSpan = row.querySelector('span');
+      const thumbSpan = row.querySelector('.slice-thumb-badge');
 
       const handleSliceFile = async (file) => {
         if (!file) return;
@@ -2574,7 +2583,11 @@ async function initAdmin() {
           urlInp.value = b64;
           thumbImg.src = b64;
           thumbImg.style.display = 'block';
-          if (thumbSpan) thumbSpan.style.display = 'none';
+          if (thumbSpan) {
+            thumbSpan.style.display = 'none';
+            thumbSpan.textContent = 'FILE';
+            thumbSpan.style.background = 'transparent';
+          }
           syncActiveProjectLive();
           showToast('Slice image updated!');
         } catch(e) {
@@ -2593,14 +2606,31 @@ async function initAdmin() {
       }
 
       urlInp.addEventListener('input', ev => {
-        img.url = ev.target.value.trim();
-        if (img.url) {
-          thumbImg.src = img.url;
+        const val = ev.target.value.trim();
+        img.url = val;
+        const curEmbed = val.includes('<iframe') || val.includes('drive.google.com') || val.includes('figma.com') || val.includes('canva.com') || val.includes('docs.google.com');
+        if (curEmbed) {
+          thumbImg.style.display = 'none';
+          if (thumbSpan) {
+            thumbSpan.style.display = 'flex';
+            thumbSpan.textContent = 'EMBED';
+            thumbSpan.style.background = '#e8ebf5';
+            thumbSpan.style.color = '#112250';
+            thumbSpan.style.fontWeight = '700';
+          }
+        } else if (val) {
+          thumbImg.src = val;
           thumbImg.style.display = 'block';
           if (thumbSpan) thumbSpan.style.display = 'none';
         } else {
           thumbImg.style.display = 'none';
-          if (thumbSpan) thumbSpan.style.display = 'flex';
+          if (thumbSpan) {
+            thumbSpan.style.display = 'flex';
+            thumbSpan.textContent = 'FILE';
+            thumbSpan.style.background = 'transparent';
+            thumbSpan.style.color = '#888';
+            thumbSpan.style.fontWeight = '400';
+          }
         }
         syncActiveProjectLive();
       });
@@ -2623,7 +2653,7 @@ async function initAdmin() {
   const btnAddModalImg = document.getElementById('btn-add-modal-image');
   if (btnAddModalImg) {
     btnAddModalImg.addEventListener('click', () => {
-      const url = prompt('Enter Image URL:');
+      const url = prompt('Enter Image URL, Google Drive link, Figma/Canva embed, or <iframe> embed code:');
       if (url && url.trim()) {
         activeProject.images = activeProject.images || [];
         activeProject.images.push({ url: url.trim(), caption: `Installation View 0${activeProject.images.length + 1}` });

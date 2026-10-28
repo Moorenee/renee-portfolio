@@ -1885,6 +1885,96 @@ document.addEventListener('DOMContentLoaded', async () => {
     return u;
   }
 
+  function resolveMediaItem(item) {
+    if (!item) return null;
+    let raw = typeof item === 'string' ? item.trim() : (item.url || '').trim();
+    if (!raw) return null;
+
+    let caption = typeof item === 'object' && item.caption ? item.caption : '';
+
+    // Check if raw string is an iframe embed code
+    if (raw.includes('<iframe') || raw.includes('&lt;iframe')) {
+      let decoded = raw;
+      if (raw.includes('&lt;iframe')) {
+        const div = document.createElement('div');
+        div.innerHTML = raw;
+        decoded = div.textContent || div.innerText || raw;
+      }
+      const m = decoded.match(/src=["']([^"']+)["']/i);
+      const src = m ? m[1].trim() : '';
+      return {
+        type: 'iframe',
+        src: src || raw,
+        caption: caption
+      };
+    }
+
+    // Google Drive URL (file / preview / folder / view)
+    if (raw.includes('drive.google.com')) {
+      let fileId = '';
+      const mFile = raw.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (mFile && mFile[1]) fileId = mFile[1];
+      const mId = raw.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      if (!fileId && mId && mId[1]) fileId = mId[1];
+
+      if (fileId) {
+        return {
+          type: 'gdrive',
+          fileId: fileId,
+          cdnUrl: `https://lh3.googleusercontent.com/d/${fileId}`,
+          previewUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+          caption: caption
+        };
+      }
+    }
+
+    // Figma URL (proto or file)
+    if (raw.includes('figma.com/')) {
+      let figmaEmbed = raw;
+      if (!raw.includes('figma.com/embed')) {
+        figmaEmbed = `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(raw)}`;
+      }
+      return {
+        type: 'iframe',
+        src: figmaEmbed,
+        caption: caption
+      };
+    }
+
+    // Canva URL
+    if (raw.includes('canva.com/design/')) {
+      let canvaEmbed = raw;
+      if (!canvaEmbed.includes('embed')) {
+        canvaEmbed = canvaEmbed.includes('?') ? `${canvaEmbed}&embed` : `${canvaEmbed}?embed`;
+      }
+      return {
+        type: 'iframe',
+        src: canvaEmbed,
+        caption: caption
+      };
+    }
+
+    // Google Docs / Slides / Sheets
+    if (raw.includes('docs.google.com/presentation') || raw.includes('docs.google.com/document') || raw.includes('docs.google.com/spreadsheets')) {
+      return {
+        type: 'iframe',
+        src: formatProcessEmbedUrl(raw),
+        caption: caption
+      };
+    }
+
+    // Standard Image URL or Base64 Data URI
+    let imgUrl = raw;
+    if (imgUrl.includes('images.unsplash.com')) {
+      imgUrl = imgUrl.replace(/w=\d+/, 'w=2400').replace(/q=\d+/, 'q=90');
+    }
+    return {
+      type: 'image',
+      url: imgUrl,
+      caption: caption
+    };
+  }
+
   function renderProjectDetail(projectId) {
     if (!portfolioData || !portfolioData.projects) return;
     const projs = portfolioData.projects || [];
@@ -1974,25 +2064,56 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (images.length > 0) {
         images.forEach((img, idx) => {
-          let imgUrl = typeof img === 'string' ? img : (img.url || '');
-          if (!imgUrl) return;
-          if (imgUrl.includes('images.unsplash.com')) {
-            imgUrl = imgUrl.replace(/w=\d+/, 'w=2400').replace(/q=\d+/, 'q=90');
-          }
-          const card = document.createElement('div');
-          card.className = 'portrait-image-card';
+          const media = resolveMediaItem(img);
+          if (!media) return;
           const isAboveFold = idx === 0;
-          card.innerHTML = `
-            <div class="portrait-img-box" title="Tap to view enlarged high-resolution details">
-              <img src="${imgUrl}" 
-                   alt="${project.title || 'Project showcase'}" 
-                   loading="${isAboveFold ? 'eager' : 'lazy'}" 
-                   fetchpriority="${isAboveFold ? 'high' : 'auto'}"
-                   decoding="${isAboveFold ? 'sync' : 'async'}" />
-              <div class="img-enlarge-hint"><span>🔍</span> TAP TO ENLARGE</div>
-            </div>
-          `;
-          portraitImagesStack.appendChild(card);
+
+          if (media.type === 'iframe') {
+            const card = document.createElement('div');
+            card.className = 'portrait-embed-card fit-width-embed';
+            card.innerHTML = `
+              <div class="portrait-embed-wrapper">
+                <iframe src="${media.src}" 
+                        class="portrait-fit-iframe" 
+                        allow="autoplay; fullscreen; clipboard-read; clipboard-write; picture-in-picture" 
+                        allowfullscreen 
+                        loading="${isAboveFold ? 'eager' : 'lazy'}"></iframe>
+              </div>
+              ${media.caption ? `<div class="portrait-embed-caption">${media.caption}</div>` : ''}
+            `;
+            portraitImagesStack.appendChild(card);
+          } else if (media.type === 'gdrive') {
+            const card = document.createElement('div');
+            card.className = 'portrait-image-card gdrive-fit-card';
+            card.innerHTML = `
+              <div class="portrait-img-box gdrive-box" title="Tap to view enlarged high-resolution details">
+                <img src="${media.cdnUrl}" 
+                     alt="${media.caption || project.title || 'Project showcase'}" 
+                     loading="${isAboveFold ? 'eager' : 'lazy'}" 
+                     fetchpriority="${isAboveFold ? 'high' : 'auto'}" 
+                     decoding="${isAboveFold ? 'sync' : 'async'}" 
+                     onerror="this.onerror=null; this.closest('.portrait-image-card').outerHTML='<div class=\\'portrait-embed-card fit-width-embed\\'><div class=\\'portrait-embed-wrapper\\'><iframe src=\\'${media.previewUrl}\\' class=\\'portrait-fit-iframe\\' allow=\\'autoplay; fullscreen\\' allowfullscreen></iframe></div></div>';" />
+                <div class="img-enlarge-hint"><span>🔍</span> TAP TO ENLARGE</div>
+              </div>
+              ${media.caption ? `<div class="portrait-embed-caption">${media.caption}</div>` : ''}
+            `;
+            portraitImagesStack.appendChild(card);
+          } else {
+            const card = document.createElement('div');
+            card.className = 'portrait-image-card';
+            card.innerHTML = `
+              <div class="portrait-img-box" title="Tap to view enlarged high-resolution details">
+                <img src="${media.url}" 
+                     alt="${media.caption || project.title || 'Project showcase'}" 
+                     loading="${isAboveFold ? 'eager' : 'lazy'}" 
+                     fetchpriority="${isAboveFold ? 'high' : 'auto'}" 
+                     decoding="${isAboveFold ? 'sync' : 'async'}" />
+                <div class="img-enlarge-hint"><span>🔍</span> TAP TO ENLARGE</div>
+              </div>
+              ${media.caption ? `<div class="portrait-embed-caption">${media.caption}</div>` : ''}
+            `;
+            portraitImagesStack.appendChild(card);
+          }
         });
       } else {
         portraitImagesStack.innerHTML = `<div style="font-family:var(--font-mono);font-size:0.8rem;color:#888;padding:3rem;text-align:center;">NO SLIDE SLICES ATTACHED YET.</div>`;
