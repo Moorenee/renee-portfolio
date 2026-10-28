@@ -282,7 +282,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       // Backward compatible checks with about.sectionSettings & profile.showStats & profile.showProfileCard
-      if (key === 'aboutProfileCard' && (p.showProfileCard !== true && sv.aboutProfileCard !== true)) visible = false;
+      const isCardDisabled = (sv.aboutProfileCard === false) || (p.showProfileCard === false) || (a && a.showProfileCard === false);
+      const isCardEnabled = (sv.aboutProfileCard === true) || (p.showProfileCard === true);
+      if (key === 'aboutProfileCard' && (isCardDisabled || !isCardEnabled)) visible = false;
       if (key === 'aboutStats' && (p.showStats === false || !Array.isArray(p.stats) || p.stats.length === 0)) visible = false;
       if (key === 'aboutEducation' && ((a.sectionSettings && a.sectionSettings.education && a.sectionSettings.education.enabled === false) || (Array.isArray(a.education) && a.education.length === 0))) visible = false;
       if (key === 'aboutSoftware' && ((a.sectionSettings && a.sectionSettings.software && a.sectionSettings.software.enabled === false) || (Array.isArray(a.software) && a.software.length === 0))) visible = false;
@@ -825,8 +827,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Profile card visibility check (defaults to hidden unless explicitly enabled)
-    const showCard = (p.showProfileCard === true) || 
-                     (portfolioData.sectionVisibility && portfolioData.sectionVisibility.aboutProfileCard === true);
+    const isCardDisabled = (portfolioData.sectionVisibility && portfolioData.sectionVisibility.aboutProfileCard === false) ||
+                           (p.showProfileCard === false) ||
+                           (portfolioData.about && portfolioData.about.showProfileCard === false);
+    const isCardEnabled = (portfolioData.sectionVisibility && portfolioData.sectionVisibility.aboutProfileCard === true) ||
+                          (p.showProfileCard === true);
+    const showCard = isCardEnabled && !isCardDisabled;
     const profileCardEl = document.getElementById('about-profile-card') || document.querySelector('.about-profile-card');
     if (profileCardEl) {
       profileCardEl.style.display = showCard ? '' : 'none';
@@ -3310,12 +3316,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         modalCaption.textContent = '';
         modalCaption.style.display = 'none';
       }
-      modal.style.display = 'flex';
+      modal.style.setProperty('display', 'flex', 'important');
       document.body.classList.add('lightbox-open');
     }
 
     function closeLightbox() {
-      modal.style.display = 'none';
+      modal.style.setProperty('display', 'none', 'important');
       modalImg.src = '';
       if (modalImg) {
         modalImg.style.width = '';

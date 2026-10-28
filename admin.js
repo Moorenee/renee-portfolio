@@ -181,6 +181,16 @@ async function initAdmin() {
   async function performDirectLogout() {
     clearTimeout(syncDraftTimer);
     clearTimeout(autoCommitTimer);
+    if (activeProject) {
+      try {
+        syncActiveProjectLive(false);
+        if (window.PortfolioDB && window.PortfolioDB.saveData) {
+          await window.PortfolioDB.saveData(currentData);
+        }
+      } catch(err) {
+        console.warn('Pre-logout auto-save warning:', err);
+      }
+    }
     sessionStorage.removeItem('renee_admin_authenticated');
     localStorage.removeItem('renee_admin_authenticated');
     if (window.PortfolioDB && window.PortfolioDB.channel) {
@@ -191,6 +201,10 @@ async function initAdmin() {
 
   function handleLogoutClick(e) {
     if (e) e.preventDefault();
+    if (activeProject) {
+      try { syncActiveProjectLive(false); } catch(err) {}
+      hasUnsavedChanges = true;
+    }
     const hasPending = hasUnsavedChanges || (window.PortfolioDB && window.PortfolioDB.hasDraft && window.PortfolioDB.hasDraft());
     if (!hasPending) {
       performDirectLogout();
@@ -262,7 +276,10 @@ async function initAdmin() {
       clearTimeout(syncDraftTimer);
       clearTimeout(autoCommitTimer);
       if (activeProject) {
-        try { syncActiveProjectLive(false); } catch(err) {}
+        try {
+          syncActiveProjectLive(false);
+          closeProjectEditor();
+        } catch(err) {}
       }
       try { collectIdentityData(); } catch(err) {}
       try { collectAboutHeaderAndProfile(); } catch(err) {}
@@ -2280,6 +2297,9 @@ async function initAdmin() {
     } else {
       currentData.projects.push(activeProject);
     }
+
+    hasUnsavedChanges = true;
+    updateSyncStatusUI();
 
     if (shouldBroadcast) {
       triggerRealtimeSync(120);

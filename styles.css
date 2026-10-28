@@ -3758,13 +3758,13 @@ body.theme-navy .gallery-overlay-badge {
     margin-bottom: 1.5rem !important;
   }
   .related-link-card {
-    padding: 0.75rem 1.1rem !important;
-    min-height: 44px !important;
-    font-size: 0.75rem !important;
-    letter-spacing: 0.09em !important;
+    padding: 0.6rem 0.95rem !important;
+    min-height: 38px !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.08em !important;
   }
   .related-link-card .link-card-arrow {
-    font-size: 1rem !important;
+    font-size: 0.9rem !important;
   }
 }
 
@@ -4952,20 +4952,20 @@ html, body {
     margin-bottom: 1.5rem !important;
   }
   .related-link-card {
-    padding: 0.65rem 0.95rem !important;
-    min-height: 40px !important;
-    font-size: 0.70rem !important;
-    letter-spacing: 0.07em !important;
+    padding: 0.55rem 0.85rem !important;
+    min-height: 36px !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.06em !important;
   }
   .related-link-card .link-card-title {
-    font-size: 0.70rem !important;
-    letter-spacing: 0.07em !important;
-    line-height: 1.25 !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.06em !important;
+    line-height: 1.2 !important;
     white-space: normal !important;
     word-break: break-word !important;
   }
   .related-link-card .link-card-arrow {
-    font-size: 0.9rem !important;
+    font-size: 0.85rem !important;
   }
   .detail-center-btns {
     flex-direction: column !important;
@@ -5524,8 +5524,12 @@ body.lightbox-open {
   opacity: 0.95;
 }
 
+body:not(.lightbox-open) .image-lightbox-backdrop {
+  display: none !important;
+}
+
 @media (max-width: 600px) {
-  .image-lightbox-backdrop {
+  body.lightbox-open .image-lightbox-backdrop {
     display: block !important;
     padding: 0 !important;
   }

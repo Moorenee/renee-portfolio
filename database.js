@@ -888,7 +888,11 @@ class PortfolioDatabase {
 
     // Sync Section Visibility with profile & about sectionSettings for backwards compatibility
     if (data.profile) {
-      if (data.sectionVisibility.aboutProfileCard !== undefined) {
+      if (data.sectionVisibility.aboutProfileCard === false || data.profile.showProfileCard === false || (data.about && data.about.showProfileCard === false)) {
+        data.profile.showProfileCard = false;
+        data.sectionVisibility.aboutProfileCard = false;
+        if (data.about) data.about.showProfileCard = false;
+      } else if (data.sectionVisibility.aboutProfileCard !== undefined) {
         data.profile.showProfileCard = data.sectionVisibility.aboutProfileCard;
       } else if (data.profile.showProfileCard !== undefined) {
         data.sectionVisibility.aboutProfileCard = data.profile.showProfileCard;
@@ -1491,22 +1495,24 @@ class PortfolioDatabase {
           return;
         }
         const isWebp = b64.startsWith('data:image/webp');
-        // If already tiny (< 80KB) AND NOT WebP, preserve without alteration
-        if (!isWebp && b64.length < 80000) {
+        // If already small (< 50KB) AND NOT WebP, preserve without alteration
+        if (!isWebp && b64.length < 50000) {
           resolve(b64);
           return;
         }
         const img = new Image();
-        img.onerror = () => resolve(b64);
+        const timeout = setTimeout(() => resolve(b64), 4000);
+        img.onerror = () => {
+          clearTimeout(timeout);
+          resolve(b64);
+        };
         img.onload = () => {
+          clearTimeout(timeout);
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
           if (isSlice) {
-            // CRITICAL FOR ARCHITECTURAL SHEETS & SHOWCASE SLICES:
             // Slices are tall vertical drawings scrolled or enlarged by width.
-            // NEVER downscale by height! Scale only if horizontal width exceeds maxDim (min 2000px)
-            // so technical drawings, floorplans, annotations, and typography stay razor-sharp!
-            const maxW = typeof maxDim === 'number' ? Math.max(maxDim, 2000) : 2400;
+            const maxW = typeof maxDim === 'number' ? maxDim : 2000;
             if (w > maxW) {
               h = Math.round((h * maxW) / w);
               w = maxW;
@@ -1536,7 +1542,8 @@ class PortfolioDatabase {
 
           // Use true sRGB JPEG to guarantee accurate color fidelity (eliminates WebP YUV blue/cyan chroma shift)
           try {
-            const jpegUrl = canvas.toDataURL('image/jpeg', Math.max(quality, 0.88));
+            const outQuality = typeof quality === 'number' ? quality : 0.85;
+            const jpegUrl = canvas.toDataURL('image/jpeg', outQuality);
             if (jpegUrl && (isWebp || jpegUrl.length < b64.length)) {
               resolve(jpegUrl);
               return;
@@ -1551,7 +1558,7 @@ class PortfolioDatabase {
     try {
       const tasks = [];
 
-      if (dataToOptimize.profile && dataToOptimize.profile.photoUrl) {
+      if (dataToOptimize.profile && dataToOptimize.profile.photoUrl && dataToOptimize.profile.photoUrl.startsWith('data:image')) {
         tasks.push(
           shrinkBase64(dataToOptimize.profile.photoUrl, Math.min(targetMaxDim, 1000), targetQuality)
             .then(res => { dataToOptimize.profile.photoUrl = res; })
@@ -1560,7 +1567,7 @@ class PortfolioDatabase {
 
       if (Array.isArray(dataToOptimize.projects)) {
         for (const p of dataToOptimize.projects) {
-          if (p.coverImage) {
+          if (p.coverImage && p.coverImage.startsWith('data:image')) {
             tasks.push(
               shrinkBase64(p.coverImage, targetMaxDim, targetQuality)
                 .then(res => { p.coverImage = res; })
@@ -1568,33 +1575,47 @@ class PortfolioDatabase {
           }
           if (Array.isArray(p.images)) {
             for (let i = 0; i < p.images.length; i++) {
-              if (p.images[i] && p.images[i].url) {
-                const imgObj = p.images[i];
+              const item = p.images[i];
+              const rawUrl = typeof item === 'string' ? item : (item && item.url ? item.url : '');
+              if (rawUrl && rawUrl.startsWith('data:image')) {
                 tasks.push(
-                  shrinkBase64(imgObj.url, targetMaxDim, targetQuality, true)
-                    .then(res => { imgObj.url = res; })
+                  shrinkBase64(rawUrl, targetMaxDim, targetQuality, true)
+                    .then(res => {
+                      if (typeof item === 'string') {
+                        p.images[i] = res;
+                      } else if (item && typeof item === 'object') {
+                        item.url = res;
+                      }
+                    })
                 );
               }
             }
           }
           if (Array.isArray(p.gallery)) {
             for (let i = 0; i < p.gallery.length; i++) {
-              if (p.gallery[i] && p.gallery[i].url) {
-                const galObj = p.gallery[i];
+              const item = p.gallery[i];
+              const rawUrl = typeof item === 'string' ? item : (item && item.url ? item.url : '');
+              if (rawUrl && rawUrl.startsWith('data:image')) {
                 tasks.push(
-                  shrinkBase64(galObj.url, Math.min(targetMaxDim, 1500), targetQuality)
-                    .then(res => { galObj.url = res; })
+                  shrinkBase64(rawUrl, Math.min(targetMaxDim, 1600), targetQuality)
+                    .then(res => {
+                      if (typeof item === 'string') {
+                        p.gallery[i] = res;
+                      } else if (item && typeof item === 'object') {
+                        item.url = res;
+                      }
+                    })
                 );
               }
             }
           }
           if (Array.isArray(p.customSections)) {
             for (let i = 0; i < p.customSections.length; i++) {
-              if (p.customSections[i] && p.customSections[i].imageUrl) {
-                const csObj = p.customSections[i];
+              const cs = p.customSections[i];
+              if (cs && cs.imageUrl && cs.imageUrl.startsWith('data:image')) {
                 tasks.push(
-                  shrinkBase64(csObj.imageUrl, targetMaxDim, targetQuality)
-                    .then(res => { csObj.imageUrl = res; })
+                  shrinkBase64(cs.imageUrl, targetMaxDim, targetQuality)
+                    .then(res => { cs.imageUrl = res; })
                 );
               }
             }
@@ -1617,51 +1638,58 @@ class PortfolioDatabase {
       let cleanData = JSON.parse(JSON.stringify(data));
 
       // Guard Firestore 1 MiB hard document limit (1,048,576 bytes):
-      // Target <= 920,000 characters to comfortably fit maximum high-res clarity without premature compression
-      const TARGET_SAFE_SIZE = 920000;
+      // Target <= 720,000 characters to comfortably fit maximum high-res clarity without breaching Firestore limit
+      const TARGET_SAFE_SIZE = 720000;
       let estSize = JSON.stringify(cleanData).length;
 
       if (estSize > TARGET_SAFE_SIZE) {
         console.info(`[PortfolioDB] Pre-sync payload is ${Math.round(estSize/1024)}KB. Optimizing images for cloud sync...`);
-        // Pass 1: 2400px @ 0.90
-        cleanData = await this._optimizePayloadForCloud(cleanData, 2400, 0.90);
+        // Pass 1: 2200px @ 0.88
+        cleanData = await this._optimizePayloadForCloud(cleanData, 2200, 0.88);
         estSize = JSON.stringify(cleanData).length;
         console.info(`[PortfolioDB] Cloud payload pass 1: ${Math.round(estSize/1024)}KB.`);
 
-        // Pass 2: 2200px @ 0.88
+        // Pass 2: 2000px @ 0.84
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 2200, 0.88);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 2000, 0.84);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 2: ${Math.round(estSize/1024)}KB.`);
         }
 
-        // Pass 3: 2000px @ 0.85
+        // Pass 3: 1800px @ 0.78
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 2000, 0.85);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 1800, 0.78);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 3: ${Math.round(estSize/1024)}KB.`);
         }
 
-        // Pass 4: 2000px @ 0.82 (retains 2000px width so architectural typography stays razor-sharp)
+        // Pass 4: 1600px @ 0.72
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 2000, 0.82);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 1600, 0.72);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 4: ${Math.round(estSize/1024)}KB.`);
         }
 
-        // Pass 5: 1600px @ 0.65
+        // Pass 5: 1400px @ 0.65
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 1600, 0.65);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 1400, 0.65);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 5: ${Math.round(estSize/1024)}KB.`);
         }
 
-        // Pass 6: 1400px @ 0.60 (failsafe against Firestore 1MB ceiling)
+        // Pass 6: 1200px @ 0.58 (failsafe against Firestore 1MB ceiling)
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 1400, 0.60);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 1200, 0.58);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 6: ${Math.round(estSize/1024)}KB.`);
         }
+      }
+
+      // Emergency guard against Firestore 1MB ceiling
+      let finalSize = JSON.stringify(cleanData).length;
+      if (finalSize > 950000) {
+        console.warn(`[PortfolioDB] Payload ${Math.round(finalSize/1024)}KB is near Firestore limit. Running emergency compression...`);
+        cleanData = await this._optimizePayloadForCloud(cleanData, 1100, 0.52);
       }
 
       // Strip administrative session flags so visitor devices don't mistakenly assume they are admins

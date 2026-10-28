@@ -49,8 +49,12 @@
         if (rawCache) {
           var parsed = JSON.parse(rawCache);
           if (parsed) {
-            if ((parsed.sectionVisibility && parsed.sectionVisibility.aboutProfileCard === true) || 
-                (parsed.profile && parsed.profile.showProfileCard === true)) {
+            var isCardDisabled = (parsed.sectionVisibility && parsed.sectionVisibility.aboutProfileCard === false) ||
+                                 (parsed.profile && parsed.profile.showProfileCard === false) ||
+                                 (parsed.about && parsed.about.showProfileCard === false);
+            var isCardEnabled = (parsed.sectionVisibility && parsed.sectionVisibility.aboutProfileCard === true) ||
+                                (parsed.profile && parsed.profile.showProfileCard === true);
+            if (isCardEnabled && !isCardDisabled) {
               shouldHideCard = false;
             } else {
               shouldHideCard = true;
@@ -358,7 +362,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="styles.css?v=20261028_1700" />
+  <link rel="stylesheet" href="styles.css?v=20261028_1745" />
 </head>
 <body class="site-body">
 
@@ -773,8 +777,8 @@
             <!-- Right Column: Profile Box + Education + Software -->
             <div class="about-creds-col">
               
-              <!-- Profile Card -->
-              <div class="about-profile-card" id="about-profile-card">
+              <!-- Profile Card (Hidden by default unless explicitly enabled) -->
+              <div class="about-profile-card" id="about-profile-card" style="display: none;">
                 <div class="profile-thumb-wrap">
                   <img 
                     src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80" 
@@ -1326,7 +1330,7 @@
   </div>
 
   <!-- ================= PROJECT IMAGE LIGHTBOX MODAL (PHONE & DESKTOP ENLARGED VIEW) ================= -->
-  <div class="image-lightbox-backdrop" id="image-lightbox-modal" style="display: none;" role="dialog" aria-modal="true" aria-label="Enlarged Image View">
+  <div class="image-lightbox-backdrop" id="image-lightbox-modal" style="display: none !important;" role="dialog" aria-modal="true" aria-label="Enlarged Image View">
     <div class="image-lightbox-topbar">
       <button type="button" class="image-lightbox-zoom-btn" id="lightbox-zoom-btn" aria-label="Toggle 100% detail zoom">
         <span id="lightbox-zoom-icon">🔍</span> <span id="lightbox-zoom-text">ZOOM 100% (READ DETAILS)</span>
@@ -1400,9 +1404,9 @@
   <!-- Storage and Application Scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js?v=20261028_1700"></script>
-  <script src="database.js?v=20261028_1700"></script>
-  <script src="script.js?v=20261028_1700"></script>
+  <script src="firebase-config.js?v=20261028_1745"></script>
+  <script src="database.js?v=20261028_1745"></script>
+  <script src="script.js?v=20261028_1745"></script>
   <!-- Vercel Web Analytics (Active automatically upon enabling Analytics in Vercel dashboard) -->
   <script defer src="/_vercel/insights/script.js"></script>
 </body>
