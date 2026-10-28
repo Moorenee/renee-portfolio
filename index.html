@@ -19,9 +19,6 @@
     (function() {
       // 1. Anti-FOUC: Prevent painting stale fallback HTML until first dynamic render
       document.documentElement.classList.add('anti-fouc');
-      setTimeout(function() {
-        document.documentElement.classList.remove('anti-fouc');
-      }, 300);
 
       // 2. Early route switch to requested section
       var h = (window.location.hash || '').replace('#', '') || 'home';
@@ -36,11 +33,14 @@
         style.id = 'early-route-style';
         style.textContent = '#view-home { display: none !important; opacity: 0 !important; } #view-' + v + ' { display: block !important; opacity: 1 !important; }';
         document.head.appendChild(style);
-        setTimeout(function() {
-          var es = document.getElementById('early-route-style');
-          if (es) es.remove();
-        }, 600);
       }
+
+      // Safety fallback timer: only remove anti-fouc after 2500ms if script.js fails to initialize
+      setTimeout(function() {
+        document.documentElement.classList.remove('anti-fouc');
+        var es = document.getElementById('early-route-style');
+        if (es) es.remove();
+      }, 2500);
 
       // 3. Early profile card hide if stored or set as hidden in defaults
       try {
@@ -362,7 +362,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="styles.css?v=20261028_1900" />
+  <link rel="stylesheet" href="styles.css?v=20261028_1935" />
 </head>
 <body class="site-body">
 
@@ -1404,9 +1404,9 @@
   <!-- Storage and Application Scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js?v=20261028_1900"></script>
-  <script src="database.js?v=20261028_1900"></script>
-  <script src="script.js?v=20261028_1900"></script>
+  <script src="firebase-config.js?v=20261028_1935"></script>
+  <script src="database.js?v=20261028_1935"></script>
+  <script src="script.js?v=20261028_1935"></script>
   <!-- Vercel Web Analytics (Active automatically upon enabling Analytics in Vercel dashboard) -->
   <script defer src="/_vercel/insights/script.js"></script>
 </body>

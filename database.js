@@ -1099,6 +1099,16 @@ class PortfolioDatabase {
   // Merges cloud data into local data without degrading high-res images that exist locally
   _mergePreservingHighResImages(localData, incomingData) {
     if (!localData || !incomingData) return incomingData || localData;
+    const localTime = Number(localData._lastUpdated || 0);
+    const incomingTime = Number(incomingData._lastUpdated || 0);
+    const isAdmin = typeof window !== 'undefined' && !!(sessionStorage.getItem('renee_admin_authenticated') || localStorage.getItem('renee_admin_authenticated'));
+
+    // On visitor devices: incoming cloud data is authoritative whenever it has an updated timestamp!
+    // Never revive stale local cached images or deleted entries over newer cloud updates!
+    if (!isAdmin && incomingTime > localTime) {
+      return JSON.parse(JSON.stringify(incomingData));
+    }
+
     const merged = JSON.parse(JSON.stringify(incomingData));
 
     // Preserve high-res profile photo if local copy has photo and incoming is empty or lower resolution

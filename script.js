@@ -3559,13 +3559,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!newData) return;
       const isAdminSession = typeof window !== 'undefined' && !!(sessionStorage.getItem('renee_admin_authenticated') || localStorage.getItem('renee_admin_authenticated'));
       
+      const curTime = (portfolioData && portfolioData._lastUpdated) || 0;
+      const newTime = (newData && newData._lastUpdated) || 0;
+
+      // Skip redundant re-renders if incoming data timestamp is not newer
+      if (portfolioData && newTime <= curTime) {
+        return;
+      }
+      
       // On admin editing device: avoid overwriting newer local unsaved edits
-      if (isAdminSession) {
-        const curTime = (portfolioData && portfolioData._lastUpdated) || 0;
-        const newTime = (newData && newData._lastUpdated) || 0;
-        if (newTime < curTime && portfolioData) {
-          return;
-        }
+      if (isAdminSession && newTime < curTime && portfolioData) {
+        return;
       }
       portfolioData = newData;
       try { renderAll(); } catch(e) {}
