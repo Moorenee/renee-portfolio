@@ -92,8 +92,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
     } else {
-      if (viewId === 'projects' && portfolioData) {
-        try { renderProjectsCatalog(); } catch(e) {}
+      if (portfolioData) {
+        if (viewId === 'home') { try { renderHomeScreen(); } catch(e) {} }
+        else if (viewId === 'about') { try { renderAboutScreen(); } catch(e) {} }
+        else if (viewId === 'projects') { try { renderProjectsCatalog(); } catch(e) {} }
+        else if (viewId === 'contact') { try { renderContactScreen(); } catch(e) {} }
+        try { applySectionVisibility(); } catch(e) {}
       }
       const targetView = document.getElementById('view-' + viewId);
       if (targetView) targetView.classList.add('active');
@@ -2442,6 +2446,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function refreshLiveState() {
     if (!window.PortfolioDB) return;
     try {
+      if (window.PortfolioDB.syncCloudInBackground) {
+        try { await window.PortfolioDB.syncCloudInBackground(); } catch(e) {}
+      }
       const fresh = await window.PortfolioDB.getData();
       if (fresh) {
         portfolioData = fresh;
@@ -3351,14 +3358,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.PortfolioDB && window.PortfolioDB.subscribe) {
     window.PortfolioDB.subscribe((newData) => {
       if (!newData) return;
-      // Guard against redundant glitching: only skip if version & content are identical
-      const curTime = (portfolioData && portfolioData._lastUpdated) || 0;
-      const newTime = (newData && newData._lastUpdated) || 0;
-      if (newTime < curTime && portfolioData) {
-        return; // Older version, ignore
-      }
-      if (newTime === curTime && portfolioData && JSON.stringify(portfolioData) === JSON.stringify(newData)) {
-        return; // Exact same version already rendered, don't glitch or flash!
+      const isAdminSession = typeof window !== 'undefined' && !!(sessionStorage.getItem('renee_admin_authenticated') || localStorage.getItem('renee_admin_authenticated'));
+      
+      // On admin editing device: avoid overwriting newer local unsaved edits
+      if (isAdminSession) {
+        const curTime = (portfolioData && portfolioData._lastUpdated) || 0;
+        const newTime = (newData && newData._lastUpdated) || 0;
+        if (newTime < curTime && portfolioData) {
+          return;
+        }
       }
       portfolioData = newData;
       try { renderAll(); } catch(e) {}

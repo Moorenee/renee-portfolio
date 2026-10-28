@@ -1200,6 +1200,20 @@ class PortfolioDatabase {
 
   async init() {
     try {
+      const isAdminSession = typeof window !== 'undefined' && !!(sessionStorage.getItem('renee_admin_authenticated') || localStorage.getItem('renee_admin_authenticated'));
+
+      // 0. Check code fingerprint - if code was updated, reset visitor cache to fresh code dataset
+      try {
+        const codeFingerprint = computeCodeFingerprint(DEFAULT_PORTFOLIO_DATA);
+        const storedFingerprint = localStorage.getItem('moo_renee_code_fp');
+        if (storedFingerprint !== codeFingerprint && !isAdminSession) {
+          localStorage.setItem('moo_renee_code_fp', codeFingerprint);
+          this.memoryData = this._ensureSchemaIntegrity(DEFAULT_PORTFOLIO_DATA);
+          await idbSet('current_portfolio_v3', this.memoryData);
+          this.persistToLocal(this.memoryData);
+        }
+      } catch(e) {}
+
       // 1. Read IndexedDB (carries high-res images and permanent local database)
       const idbData = await idbGet('current_portfolio_v3');
       if (idbData && idbData.profile && Array.isArray(idbData.projects)) {
@@ -1228,7 +1242,7 @@ class PortfolioDatabase {
       } catch (e) {}
 
       // 3. Fast-boot Cloud Sync: Start listener immediately
-      // On all devices (new and returning), race cloud fetch with a 1500ms timeout
+      // On all devices (new and returning), race cloud fetch with a 2000ms timeout
       // so visitor devices receive the 100% freshest cloud update BEFORE the initial render!
       if (!this.firestore) this.initCloud();
       if (this.firestore && this.isCloudEnabled) {
@@ -1236,7 +1250,7 @@ class PortfolioDatabase {
         try {
           await Promise.race([
             this.syncCloudInBackground(),
-            new Promise(resolve => setTimeout(resolve, 1500))
+            new Promise(resolve => setTimeout(resolve, 2000))
           ]);
         } catch (e) {
           console.warn('Initial cloud sync notice:', e);
@@ -1308,6 +1322,15 @@ class PortfolioDatabase {
   async getData() {
     if (!this.isInitialized) {
       await this.initPromise;
+    }
+    const isAdminSession = typeof window !== 'undefined' && !!(sessionStorage.getItem('renee_admin_authenticated') || localStorage.getItem('renee_admin_authenticated'));
+    if (!isAdminSession && this.firestore && this.isCloudEnabled) {
+      try {
+        await Promise.race([
+          this.syncCloudInBackground(),
+          new Promise(r => setTimeout(r, 600))
+        ]);
+      } catch(e) {}
     }
     try {
       // 1. Check IndexedDB for the most complete, updated dataset
