@@ -32,7 +32,7 @@ async function initAdmin() {
   }
 
   // Base64 helper for image uploads with high-resolution clarity and crisp rendering
-  function fileToBase64(file, maxWidth = 2800, quality = 0.94) {
+  function fileToBase64(file, maxWidth = 2200, quality = 0.84) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = error => reject(error);
@@ -47,18 +47,14 @@ async function initAdmin() {
         img.onload = () => {
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
-          // If already a clean JPEG within bounds and reasonable size (< 1.8MB), preserve raw file bytes
-          if (file.type === 'image/jpeg' && w <= maxWidth && file.size < 1800000) {
-            resolve(rawResult);
-            return;
-          }
+
           if (w > maxWidth) {
             h = Math.round((h * maxWidth) / w);
             w = maxWidth;
           }
           const canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
+          canvas.width = Math.max(1, w);
+          canvas.height = Math.max(1, h);
           const ctx = canvas.getContext('2d');
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
@@ -70,7 +66,8 @@ async function initAdmin() {
 
           // Use true sRGB JPEG to guarantee accurate color fidelity (eliminates WebP YUV blue/cyan chroma shift)
           try {
-            const jpegUrl = canvas.toDataURL('image/jpeg', Math.max(quality, 0.90));
+            const outQuality = typeof quality === 'number' ? quality : 0.84;
+            const jpegUrl = canvas.toDataURL('image/jpeg', outQuality);
             if (jpegUrl && jpegUrl.startsWith('data:image/jpeg')) {
               resolve(jpegUrl);
               return;
@@ -275,30 +272,52 @@ async function initAdmin() {
       e.preventDefault();
       clearTimeout(syncDraftTimer);
       clearTimeout(autoCommitTimer);
-      if (activeProject) {
-        try {
-          syncActiveProjectLive(false);
-          closeProjectEditor();
-        } catch(err) {}
+      const originalText = btnAdminModalSave.textContent;
+      btnAdminModalSave.disabled = true;
+      btnAdminModalSave.textContent = 'SAVING TO CLOUD...';
+
+      try {
+        if (activeProject) {
+          try {
+            syncActiveProjectLive(false);
+            closeProjectEditor();
+          } catch(err) {}
+        }
+        try { collectIdentityData(); } catch(err) {}
+        try { collectAboutHeaderAndProfile(); } catch(err) {}
+        try { collectColumnTitles(); } catch(err) {}
+        try { collectHeadersData(); } catch(err) {}
+
+        let saveRes = null;
+        if (window.PortfolioDB && window.PortfolioDB.saveData) {
+          saveRes = await window.PortfolioDB.saveData(currentData);
+        }
+
+        if (saveRes && saveRes.cloudError) {
+          console.warn('[Admin Logout] Cloud save warning:', saveRes.cloudError);
+          alert(`⚠️ Notice: Data was saved locally, but Cloud sync reported:\n\n${saveRes.cloudError}\n\nPlease check your internet connection and try clicking Save again.`);
+          btnAdminModalSave.disabled = false;
+          btnAdminModalSave.textContent = originalText;
+          return;
+        }
+
+        hasUnsavedChanges = false;
+        sessionStorage.removeItem('renee_admin_authenticated');
+        localStorage.removeItem('renee_admin_authenticated');
+        if (window.PortfolioDB && window.PortfolioDB.channel) {
+          try { window.PortfolioDB.channel.postMessage({ type: 'AUTH_LOGOUT' }); } catch(err) {}
+        }
+        if (adminLogoutConfirm) adminLogoutConfirm.style.display = 'none';
+        if (adminLogoutSuccess) adminLogoutSuccess.style.display = 'block';
+        setTimeout(() => {
+          window.location.replace('index.html#home');
+        }, 600);
+      } catch(err) {
+        console.error('Logout save error:', err);
+        alert('Error saving data: ' + (err.message || err));
+        btnAdminModalSave.disabled = false;
+        btnAdminModalSave.textContent = originalText;
       }
-      try { collectIdentityData(); } catch(err) {}
-      try { collectAboutHeaderAndProfile(); } catch(err) {}
-      try { collectColumnTitles(); } catch(err) {}
-      try { collectHeadersData(); } catch(err) {}
-      if (window.PortfolioDB && window.PortfolioDB.saveData) {
-        await window.PortfolioDB.saveData(currentData);
-      }
-      hasUnsavedChanges = false;
-      sessionStorage.removeItem('renee_admin_authenticated');
-      localStorage.removeItem('renee_admin_authenticated');
-      if (window.PortfolioDB && window.PortfolioDB.channel) {
-        try { window.PortfolioDB.channel.postMessage({ type: 'AUTH_LOGOUT' }); } catch(err) {}
-      }
-      if (adminLogoutConfirm) adminLogoutConfirm.style.display = 'none';
-      if (adminLogoutSuccess) adminLogoutSuccess.style.display = 'block';
-      setTimeout(() => {
-        window.location.replace('index.html#home');
-      }, 500);
     });
   }
 
@@ -2340,7 +2359,7 @@ async function initAdmin() {
       const file = e.target.files && e.target.files[0];
       if (file) {
         try {
-          const b64 = await fileToBase64(file, 2560, 0.92);
+          const b64 = await fileToBase64(file, 2200, 0.84);
           if (coverUrlInp) coverUrlInp.value = b64;
           if (coverPrevImg) {
             coverPrevImg.src = b64;
@@ -2550,7 +2569,7 @@ async function initAdmin() {
         if (!file) return;
         try {
           showToast('Optimizing slice image in high quality...');
-          const b64 = await fileToBase64(file, 2560, 0.92);
+          const b64 = await fileToBase64(file, 2200, 0.84);
           img.url = b64;
           urlInp.value = b64;
           thumbImg.src = b64;
@@ -2648,7 +2667,7 @@ async function initAdmin() {
         showToast(`Processing ${files.length} high-res image slice(s)...`);
         activeProject.images = activeProject.images || [];
         for (const file of files) {
-          const b64 = await fileToBase64(file, 2560, 0.92);
+          const b64 = await fileToBase64(file, 2200, 0.84);
           activeProject.images.push({ url: b64, caption: file.name.replace(/\.[^/.]+$/, '') });
         }
         renderModalImages();
@@ -2664,7 +2683,7 @@ async function initAdmin() {
       if (files.length > 0) {
         showToast(`Processing ${files.length} high-res image slice(s)...`);
         for (const file of files) {
-          const b64 = await fileToBase64(file, 2560, 0.92);
+          const b64 = await fileToBase64(file, 2200, 0.84);
           activeProject.images = activeProject.images || [];
           activeProject.images.push({ url: b64, caption: file.name.replace(/\.[^/.]+$/, '') });
         }
@@ -3087,7 +3106,7 @@ async function initAdmin() {
           const file = e.target.files && e.target.files[0];
           if (file) {
             try {
-              const b64 = await fileToBase64(file, 2560, 0.92);
+              const b64 = await fileToBase64(file, 2200, 0.84);
               sec.imageUrl = b64;
               imgUrlInp.value = b64;
               imgPrev.src = b64;

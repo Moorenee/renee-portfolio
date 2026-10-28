@@ -1101,15 +1101,16 @@ class PortfolioDatabase {
     if (!localData || !incomingData) return incomingData || localData;
     const merged = JSON.parse(JSON.stringify(incomingData));
 
-    // Preserve high-res profile photo if local copy has higher byte-count (higher resolution)
-    if (localData.profile && localData.profile.photoUrl && merged.profile && merged.profile.photoUrl) {
-      if (localData.profile.photoUrl.startsWith('data:image') &&
-          localData.profile.photoUrl.length > merged.profile.photoUrl.length) {
+    // Preserve high-res profile photo if local copy has photo and incoming is empty or lower resolution
+    if (localData.profile && localData.profile.photoUrl && merged.profile) {
+      if (!merged.profile.photoUrl ||
+          (localData.profile.photoUrl.startsWith('data:image') &&
+           localData.profile.photoUrl.length > (merged.profile.photoUrl || '').length)) {
         merged.profile.photoUrl = localData.profile.photoUrl;
       }
     }
 
-    // Preserve high-res project covers, continuous showcase slices, and gallery exhibits
+    // Preserve high-res project covers, continuous showcase slices, gallery exhibits, and custom sections
     if (Array.isArray(localData.projects) && Array.isArray(merged.projects)) {
       const localMap = {};
       localData.projects.forEach(lp => { if (lp && lp.id) localMap[lp.id] = lp; });
@@ -1119,58 +1120,91 @@ class PortfolioDatabase {
         const lp = localMap[mp.id];
         if (!lp) return;
 
-        // Preserve high-res coverImage
-        if (lp.coverImage && mp.coverImage &&
-            lp.coverImage.startsWith('data:image') &&
-            lp.coverImage.length > mp.coverImage.length) {
-          mp.coverImage = lp.coverImage;
+        // Preserve coverImage
+        if (lp.coverImage) {
+          if (!mp.coverImage || (lp.coverImage.startsWith('data:image') && lp.coverImage.length > (mp.coverImage || '').length)) {
+            mp.coverImage = lp.coverImage;
+          }
         }
 
-        // Preserve high-res showcase slices
-        if (Array.isArray(lp.images) && Array.isArray(mp.images)) {
-          mp.images.forEach((mImg, idx) => {
-            const lImg = lp.images[idx];
-            if (!mImg || !lImg) return;
-            const mUrl = typeof mImg === 'string' ? mImg : (mImg.url || '');
-            const lUrl = typeof lImg === 'string' ? lImg : (lImg.url || '');
-            if (lUrl.startsWith('data:image') && lUrl.length > mUrl.length) {
-              if (typeof mImg === 'string') {
-                mp.images[idx] = lUrl;
+        // Preserve showcase slices (images)
+        if (Array.isArray(lp.images) && lp.images.length > 0) {
+          if (!Array.isArray(mp.images) || mp.images.length === 0) {
+            // Incoming has 0 images, local has images: ALWAYS preserve all local images!
+            mp.images = JSON.parse(JSON.stringify(lp.images));
+          } else {
+            // Incoming has images: update matching indices with higher-res copies, and append any extra local slices
+            lp.images.forEach((lImg, idx) => {
+              if (!lImg) return;
+              const lUrl = typeof lImg === 'string' ? lImg : (lImg.url || '');
+              if (idx < mp.images.length) {
+                const mImg = mp.images[idx];
+                const mUrl = typeof mImg === 'string' ? mImg : (mImg ? mImg.url || '' : '');
+                if (lUrl.startsWith('data:image') && (!mUrl || lUrl.length > mUrl.length)) {
+                  if (typeof mImg === 'string') {
+                    mp.images[idx] = lUrl;
+                  } else if (mImg && typeof mImg === 'object') {
+                    mImg.url = lUrl;
+                  }
+                }
               } else {
-                mImg.url = lUrl;
+                // Local had more slices than incoming: keep the extra local slices!
+                mp.images.push(JSON.parse(JSON.stringify(lImg)));
               }
-            }
-          });
+            });
+          }
         }
 
-        // Preserve high-res gallery
-        if (Array.isArray(lp.gallery) && Array.isArray(mp.gallery)) {
-          mp.gallery.forEach((mGal, idx) => {
-            const lGal = lp.gallery[idx];
-            if (!mGal || !lGal) return;
-            const mUrl = typeof mGal === 'string' ? mGal : (mGal.url || '');
-            const lUrl = typeof lGal === 'string' ? lGal : (lGal.url || '');
-            if (lUrl.startsWith('data:image') && lUrl.length > mUrl.length) {
-              if (typeof mGal === 'string') {
-                mp.gallery[idx] = lUrl;
+        // Preserve gallery
+        if (Array.isArray(lp.gallery) && lp.gallery.length > 0) {
+          if (!Array.isArray(mp.gallery) || mp.gallery.length === 0) {
+            mp.gallery = JSON.parse(JSON.stringify(lp.gallery));
+          } else {
+            lp.gallery.forEach((lGal, idx) => {
+              if (!lGal) return;
+              const lUrl = typeof lGal === 'string' ? lGal : (lGal.url || '');
+              if (idx < mp.gallery.length) {
+                const mGal = mp.gallery[idx];
+                const mUrl = typeof mGal === 'string' ? mGal : (mGal ? mGal.url || '' : '');
+                if (lUrl.startsWith('data:image') && (!mUrl || lUrl.length > mUrl.length)) {
+                  if (typeof mGal === 'string') {
+                    mp.gallery[idx] = lUrl;
+                  } else if (mGal && typeof mGal === 'object') {
+                    mGal.url = lUrl;
+                  }
+                }
               } else {
-                mGal.url = lUrl;
+                mp.gallery.push(JSON.parse(JSON.stringify(lGal)));
               }
-            }
-          });
+            });
+          }
         }
 
-        // Preserve high-res customSections
-        if (Array.isArray(lp.customSections) && Array.isArray(mp.customSections)) {
-          mp.customSections.forEach((mSec, idx) => {
-            const lSec = lp.customSections[idx];
-            if (!mSec || !lSec) return;
-            if (lSec.imageUrl && mSec.imageUrl &&
-                lSec.imageUrl.startsWith('data:image') &&
-                lSec.imageUrl.length > mSec.imageUrl.length) {
-              mSec.imageUrl = lSec.imageUrl;
-            }
-          });
+        // Preserve customSections
+        if (Array.isArray(lp.customSections) && lp.customSections.length > 0) {
+          if (!Array.isArray(mp.customSections) || mp.customSections.length === 0) {
+            mp.customSections = JSON.parse(JSON.stringify(lp.customSections));
+          } else {
+            lp.customSections.forEach((lSec, idx) => {
+              if (!lSec) return;
+              if (idx < mp.customSections.length) {
+                const mSec = mp.customSections[idx];
+                if (mSec && lSec.imageUrl && (!mSec.imageUrl || (lSec.imageUrl.startsWith('data:image') && lSec.imageUrl.length > mSec.imageUrl.length))) {
+                  mSec.imageUrl = lSec.imageUrl;
+                }
+              } else {
+                mp.customSections.push(JSON.parse(JSON.stringify(lSec)));
+              }
+            });
+          }
+        }
+      });
+
+      // Also preserve any newly created projects that exist locally but haven't synced yet
+      const mergedIds = new Set(merged.projects.map(p => p && p.id).filter(Boolean));
+      localData.projects.forEach(lp => {
+        if (lp && lp.id && !mergedIds.has(lp.id)) {
+          merged.projects.push(JSON.parse(JSON.stringify(lp)));
         }
       });
     }
@@ -1213,16 +1247,10 @@ class PortfolioDatabase {
     try {
       const isAdminSession = typeof window !== 'undefined' && !!(sessionStorage.getItem('renee_admin_authenticated') || localStorage.getItem('renee_admin_authenticated'));
 
-      // 0. Check code fingerprint - if code was updated, reset visitor cache to fresh code dataset
+      // 0. Update code fingerprint tracking without wiping user edits
       try {
         const codeFingerprint = computeCodeFingerprint(DEFAULT_PORTFOLIO_DATA);
-        const storedFingerprint = localStorage.getItem('moo_renee_code_fp');
-        if (storedFingerprint !== codeFingerprint && !isAdminSession) {
-          localStorage.setItem('moo_renee_code_fp', codeFingerprint);
-          this.memoryData = this._ensureSchemaIntegrity(DEFAULT_PORTFOLIO_DATA);
-          await idbSet('current_portfolio_v3', this.memoryData);
-          this.persistToLocal(this.memoryData);
-        }
+        localStorage.setItem('moo_renee_code_fp', codeFingerprint);
       } catch(e) {}
 
       // 1. Read IndexedDB (carries high-res images and permanent local database)
@@ -1298,12 +1326,19 @@ class PortfolioDatabase {
             : (cloudPayload.clientTimestamp ? new Date(cloudPayload.clientTimestamp).getTime() : 0);
 
           const isAdminSession = typeof window !== 'undefined' && !!(sessionStorage.getItem('renee_admin_authenticated') || localStorage.getItem('renee_admin_authenticated'));
-          const hasLocalEdits = isAdminSession && !!(this.memoryData && this.memoryData._savedFromAdmin);
-          const isLocalNewer = hasLocalEdits && (localUpdated > (cloudUpdated + 500));
+          const hasLocalAdminEdits = !!(this.memoryData && this.memoryData._savedFromAdmin);
+          const isLocalNewer = hasLocalAdminEdits && (localUpdated > (cloudUpdated + 1000));
 
           // On visitor devices: ALWAYS apply cloud data if cloud has valid data!
-          // On admin device: only preserve local edits if admin actually made newer unsynced edits
-          if (!isLocalNewer || !isAdminSession) {
+          // On devices with unsynced local admin edits: preserve and push to cloud!
+          if (isLocalNewer) {
+            console.info('[PortfolioDB] Local admin edits are newer than cloud. Preserving and syncing to cloud...');
+            const cloudSyncRes = await this.saveToCloud(this.memoryData);
+            if (cloudSyncRes && cloudSyncRes.success && !isAdminSession) {
+              delete this.memoryData._savedFromAdmin;
+              await idbSet('current_portfolio_v3', this.memoryData);
+            }
+          } else {
             console.info('[PortfolioDB] Applying freshest Cloud Firestore dataset to local memory...');
             this.memoryData = this._mergePreservingHighResImages(this.memoryData, cloudData);
             if (!isAdminSession) {
@@ -1312,9 +1347,6 @@ class PortfolioDatabase {
             await idbSet('current_portfolio_v3', this.memoryData);
             this.persistToLocal(this.memoryData);
             this.notifyListeners();
-          } else if (isLocalNewer && isAdminSession) {
-            console.info('[PortfolioDB] Local admin edits are newer than cloud. Preserving and syncing to cloud...');
-            await this.saveToCloud(this.memoryData);
           }
         }
       } else {
@@ -1463,11 +1495,11 @@ class PortfolioDatabase {
               : (cloudPayload.clientTimestamp ? new Date(cloudPayload.clientTimestamp).getTime() : 0);
 
             const isAdminSession = typeof window !== 'undefined' && !!(sessionStorage.getItem('renee_admin_authenticated') || localStorage.getItem('renee_admin_authenticated'));
-            const hasLocalEdits = isAdminSession && !!(this.memoryData && this.memoryData._savedFromAdmin);
-            const isLocalNewer = hasLocalEdits && (localUpdated > (cloudUpdated + 500));
+            const hasLocalAdminEdits = !!(this.memoryData && this.memoryData._savedFromAdmin);
+            const isLocalNewer = hasLocalAdminEdits && (localUpdated > (cloudUpdated + 1000));
 
-            // On visitor devices: always apply cloud updates in real-time!
-            if (!isLocalNewer || !isAdminSession) {
+            // On visitor devices and in-sync devices: always apply cloud updates in real-time!
+            if (!isLocalNewer) {
               this.cloudFetched = true;
               console.info('[PortfolioDB] Real-time cloud sync applied.');
               const incoming = this._ensureSchemaIntegrity(cloudPayload.data);
@@ -1548,9 +1580,9 @@ class PortfolioDatabase {
 
           // Use true sRGB JPEG to guarantee accurate color fidelity (eliminates WebP YUV blue/cyan chroma shift)
           try {
-            const outQuality = typeof quality === 'number' ? quality : 0.85;
+            const outQuality = typeof quality === 'number' ? quality : 0.82;
             const jpegUrl = canvas.toDataURL('image/jpeg', outQuality);
-            if (jpegUrl && (isWebp || jpegUrl.length < b64.length || w < (img.naturalWidth || img.width) || (typeof quality === 'number' && quality < 0.85))) {
+            if (jpegUrl && jpegUrl.startsWith('data:image/jpeg')) {
               resolve(jpegUrl);
               return;
             }
@@ -1659,58 +1691,23 @@ class PortfolioDatabase {
       let cleanData = JSON.parse(JSON.stringify(data));
 
       // Guard Firestore 1 MiB hard document limit (1,048,576 bytes):
-      // Target <= 700,000 characters to comfortably fit maximum high-res clarity without breaching Firestore limit
-      const TARGET_SAFE_SIZE = 700000;
+      // Safe threshold is 920,000 characters (900 KB).
+      const TARGET_SAFE_SIZE = 920000;
       let estSize = JSON.stringify(cleanData).length;
 
       if (estSize > TARGET_SAFE_SIZE) {
-        console.info(`[PortfolioDB] Pre-sync payload is ${Math.round(estSize/1024)}KB. Optimizing images for cloud sync...`);
-        // Pass 1: 2200px @ 0.86
-        cleanData = await this._optimizePayloadForCloud(cleanData, 2200, 0.86);
+        console.info(`[PortfolioDB] Pre-sync payload is ${Math.round(estSize/1024)}KB. Performing smart optimization...`);
+        // Pass 1: 1900px @ 0.82
+        cleanData = await this._optimizePayloadForCloud(cleanData, 1900, 0.82);
         estSize = JSON.stringify(cleanData).length;
         console.info(`[PortfolioDB] Cloud payload pass 1: ${Math.round(estSize/1024)}KB.`);
 
-        // Pass 2: 2000px @ 0.82
+        // Pass 2 (fallback if still near limit): 1600px @ 0.76
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 2000, 0.82);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 1600, 0.76);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 2: ${Math.round(estSize/1024)}KB.`);
         }
-
-        // Pass 3: 1800px @ 0.76
-        if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 1800, 0.76);
-          estSize = JSON.stringify(cleanData).length;
-          console.info(`[PortfolioDB] Cloud payload pass 3: ${Math.round(estSize/1024)}KB.`);
-        }
-
-        // Pass 4: 1600px @ 0.70
-        if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 1600, 0.70);
-          estSize = JSON.stringify(cleanData).length;
-          console.info(`[PortfolioDB] Cloud payload pass 4: ${Math.round(estSize/1024)}KB.`);
-        }
-
-        // Pass 5: 1400px @ 0.65
-        if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 1400, 0.65);
-          estSize = JSON.stringify(cleanData).length;
-          console.info(`[PortfolioDB] Cloud payload pass 5: ${Math.round(estSize/1024)}KB.`);
-        }
-
-        // Pass 6: 1200px @ 0.58 (failsafe against Firestore 1MB ceiling)
-        if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 1200, 0.58);
-          estSize = JSON.stringify(cleanData).length;
-          console.info(`[PortfolioDB] Cloud payload pass 6: ${Math.round(estSize/1024)}KB.`);
-        }
-      }
-
-      // Emergency guard against Firestore 1MB ceiling
-      let finalSize = JSON.stringify(cleanData).length;
-      if (finalSize > 900000) {
-        console.warn(`[PortfolioDB] Payload ${Math.round(finalSize/1024)}KB is near Firestore limit. Running emergency compression...`);
-        cleanData = await this._optimizePayloadForCloud(cleanData, 1100, 0.50);
       }
 
       // Strip administrative session flags so visitor devices don't mistakenly assume they are admins
