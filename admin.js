@@ -32,7 +32,7 @@ async function initAdmin() {
   }
 
   // Base64 helper for image uploads with high-resolution clarity and crisp rendering
-  function fileToBase64(file, maxWidth = 2560, quality = 0.92) {
+  function fileToBase64(file, maxWidth = 2560, quality = 0.94) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = error => reject(error);
@@ -603,6 +603,8 @@ async function initAdmin() {
       if (!currentData.sectionVisibility) currentData.sectionVisibility = {};
       currentData.sectionVisibility.aboutProfileCard = chkProfile.checked;
       p.showProfileCard = chkProfile.checked;
+      if (!currentData.about) currentData.about = {};
+      currentData.about.showProfileCard = chkProfile.checked;
       const chkProfileTab2 = document.getElementById('about-show-profile-card-tab2');
       if (chkProfileTab2) chkProfileTab2.checked = chkProfile.checked;
     }
@@ -770,6 +772,8 @@ async function initAdmin() {
         currentData.sectionVisibility.aboutProfileCard = chkProfileTab2.checked;
         if (!currentData.profile) currentData.profile = {};
         currentData.profile.showProfileCard = chkProfileTab2.checked;
+        if (!currentData.about) currentData.about = {};
+        currentData.about.showProfileCard = chkProfileTab2.checked;
         const idChk = document.getElementById('id-show-profile-card');
         if (idChk) idChk.checked = chkProfileTab2.checked;
         renderSectionVisibilityManager();
@@ -903,6 +907,8 @@ async function initAdmin() {
       if (!currentData.sectionVisibility) currentData.sectionVisibility = {};
       currentData.sectionVisibility.aboutProfileCard = chkProfileTab2.checked;
       p.showProfileCard = chkProfileTab2.checked;
+      if (!currentData.about) currentData.about = {};
+      currentData.about.showProfileCard = chkProfileTab2.checked;
       const idChk = document.getElementById('id-show-profile-card');
       if (idChk) idChk.checked = chkProfileTab2.checked;
     }
@@ -3933,6 +3939,7 @@ async function initAdmin() {
         // Synchronize with specific sub-fields
         if (sec.key === 'aboutProfileCard') {
           if (currentData.profile) currentData.profile.showProfileCard = newVal;
+          if (currentData.about) currentData.about.showProfileCard = newVal;
           const idChk = document.getElementById('id-show-profile-card');
           if (idChk) idChk.checked = newVal;
           const tab2Chk = document.getElementById('about-show-profile-card-tab2');

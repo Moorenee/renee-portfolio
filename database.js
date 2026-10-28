@@ -15,7 +15,7 @@ const CLOUD_DOC = 'live_data';
 
 // Default initial data matching user's exact portfolio sheets
 const DEFAULT_PORTFOLIO_DATA = {
-    "_lastUpdated":  1793161971777,
+    "_lastUpdated":  1793175000000,
     "headers":  {
                     "projects":  {
                                      "description":  "Seventeen works across academic study, competitions and professional practice.",
@@ -48,6 +48,7 @@ const DEFAULT_PORTFOLIO_DATA = {
                     "degree":  "BACHELOR IN INTERACTIVE SPATIAL DESIGN (HONS)",
                     "years":  "2024 - 2026",
                     "showStats":  false,
+                    "showProfileCard":  false,
                     "email":  "moorenee481@gmail.com",
                     "linktreeUrl":  "",
                     "githubUrl":  "",
@@ -1472,8 +1473,8 @@ class PortfolioDatabase {
   async _optimizePayloadForCloud(dataToOptimize, targetMaxDim = 1800, targetQuality = 0.85) {
     if (typeof window === 'undefined' || typeof document === 'undefined') return dataToOptimize;
     
-    // High-performance concurrent image optimizer
-    const shrinkBase64 = (b64, maxDim = targetMaxDim, quality = targetQuality) => {
+    // High-performance concurrent image optimizer preserving Retina 2K+ width for architectural sheets
+    const shrinkBase64 = (b64, maxDim = targetMaxDim, quality = targetQuality, isSlice = false) => {
       return new Promise(resolve => {
         if (!b64 || typeof b64 !== 'string' || !b64.startsWith('data:image')) {
           resolve(b64);
@@ -1493,13 +1494,25 @@ class PortfolioDatabase {
         img.onload = () => {
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
-          if (w > maxDim || h > maxDim) {
-            if (w >= h) {
-              h = Math.round((h * maxDim) / w);
-              w = maxDim;
-            } else {
-              w = Math.round((w * maxDim) / h);
-              h = maxDim;
+          if (isSlice) {
+            // CRITICAL FOR ARCHITECTURAL SHEETS & SHOWCASE SLICES:
+            // Slices are tall vertical drawings scrolled or enlarged by width.
+            // NEVER downscale by height! Scale only if horizontal width exceeds maxDim (min 1800px)
+            // so technical drawings, floorplans, annotations, and typography stay razor-sharp!
+            const maxW = typeof maxDim === 'number' ? Math.max(maxDim, 1800) : 2200;
+            if (w > maxW) {
+              h = Math.round((h * maxW) / w);
+              w = maxW;
+            }
+          } else {
+            if (w > maxDim || h > maxDim) {
+              if (w >= h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
             }
           }
           const canvas = document.createElement('canvas');
@@ -1552,7 +1565,7 @@ class PortfolioDatabase {
               if (p.images[i] && p.images[i].url) {
                 const imgObj = p.images[i];
                 tasks.push(
-                  shrinkBase64(imgObj.url, targetMaxDim, targetQuality)
+                  shrinkBase64(imgObj.url, targetMaxDim, targetQuality, true)
                     .then(res => { imgObj.url = res; })
                 );
               }
@@ -1605,28 +1618,28 @@ class PortfolioDatabase {
 
       if (estSize > TARGET_SAFE_SIZE) {
         console.info(`[PortfolioDB] Pre-sync payload is ${Math.round(estSize/1024)}KB. Optimizing images for cloud sync...`);
-        // Pass 1: 1800px @ 0.85
-        cleanData = await this._optimizePayloadForCloud(cleanData, 1800, 0.85);
+        // Pass 1: 2400px @ 0.88
+        cleanData = await this._optimizePayloadForCloud(cleanData, 2400, 0.88);
         estSize = JSON.stringify(cleanData).length;
         console.info(`[PortfolioDB] Cloud payload pass 1: ${Math.round(estSize/1024)}KB.`);
 
-        // Pass 2: 1400px @ 0.78
+        // Pass 2: 2200px @ 0.82
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 1400, 0.78);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 2200, 0.82);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 2: ${Math.round(estSize/1024)}KB.`);
         }
 
-        // Pass 3: 1100px @ 0.72
+        // Pass 3: 2000px @ 0.76
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 1100, 0.72);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 2000, 0.76);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 3: ${Math.round(estSize/1024)}KB.`);
         }
 
-        // Pass 4: 850px @ 0.65 (guarantees write always succeeds even with dozens of slides)
+        // Pass 4: 1800px @ 0.70 (guarantees write always succeeds while keeping slices at high-res 1800px width)
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 850, 0.65);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 1800, 0.70);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 4: ${Math.round(estSize/1024)}KB.`);
         }

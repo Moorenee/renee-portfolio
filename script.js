@@ -820,13 +820,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Profile card visibility check
-    const showCard = (p.showProfileCard !== false) && (!portfolioData.sectionVisibility || portfolioData.sectionVisibility.aboutProfileCard !== false);
+    const showCard = (p.showProfileCard !== false) && 
+                     (a.showProfileCard !== false) && 
+                     (!portfolioData.sectionVisibility || portfolioData.sectionVisibility.aboutProfileCard !== false);
     const profileCardEl = document.getElementById('about-profile-card') || document.querySelector('.about-profile-card');
     if (profileCardEl) {
       profileCardEl.style.display = showCard ? '' : 'none';
     }
+    const earlyCardStyle = document.getElementById('early-hide-profile-card-style');
+    if (showCard && earlyCardStyle) {
+      earlyCardStyle.remove();
+    }
 
     // Profile card content
+    const portraitImg = document.getElementById('about-portrait-img');
     if (portraitImg) portraitImg.src = p.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80';
 
     const profileName = document.getElementById('about-profile-name');
@@ -3249,14 +3256,37 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ================= 8. PROJECT IMAGE LIGHTBOX MODAL (PHONE & DESKTOP ENLARGED VIEW) =================
   function initImageLightbox() {
     const modal = document.getElementById('image-lightbox-modal');
+    const contentBox = document.getElementById('lightbox-content-box');
     const modalImg = document.getElementById('lightbox-img');
     const modalCaption = document.getElementById('lightbox-caption');
     const closeBtn = document.getElementById('lightbox-close-btn');
+    const zoomBtn = document.getElementById('lightbox-zoom-btn');
+    const zoomText = document.getElementById('lightbox-zoom-text');
+    const zoomIcon = document.getElementById('lightbox-zoom-icon');
     if (!modal || !modalImg) return;
+
+    let isZoomed = false;
+
+    function setZoom(zoomed) {
+      isZoomed = zoomed;
+      if (contentBox) {
+        if (isZoomed) {
+          contentBox.classList.add('zoomed');
+          if (zoomText) zoomText.textContent = 'FIT SCREEN';
+          if (zoomIcon) zoomIcon.textContent = '🔍';
+        } else {
+          contentBox.classList.remove('zoomed');
+          if (zoomText) zoomText.textContent = 'ZOOM 100% (READ DETAILS)';
+          if (zoomIcon) zoomIcon.textContent = '🔍';
+        }
+      }
+    }
 
     function openLightbox(src, captionText = '') {
       if (!src) return;
       modalImg.src = src;
+      setZoom(false);
+      modal.scrollTop = 0;
       if (captionText && captionText.trim()) {
         modalCaption.textContent = captionText.trim();
         modalCaption.style.display = 'block';
@@ -3271,7 +3301,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     function closeLightbox() {
       modal.style.display = 'none';
       modalImg.src = '';
+      setZoom(false);
       document.body.classList.remove('lightbox-open');
+    }
+
+    if (zoomBtn) {
+      zoomBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setZoom(!isZoomed);
+      });
+    }
+
+    if (modalImg) {
+      modalImg.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setZoom(!isZoomed);
+      });
     }
 
     if (closeBtn) {
@@ -3282,8 +3327,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     modal.addEventListener('click', (e) => {
-      // Clicking/tapping backdrop or container closes enlarged view
-      if (e.target !== modalCaption) {
+      // Clicking backdrop closes enlarged view; clicking image toggles zoom
+      if (e.target === modal || e.target === contentBox) {
         closeLightbox();
       }
     });

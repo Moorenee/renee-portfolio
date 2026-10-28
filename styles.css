@@ -5252,28 +5252,41 @@ body.lightbox-open {
 }
 
 .image-lightbox-topbar {
-  position: absolute;
+  position: fixed;
   top: 1rem;
   left: 1.25rem;
   right: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  z-index: 10;
+  z-index: 100000;
   pointer-events: none;
 }
 
-.image-lightbox-badge {
+.image-lightbox-zoom-btn {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   color: #DAD1CA;
-  background: rgba(17, 34, 80, 0.85);
-  border: 1px solid rgba(218, 209, 202, 0.35);
-  padding: 6px 14px;
+  background: rgba(17, 34, 80, 0.92);
+  border: 1px solid rgba(218, 209, 202, 0.4);
+  padding: 8px 16px;
   border-radius: 2px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  user-select: none;
+}
+
+.image-lightbox-zoom-btn:hover {
+  background: #DAD1CA;
+  color: #112250;
+  border-color: #DAD1CA;
 }
 
 .image-lightbox-close {
@@ -5309,7 +5322,20 @@ body.lightbox-open {
   align-items: center;
   justify-content: center;
   position: relative;
-  cursor: zoom-out;
+  transition: max-width 0.2s ease, max-height 0.2s ease;
+}
+
+.image-lightbox-content.zoomed {
+  max-width: none !important;
+  max-height: none !important;
+  width: 100% !important;
+  height: auto !important;
+  margin: auto;
+  padding-top: 4.5rem;
+  padding-bottom: 3.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .lightbox-img {
@@ -5321,8 +5347,20 @@ body.lightbox-open {
   border: 1px solid rgba(218, 209, 202, 0.25);
   background-color: #0b0b0a;
   image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
   border-radius: 2px;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, max-width 0.2s ease;
+  cursor: zoom-in;
+}
+
+.image-lightbox-content.zoomed .lightbox-img {
+  max-width: min(96vw, 1800px) !important;
+  max-height: none !important;
+  width: 100% !important;
+  height: auto !important;
+  object-fit: visible !important;
+  cursor: zoom-out !important;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.85);
 }
 
 .lightbox-caption {
