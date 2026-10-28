@@ -222,7 +222,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       // ABOUT PAGE SECTIONS
       { key: 'aboutHeader', el: document.querySelector('#view-about .subpage-header-stage') },
-      { key: 'aboutProfileCard', el: document.querySelector('.about-profile-col') },
+      { key: 'aboutProfileCard', el: document.getElementById('about-profile-card') || document.querySelector('.about-profile-card') },
       { key: 'aboutBio', el: document.querySelector('.about-bio-col') },
       { key: 'aboutSkillsTags', el: document.getElementById('about-skills-tags') },
       { key: 'aboutStats', el: document.getElementById('about-stats-container') },
@@ -277,7 +277,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!resumeVal) visible = false;
       }
 
-      // Backward compatible checks with about.sectionSettings & profile.showStats
+      // Backward compatible checks with about.sectionSettings & profile.showStats & profile.showProfileCard
+      if (key === 'aboutProfileCard' && (p.showProfileCard === false || sv.aboutProfileCard === false)) visible = false;
       if (key === 'aboutStats' && (p.showStats === false || !Array.isArray(p.stats) || p.stats.length === 0)) visible = false;
       if (key === 'aboutEducation' && ((a.sectionSettings && a.sectionSettings.education && a.sectionSettings.education.enabled === false) || (Array.isArray(a.education) && a.education.length === 0))) visible = false;
       if (key === 'aboutSoftware' && ((a.sectionSettings && a.sectionSettings.software && a.sectionSettings.software.enabled === false) || (Array.isArray(a.software) && a.software.length === 0))) visible = false;
@@ -3340,10 +3341,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.PortfolioDB && window.PortfolioDB.subscribe) {
     window.PortfolioDB.subscribe((newData) => {
       if (!newData) return;
-      // Guard against glitching: only re-render if data is actually newer or modified!
+      // Guard against redundant glitching: only skip if version & content are identical
       const curTime = (portfolioData && portfolioData._lastUpdated) || 0;
       const newTime = (newData && newData._lastUpdated) || 0;
-      if (newTime <= curTime && portfolioData) {
+      if (newTime < curTime && portfolioData) {
+        return; // Older version, ignore
+      }
+      if (newTime === curTime && portfolioData && JSON.stringify(portfolioData) === JSON.stringify(newData)) {
         return; // Exact same version already rendered, don't glitch or flash!
       }
       portfolioData = newData;

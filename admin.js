@@ -481,6 +481,13 @@ async function initAdmin() {
     const resTextEl = document.getElementById('id-resume-btn-text');
     if (resTextEl) resTextEl.value = p.resumeBtnText || 'VIEW RESUME';
 
+    const chkProfile = document.getElementById('id-show-profile-card');
+    if (chkProfile) {
+      const isCardVis = (currentData.sectionVisibility && currentData.sectionVisibility.aboutProfileCard !== false) &&
+                        (p.showProfileCard !== false);
+      chkProfile.checked = isCardVis;
+    }
+
     // Homepage Hero inputs (Image 2)
     const sv = (id, val) => { const el = document.getElementById(id); if (el) el.value = (val !== undefined && val !== null) ? val : ''; };
     sv('home-des-by-input', h.desByLabel !== undefined ? h.desByLabel : 'DES. BY');
@@ -585,6 +592,13 @@ async function initAdmin() {
     const idResTextEl = document.getElementById('id-resume-btn-text');
     if (idResTextEl) p.resumeBtnText = idResTextEl.value.trim() || 'VIEW RESUME';
 
+    const chkProfile = document.getElementById('id-show-profile-card');
+    if (chkProfile) {
+      if (!currentData.sectionVisibility) currentData.sectionVisibility = {};
+      currentData.sectionVisibility.aboutProfileCard = chkProfile.checked;
+      p.showProfileCard = chkProfile.checked;
+    }
+
     // Mirror to Tab 02 About Profile inputs & Tab 04
     const mirrorToTab2 = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined) el.value = val; };
     mirrorToTab2('about-profile-name-tab2', p.name);
@@ -629,6 +643,14 @@ async function initAdmin() {
   }
 
   if (formIdentity) {
+    const chkProfileCard = document.getElementById('id-show-profile-card');
+    if (chkProfileCard) {
+      chkProfileCard.addEventListener('change', () => {
+        collectIdentityData();
+        renderSectionVisibilityManager();
+        triggerRealtimeSync(0);
+      });
+    }
     formIdentity.addEventListener('input', () => {
       collectIdentityData();
       triggerRealtimeSync(120);
@@ -3571,10 +3593,10 @@ async function initAdmin() {
       const cur = await window.PortfolioDB.getData();
       const ok = await window.PortfolioDB.saveToCloud(cur);
       btnCloudSyncNow.textContent = '⚡ SYNC NOW';
-      if (ok) {
+      if (ok && ok.success) {
         showToast('✓ CLOUD DATABASE SYNCED SUCCESSFULLY');
       } else {
-        alert('Cloud sync failed. Check your internet connection.');
+        alert('Cloud sync failed: ' + ((ok && ok.error) || 'Check your internet connection.'));
       }
     });
   }
@@ -3875,6 +3897,11 @@ async function initAdmin() {
         sv[sec.key] = newVal;
 
         // Synchronize with specific sub-fields
+        if (sec.key === 'aboutProfileCard') {
+          if (currentData.profile) currentData.profile.showProfileCard = newVal;
+          const idChk = document.getElementById('id-show-profile-card');
+          if (idChk) idChk.checked = newVal;
+        }
         if (sec.key === 'aboutStats' && currentData.profile) {
           currentData.profile.showStats = newVal;
         }

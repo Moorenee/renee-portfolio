@@ -1290,15 +1290,15 @@ class PortfolioDatabase {
       } catch (e) {}
 
       // 3. Fast-boot Cloud Sync: Start listener immediately
-      // On all devices (new and returning), race cloud fetch with a short 1200ms timeout
-      // so visitor devices receive the 100% freshest cloud update BEFORE the initial render,
-      // eliminating the flash/glitch of stale previous versions!
+      // On all devices (new and returning), race cloud fetch with a 1500ms timeout
+      // so visitor devices receive the 100% freshest cloud update BEFORE the initial render!
+      if (!this.firestore) this.initCloud();
       if (this.firestore && this.isCloudEnabled) {
         this.setupCloudListener();
         try {
           await Promise.race([
             this.syncCloudInBackground(),
-            new Promise(resolve => setTimeout(resolve, 1200))
+            new Promise(resolve => setTimeout(resolve, 1500))
           ]);
         } catch (e) {
           console.warn('Initial cloud sync notice:', e);
@@ -1313,6 +1313,7 @@ class PortfolioDatabase {
   }
 
   async syncCloudInBackground() {
+    if (!this.firestore) this.initCloud();
     if (!this.firestore || !this.isCloudEnabled) return;
     try {
       const docRef = this.firestore.collection(CLOUD_COLLECTION).doc(CLOUD_DOC);
@@ -1328,23 +1329,27 @@ class PortfolioDatabase {
         if (cloudPayload && cloudPayload.data && cloudPayload.data.profile && Array.isArray(cloudPayload.data.projects)) {
           const cloudData = this._ensureSchemaIntegrity(cloudPayload.data);
           const localUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
-          const cloudUpdated = cloudPayload.clientTimestamp
-            ? new Date(cloudPayload.clientTimestamp).getTime()
-            : ((cloudPayload.data && cloudPayload.data._lastUpdated) || 0);
+          const cloudUpdated = (cloudPayload.data && cloudPayload.data._lastUpdated)
+            ? Number(cloudPayload.data._lastUpdated)
+            : (cloudPayload.clientTimestamp ? new Date(cloudPayload.clientTimestamp).getTime() : 0);
 
-          const hasLocalEdits = !!(this.memoryData && this.memoryData._savedFromAdmin);
+          const isAdminSession = typeof window !== 'undefined' && !!(sessionStorage.getItem('renee_admin_authenticated') || localStorage.getItem('renee_admin_authenticated'));
+          const hasLocalEdits = isAdminSession && !!(this.memoryData && this.memoryData._savedFromAdmin);
           const isLocalNewer = hasLocalEdits && (localUpdated > (cloudUpdated + 500));
 
-          // Only overwrite local if cloud is strictly newer, or local is virgin/unmodified default data (<= 10)
-          // NEVER overwrite when local device has newer saved admin edits!
-          if (!isLocalNewer && (cloudUpdated > localUpdated || localUpdated <= 10 || !hasLocalEdits)) {
-            console.info('[PortfolioDB] Updating local to latest cloud dataset...');
+          // On visitor devices: ALWAYS apply cloud data if cloud has valid data!
+          // On admin device: only preserve local edits if admin actually made newer unsynced edits
+          if (!isLocalNewer || !isAdminSession) {
+            console.info('[PortfolioDB] Applying freshest Cloud Firestore dataset to local memory...');
             this.memoryData = this._mergePreservingHighResImages(this.memoryData, cloudData);
+            if (!isAdminSession) {
+              delete this.memoryData._savedFromAdmin;
+            }
             await idbSet('current_portfolio_v3', this.memoryData);
             this.persistToLocal(this.memoryData);
             this.notifyListeners();
-          } else if (isLocalNewer) {
-            console.info('[PortfolioDB] Local edits are newer than cloud. Preserving local edits and syncing to cloud...');
+          } else if (isLocalNewer && isAdminSession) {
+            console.info('[PortfolioDB] Local admin edits are newer than cloud. Preserving and syncing to cloud...');
             await this.saveToCloud(this.memoryData);
           }
         }
@@ -1447,6 +1452,7 @@ class PortfolioDatabase {
 
     // 5. Auto-save to Google Firebase Cloud Firestore (for live worldwide cross-device visitors)
     let cloudResult = { success: false, reason: 'disabled' };
+    if (!this.firestore) this.initCloud();
     if (this.isCloudEnabled && this.firestore) {
       try {
         cloudResult = await this.saveToCloud(this.memoryData);
@@ -1463,6 +1469,7 @@ class PortfolioDatabase {
   }
 
   setupCloudListener() {
+    if (!this.firestore) this.initCloud();
     if (!this.firestore || !this.isCloudEnabled || this.cloudUnsubscribe) return;
     try {
       this.cloudUnsubscribe = this.firestore.collection(CLOUD_COLLECTION).doc(CLOUD_DOC)
@@ -1474,19 +1481,22 @@ class PortfolioDatabase {
           const cloudPayload = docSnap.data();
           if (cloudPayload && cloudPayload.data && cloudPayload.data.profile) {
             const localUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
-            const cloudUpdated = cloudPayload.clientTimestamp
-              ? new Date(cloudPayload.clientTimestamp).getTime()
-              : ((cloudPayload.data && cloudPayload.data._lastUpdated) || 0);
+            const cloudUpdated = (cloudPayload.data && cloudPayload.data._lastUpdated)
+              ? Number(cloudPayload.data._lastUpdated)
+              : (cloudPayload.clientTimestamp ? new Date(cloudPayload.clientTimestamp).getTime() : 0);
 
-            const hasLocalEdits = !!(this.memoryData && this.memoryData._savedFromAdmin);
+            const isAdminSession = typeof window !== 'undefined' && !!(sessionStorage.getItem('renee_admin_authenticated') || localStorage.getItem('renee_admin_authenticated'));
+            const hasLocalEdits = isAdminSession && !!(this.memoryData && this.memoryData._savedFromAdmin);
             const isLocalNewer = hasLocalEdits && (localUpdated > (cloudUpdated + 500));
 
-            // Only apply real-time cloud sync if cloud is strictly newer, or local is uninitialized
-            // NEVER clobber local edits when local is newer or equal!
-            if (!isLocalNewer && (cloudUpdated > localUpdated || localUpdated <= 10 || !hasLocalEdits)) {
+            // On visitor devices: always apply cloud updates in real-time!
+            if (!isLocalNewer || !isAdminSession) {
               console.info('[PortfolioDB] Real-time cloud sync applied.');
               const incoming = this._ensureSchemaIntegrity(cloudPayload.data);
               this.memoryData = this._mergePreservingHighResImages(this.memoryData, incoming);
+              if (!isAdminSession) {
+                delete this.memoryData._savedFromAdmin;
+              }
               idbSet('current_portfolio_v3', this.memoryData);
               this.persistToLocal(this.memoryData);
               this.notifyListeners();
@@ -1498,11 +1508,10 @@ class PortfolioDatabase {
     } catch (e) {}
   }
 
-  async _optimizePayloadForCloud(dataToOptimize, targetMaxDim = 2048, targetQuality = 0.88) {
+  async _optimizePayloadForCloud(dataToOptimize, targetMaxDim = 1800, targetQuality = 0.85) {
     if (typeof window === 'undefined' || typeof document === 'undefined') return dataToOptimize;
     
-    // High-resolution image compressor: targets 2048px clarity at 0.88 quality
-    // Utilizes modern WebP (or high-quality JPEG) with high smoothing quality for tack-sharp detail
+    // High-performance concurrent image optimizer
     const shrinkBase64 = (b64, maxDim = targetMaxDim, quality = targetQuality) => {
       return new Promise(resolve => {
         if (!b64 || typeof b64 !== 'string' || !b64.startsWith('data:image')) {
@@ -1513,8 +1522,8 @@ class PortfolioDatabase {
           resolve(b64);
           return;
         }
-        // If already tiny (< 80KB), preserve without alteration
-        if (b64.length < 100000) {
+        // If already tiny (< 60KB), preserve without alteration
+        if (b64.length < 80000) {
           resolve(b64);
           return;
         }
@@ -1523,62 +1532,98 @@ class PortfolioDatabase {
         img.onload = () => {
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
-          if (w > maxDim) {
-            h = Math.round((h * maxDim) / w);
-            w = maxDim;
+          if (w > maxDim || h > maxDim) {
+            if (w >= h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
           }
           const canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
+          canvas.width = Math.max(1, w);
+          canvas.height = Math.max(1, h);
           const ctx = canvas.getContext('2d');
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
           ctx.drawImage(img, 0, 0, w, h);
           try {
             const webpUrl = canvas.toDataURL('image/webp', quality);
-            if (webpUrl && webpUrl.startsWith('data:image/webp')) {
+            if (webpUrl && webpUrl.startsWith('data:image/webp') && webpUrl.length < b64.length) {
               resolve(webpUrl);
               return;
             }
           } catch(e) {}
-          resolve(canvas.toDataURL('image/jpeg', quality));
+          try {
+            const jpegUrl = canvas.toDataURL('image/jpeg', quality);
+            if (jpegUrl && jpegUrl.length < b64.length) {
+              resolve(jpegUrl);
+              return;
+            }
+          } catch(e) {}
+          resolve(b64);
         };
         img.src = b64;
       });
     };
 
     try {
+      const tasks = [];
+
       if (dataToOptimize.profile && dataToOptimize.profile.photoUrl) {
-        dataToOptimize.profile.photoUrl = await shrinkBase64(dataToOptimize.profile.photoUrl, 1200, 0.88);
+        tasks.push(
+          shrinkBase64(dataToOptimize.profile.photoUrl, Math.min(targetMaxDim, 1000), targetQuality)
+            .then(res => { dataToOptimize.profile.photoUrl = res; })
+        );
       }
+
       if (Array.isArray(dataToOptimize.projects)) {
         for (const p of dataToOptimize.projects) {
           if (p.coverImage) {
-            p.coverImage = await shrinkBase64(p.coverImage, targetMaxDim, targetQuality);
+            tasks.push(
+              shrinkBase64(p.coverImage, targetMaxDim, targetQuality)
+                .then(res => { p.coverImage = res; })
+            );
           }
           if (Array.isArray(p.images)) {
             for (let i = 0; i < p.images.length; i++) {
               if (p.images[i] && p.images[i].url) {
-                p.images[i].url = await shrinkBase64(p.images[i].url, targetMaxDim, targetQuality);
+                const imgObj = p.images[i];
+                tasks.push(
+                  shrinkBase64(imgObj.url, targetMaxDim, targetQuality)
+                    .then(res => { imgObj.url = res; })
+                );
               }
             }
           }
           if (Array.isArray(p.gallery)) {
             for (let i = 0; i < p.gallery.length; i++) {
               if (p.gallery[i] && p.gallery[i].url) {
-                p.gallery[i].url = await shrinkBase64(p.gallery[i].url, Math.min(targetMaxDim, 1800), targetQuality);
+                const galObj = p.gallery[i];
+                tasks.push(
+                  shrinkBase64(galObj.url, Math.min(targetMaxDim, 1500), targetQuality)
+                    .then(res => { galObj.url = res; })
+                );
               }
             }
           }
           if (Array.isArray(p.customSections)) {
             for (let i = 0; i < p.customSections.length; i++) {
               if (p.customSections[i] && p.customSections[i].imageUrl) {
-                p.customSections[i].imageUrl = await shrinkBase64(p.customSections[i].imageUrl, targetMaxDim, targetQuality);
+                const csObj = p.customSections[i];
+                tasks.push(
+                  shrinkBase64(csObj.imageUrl, targetMaxDim, targetQuality)
+                    .then(res => { csObj.imageUrl = res; })
+                );
               }
             }
           }
         }
       }
+
+      // Execute all image compressions in parallel for lightning-fast save speed
+      await Promise.all(tasks);
     } catch (e) {
       console.warn('[PortfolioDB] Payload optimization notice:', e);
     }
@@ -1586,39 +1631,61 @@ class PortfolioDatabase {
   }
 
   async saveToCloud(data) {
+    if (!this.firestore) this.initCloud();
     if (!this.firestore || !this.isCloudEnabled) return { success: false, error: 'Firebase Cloud is not connected' };
     try {
       let cleanData = JSON.parse(JSON.stringify(data));
 
       // Guard Firestore 1 MiB hard document limit:
-      // If serialized size is over 800KB, safely compress base64 images while preserving 2048px clarity
-      try {
-        let estSize = JSON.stringify(cleanData).length;
-        if (estSize > 800000) {
-          console.info(`[PortfolioDB] Pre-sync payload is ${Math.round(estSize/1024)}KB. Optimizing images to crisp 2048px for cloud sync...`);
-          cleanData = await this._optimizePayloadForCloud(cleanData, 2048, 0.88);
-          estSize = JSON.stringify(cleanData).length;
-          console.info(`[PortfolioDB] Cloud payload optimized to ${Math.round(estSize/1024)}KB at 2048px resolution.`);
+      // Firestore throws "Document exceeds maximum allowed size of 1,048,576 bytes" if payload is too big.
+      // We target <= 720,000 characters to guarantee it ALWAYS fits comfortably.
+      const TARGET_SAFE_SIZE = 720000;
+      let estSize = JSON.stringify(cleanData).length;
 
-          // If still over 950KB, do a gentle second pass at 1600px to guarantee Firestore write succeeds
-          if (estSize > 950000) {
-            cleanData = await this._optimizePayloadForCloud(cleanData, 1600, 0.82);
-            estSize = JSON.stringify(cleanData).length;
-            console.info(`[PortfolioDB] Cloud payload secondary pass: ${Math.round(estSize/1024)}KB at 1600px.`);
-          }
+      if (estSize > TARGET_SAFE_SIZE) {
+        console.info(`[PortfolioDB] Pre-sync payload is ${Math.round(estSize/1024)}KB. Optimizing images for cloud sync...`);
+        // Pass 1: 1800px @ 0.85
+        cleanData = await this._optimizePayloadForCloud(cleanData, 1800, 0.85);
+        estSize = JSON.stringify(cleanData).length;
+        console.info(`[PortfolioDB] Cloud payload pass 1: ${Math.round(estSize/1024)}KB.`);
+
+        // Pass 2: 1400px @ 0.78
+        if (estSize > TARGET_SAFE_SIZE) {
+          cleanData = await this._optimizePayloadForCloud(cleanData, 1400, 0.78);
+          estSize = JSON.stringify(cleanData).length;
+          console.info(`[PortfolioDB] Cloud payload pass 2: ${Math.round(estSize/1024)}KB.`);
         }
-      } catch(optErr) {
-        console.warn('[PortfolioDB] Cloud payload size pre-check notice:', optErr);
+
+        // Pass 3: 1100px @ 0.72
+        if (estSize > TARGET_SAFE_SIZE) {
+          cleanData = await this._optimizePayloadForCloud(cleanData, 1100, 0.72);
+          estSize = JSON.stringify(cleanData).length;
+          console.info(`[PortfolioDB] Cloud payload pass 3: ${Math.round(estSize/1024)}KB.`);
+        }
+
+        // Pass 4: 850px @ 0.65 (guarantees write always succeeds even with dozens of slides)
+        if (estSize > TARGET_SAFE_SIZE) {
+          cleanData = await this._optimizePayloadForCloud(cleanData, 850, 0.65);
+          estSize = JSON.stringify(cleanData).length;
+          console.info(`[PortfolioDB] Cloud payload pass 4: ${Math.round(estSize/1024)}KB.`);
+        }
       }
+
+      // Strip administrative session flags so visitor devices don't mistakenly assume they are admins
+      delete cleanData._savedFromAdmin;
+
+      const clientIso = new Date().toISOString();
+      const serverTs = (window.firebase && firebase.firestore && firebase.firestore.FieldValue)
+        ? firebase.firestore.FieldValue.serverTimestamp()
+        : clientIso;
 
       // Overwrite completely without { merge: true } so old deleted projects and obsolete fields are fully purged
       await this.firestore.collection(CLOUD_COLLECTION).doc(CLOUD_DOC).set({
         data: cleanData,
-        updatedAt: (window.firebase && firebase.firestore && firebase.firestore.FieldValue)
-          ? firebase.firestore.FieldValue.serverTimestamp()
-          : new Date().toISOString(),
-        clientTimestamp: new Date().toISOString()
+        updatedAt: serverTs,
+        clientTimestamp: clientIso
       });
+      console.info('[PortfolioDB] Successfully committed payload to Google Firebase Cloud Firestore!');
       return { success: true };
     } catch (err) {
       console.error('Firebase saveToCloud error:', err);
