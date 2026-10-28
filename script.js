@@ -293,6 +293,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         el.style.display = 'none';
       } else {
         el.style.display = '';
+        if (key === 'aboutProfileCard') {
+          const earlyCardStyle = document.getElementById('early-hide-profile-card-style');
+          if (earlyCardStyle) earlyCardStyle.remove();
+        }
       }
     });
 
@@ -811,8 +815,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    // Profile card
-    const portraitImg = document.getElementById('about-portrait-img');
+    // Profile card visibility check
+    const showCard = (p.showProfileCard !== false) && (!portfolioData.sectionVisibility || portfolioData.sectionVisibility.aboutProfileCard !== false);
+    const profileCardEl = document.getElementById('about-profile-card') || document.querySelector('.about-profile-card');
+    if (profileCardEl) {
+      profileCardEl.style.display = showCard ? '' : 'none';
+    }
+
+    // Profile card content
     if (portraitImg) portraitImg.src = p.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80';
 
     const profileName = document.getElementById('about-profile-name');

@@ -487,6 +487,12 @@ async function initAdmin() {
                         (p.showProfileCard !== false);
       chkProfile.checked = isCardVis;
     }
+    const chkProfileTab2 = document.getElementById('about-show-profile-card-tab2');
+    if (chkProfileTab2) {
+      const isCardVis = (currentData.sectionVisibility && currentData.sectionVisibility.aboutProfileCard !== false) &&
+                        (p.showProfileCard !== false);
+      chkProfileTab2.checked = isCardVis;
+    }
 
     // Homepage Hero inputs (Image 2)
     const sv = (id, val) => { const el = document.getElementById(id); if (el) el.value = (val !== undefined && val !== null) ? val : ''; };
@@ -597,6 +603,8 @@ async function initAdmin() {
       if (!currentData.sectionVisibility) currentData.sectionVisibility = {};
       currentData.sectionVisibility.aboutProfileCard = chkProfile.checked;
       p.showProfileCard = chkProfile.checked;
+      const chkProfileTab2 = document.getElementById('about-show-profile-card-tab2');
+      if (chkProfileTab2) chkProfileTab2.checked = chkProfile.checked;
     }
 
     // Mirror to Tab 02 About Profile inputs & Tab 04
@@ -752,6 +760,23 @@ async function initAdmin() {
     });
 
     // 2. Profile Card inputs in Tab 02 (Image 3)
+    const chkProfileTab2 = document.getElementById('about-show-profile-card-tab2');
+    if (chkProfileTab2) {
+      const isCardVis = (currentData.sectionVisibility && currentData.sectionVisibility.aboutProfileCard !== false) &&
+                        (p.showProfileCard !== false);
+      chkProfileTab2.checked = isCardVis;
+      chkProfileTab2.onchange = () => {
+        if (!currentData.sectionVisibility) currentData.sectionVisibility = {};
+        currentData.sectionVisibility.aboutProfileCard = chkProfileTab2.checked;
+        if (!currentData.profile) currentData.profile = {};
+        currentData.profile.showProfileCard = chkProfileTab2.checked;
+        const idChk = document.getElementById('id-show-profile-card');
+        if (idChk) idChk.checked = chkProfileTab2.checked;
+        renderSectionVisibilityManager();
+        triggerRealtimeSync(0);
+      };
+    }
+
     const profPrev = document.getElementById('about-photo-preview-tab2');
     const profUrl = document.getElementById('about-photo-url-tab2');
     const profFile = document.getElementById('about-photo-file-tab2');
@@ -872,6 +897,15 @@ async function initAdmin() {
     if (tab2Resume) p.resumeUrl = tab2Resume;
     const tab2ResumeText = getVal('about-resume-btn-text');
     if (tab2ResumeText) p.resumeBtnText = tab2ResumeText;
+
+    const chkProfileTab2 = document.getElementById('about-show-profile-card-tab2');
+    if (chkProfileTab2) {
+      if (!currentData.sectionVisibility) currentData.sectionVisibility = {};
+      currentData.sectionVisibility.aboutProfileCard = chkProfileTab2.checked;
+      p.showProfileCard = chkProfileTab2.checked;
+      const idChk = document.getElementById('id-show-profile-card');
+      if (idChk) idChk.checked = chkProfileTab2.checked;
+    }
   }
 
   function collectAboutData() {
@@ -3901,6 +3935,8 @@ async function initAdmin() {
           if (currentData.profile) currentData.profile.showProfileCard = newVal;
           const idChk = document.getElementById('id-show-profile-card');
           if (idChk) idChk.checked = newVal;
+          const tab2Chk = document.getElementById('about-show-profile-card-tab2');
+          if (tab2Chk) tab2Chk.checked = newVal;
         }
         if (sec.key === 'aboutStats' && currentData.profile) {
           currentData.profile.showStats = newVal;

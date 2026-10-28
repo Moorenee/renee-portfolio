@@ -41,6 +41,25 @@
           if (es) es.remove();
         }, 600);
       }
+
+      // 3. Early profile card hide if stored or set as hidden in defaults
+      try {
+        var rawCache = localStorage.getItem('moo_renee_portfolio_data_v3');
+        var shouldHideCard = false;
+        if (rawCache) {
+          var parsed = JSON.parse(rawCache);
+          if (parsed) {
+            if (parsed.sectionVisibility && parsed.sectionVisibility.aboutProfileCard === false) shouldHideCard = true;
+            if (parsed.profile && parsed.profile.showProfileCard === false) shouldHideCard = true;
+          }
+        }
+        if (shouldHideCard) {
+          var sc = document.createElement('style');
+          sc.id = 'early-hide-profile-card-style';
+          sc.textContent = '#about-profile-card, .about-profile-card { display: none !important; }';
+          document.head.appendChild(sc);
+        }
+      } catch(e) {}
     })();
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -335,7 +354,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=20261028_1300" />
 </head>
 <body class="site-body">
 
@@ -1375,9 +1394,9 @@
   <!-- Storage and Application Scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js"></script>
-  <script src="database.js"></script>
-  <script src="script.js"></script>
+  <script src="firebase-config.js?v=20261028_1300"></script>
+  <script src="database.js?v=20261028_1300"></script>
+  <script src="script.js?v=20261028_1300"></script>
   <!-- Vercel Web Analytics (Active automatically upon enabling Analytics in Vercel dashboard) -->
   <script defer src="/_vercel/insights/script.js"></script>
 </body>
