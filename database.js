@@ -811,6 +811,9 @@ class PortfolioDatabase {
     }
 
     this.isInitialized = false;
+    this._lastCloudWrite = 0;
+    this._isCloudWriteInFlight = false;
+    this._pendingCloudSave = null;
     this.initCloud();
     this.initPromise = this.init().finally(() => {
       this.isInitialized = true;
@@ -1195,6 +1198,9 @@ class PortfolioDatabase {
           firebase.initializeApp(cfg);
         }
         this.firestore = firebase.firestore();
+        try {
+          this.firestore.settings({ ignoreUndefinedProperties: true });
+        } catch(e) {}
         this.isCloudEnabled = true;
         this.cloudProjectId = cfg.projectId;
       }
@@ -1495,8 +1501,8 @@ class PortfolioDatabase {
           return;
         }
         const isWebp = b64.startsWith('data:image/webp');
-        // If already small (< 50KB) AND NOT WebP, preserve without alteration
-        if (!isWebp && b64.length < 50000) {
+        // If already tiny (< 25KB) AND NOT WebP, preserve without alteration
+        if (!isWebp && b64.length < 25000) {
           resolve(b64);
           return;
         }
@@ -1544,7 +1550,7 @@ class PortfolioDatabase {
           try {
             const outQuality = typeof quality === 'number' ? quality : 0.85;
             const jpegUrl = canvas.toDataURL('image/jpeg', outQuality);
-            if (jpegUrl && (isWebp || jpegUrl.length < b64.length)) {
+            if (jpegUrl && (isWebp || jpegUrl.length < b64.length || w < (img.naturalWidth || img.width) || (typeof quality === 'number' && quality < 0.85))) {
               resolve(jpegUrl);
               return;
             }
@@ -1634,38 +1640,53 @@ class PortfolioDatabase {
   async saveToCloud(data) {
     if (!this.firestore) this.initCloud();
     if (!this.firestore || !this.isCloudEnabled) return { success: false, error: 'Firebase Cloud is not connected' };
+
+    // If another cloud write is already running, queue this data and return
+    if (this._isCloudWriteInFlight) {
+      this._pendingCloudSave = data;
+      return { success: true, queued: true };
+    }
+
+    // Rate-limit throttle: Firestore strictly enforces max 1 write/sec per document
+    const now = Date.now();
+    const timeSinceLast = now - (this._lastCloudWrite || 0);
+    if (timeSinceLast < 1200) {
+      await new Promise(resolve => setTimeout(resolve, 1200 - timeSinceLast));
+    }
+
+    this._isCloudWriteInFlight = true;
     try {
       let cleanData = JSON.parse(JSON.stringify(data));
 
       // Guard Firestore 1 MiB hard document limit (1,048,576 bytes):
-      // Target <= 720,000 characters to comfortably fit maximum high-res clarity without breaching Firestore limit
-      const TARGET_SAFE_SIZE = 720000;
+      // Target <= 700,000 characters to comfortably fit maximum high-res clarity without breaching Firestore limit
+      const TARGET_SAFE_SIZE = 700000;
       let estSize = JSON.stringify(cleanData).length;
 
       if (estSize > TARGET_SAFE_SIZE) {
         console.info(`[PortfolioDB] Pre-sync payload is ${Math.round(estSize/1024)}KB. Optimizing images for cloud sync...`);
-        // Pass 1: 2200px @ 0.88
-        cleanData = await this._optimizePayloadForCloud(cleanData, 2200, 0.88);
+        // Pass 1: 2200px @ 0.86
+        cleanData = await this._optimizePayloadForCloud(cleanData, 2200, 0.86);
         estSize = JSON.stringify(cleanData).length;
         console.info(`[PortfolioDB] Cloud payload pass 1: ${Math.round(estSize/1024)}KB.`);
 
-        // Pass 2: 2000px @ 0.84
+        // Pass 2: 2000px @ 0.82
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 2000, 0.84);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 2000, 0.82);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 2: ${Math.round(estSize/1024)}KB.`);
         }
 
-        // Pass 3: 1800px @ 0.78
+        // Pass 3: 1800px @ 0.76
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 1800, 0.78);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 1800, 0.76);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 3: ${Math.round(estSize/1024)}KB.`);
         }
 
-        // Pass 4: 1600px @ 0.72
+        // Pass 4: 1600px @ 0.70
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 1600, 0.72);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 1600, 0.70);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 4: ${Math.round(estSize/1024)}KB.`);
         }
@@ -1687,9 +1708,9 @@ class PortfolioDatabase {
 
       // Emergency guard against Firestore 1MB ceiling
       let finalSize = JSON.stringify(cleanData).length;
-      if (finalSize > 950000) {
+      if (finalSize > 900000) {
         console.warn(`[PortfolioDB] Payload ${Math.round(finalSize/1024)}KB is near Firestore limit. Running emergency compression...`);
-        cleanData = await this._optimizePayloadForCloud(cleanData, 1100, 0.52);
+        cleanData = await this._optimizePayloadForCloud(cleanData, 1100, 0.50);
       }
 
       // Strip administrative session flags so visitor devices don't mistakenly assume they are admins
@@ -1706,11 +1727,19 @@ class PortfolioDatabase {
         updatedAt: serverTs,
         clientTimestamp: clientIso
       });
+      this._lastCloudWrite = Date.now();
       console.info('[PortfolioDB] Successfully committed payload to Google Firebase Cloud Firestore!');
       return { success: true };
     } catch (err) {
       console.error('Firebase saveToCloud error:', err);
       return { success: false, error: err.message || String(err) };
+    } finally {
+      this._isCloudWriteInFlight = false;
+      if (this._pendingCloudSave) {
+        const nextData = this._pendingCloudSave;
+        this._pendingCloudSave = null;
+        setTimeout(() => { this.saveToCloud(nextData); }, 1200);
+      }
     }
   }
 

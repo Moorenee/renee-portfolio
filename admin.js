@@ -417,7 +417,7 @@ async function initAdmin() {
       } catch(err) {
         console.warn('Auto-save background notice:', err);
       }
-    }, 450);
+    }, 2500);
   }
 
   function triggerRealtimeSync(debounceMs = 120) {
@@ -3655,13 +3655,20 @@ async function initAdmin() {
   if (btnCloudSyncNow) {
     btnCloudSyncNow.addEventListener('click', async () => {
       btnCloudSyncNow.textContent = 'SYNCING...';
-      const cur = await window.PortfolioDB.getData();
-      const ok = await window.PortfolioDB.saveToCloud(cur);
-      btnCloudSyncNow.textContent = '⚡ SYNC NOW';
-      if (ok && ok.success) {
-        showToast('✓ CLOUD DATABASE SYNCED SUCCESSFULLY');
-      } else {
-        alert('Cloud sync failed: ' + ((ok && ok.error) || 'Check your internet connection.'));
+      btnCloudSyncNow.disabled = true;
+      try {
+        const cur = await window.PortfolioDB.getData();
+        const ok = await window.PortfolioDB.saveToCloud(cur);
+        if (ok && ok.success) {
+          showToast('✓ CLOUD DATABASE SYNCED SUCCESSFULLY');
+        } else {
+          alert('Cloud sync failed: ' + ((ok && ok.error) || 'Check your internet connection.'));
+        }
+      } catch (err) {
+        alert('Cloud sync failed: ' + err.message);
+      } finally {
+        btnCloudSyncNow.textContent = '⚡ SYNC NOW';
+        btnCloudSyncNow.disabled = false;
       }
     });
   }
