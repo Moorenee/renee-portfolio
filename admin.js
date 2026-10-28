@@ -32,7 +32,7 @@ async function initAdmin() {
   }
 
   // Base64 helper for image uploads with high-resolution clarity and crisp rendering
-  function fileToBase64(file, maxWidth = 2560, quality = 0.94) {
+  function fileToBase64(file, maxWidth = 2800, quality = 0.94) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = error => reject(error);
@@ -47,8 +47,8 @@ async function initAdmin() {
         img.onload = () => {
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
-          // If already within bounds and reasonable size (< 1.8MB), preserve raw file bytes to prevent generational compression artifacts
-          if (w <= maxWidth && file.size < 1800000) {
+          // If already a clean JPEG within bounds and reasonable size (< 1.8MB), preserve raw file bytes
+          if (file.type === 'image/jpeg' && w <= maxWidth && file.size < 1800000) {
             resolve(rawResult);
             return;
           }
@@ -488,14 +488,14 @@ async function initAdmin() {
 
     const chkProfile = document.getElementById('id-show-profile-card');
     if (chkProfile) {
-      const isCardVis = (currentData.sectionVisibility && currentData.sectionVisibility.aboutProfileCard !== false) &&
-                        (p.showProfileCard !== false);
+      const isCardVis = (currentData.sectionVisibility && currentData.sectionVisibility.aboutProfileCard === true) ||
+                        (p && p.showProfileCard === true);
       chkProfile.checked = isCardVis;
     }
     const chkProfileTab2 = document.getElementById('about-show-profile-card-tab2');
     if (chkProfileTab2) {
-      const isCardVis = (currentData.sectionVisibility && currentData.sectionVisibility.aboutProfileCard !== false) &&
-                        (p.showProfileCard !== false);
+      const isCardVis = (currentData.sectionVisibility && currentData.sectionVisibility.aboutProfileCard === true) ||
+                        (p && p.showProfileCard === true);
       chkProfileTab2.checked = isCardVis;
     }
 
@@ -769,8 +769,8 @@ async function initAdmin() {
     // 2. Profile Card inputs in Tab 02 (Image 3)
     const chkProfileTab2 = document.getElementById('about-show-profile-card-tab2');
     if (chkProfileTab2) {
-      const isCardVis = (currentData.sectionVisibility && currentData.sectionVisibility.aboutProfileCard !== false) &&
-                        (p.showProfileCard !== false);
+      const isCardVis = (currentData.sectionVisibility && currentData.sectionVisibility.aboutProfileCard === true) ||
+                        (p && p.showProfileCard === true);
       chkProfileTab2.checked = isCardVis;
       chkProfileTab2.onchange = () => {
         if (!currentData.sectionVisibility) currentData.sectionVisibility = {};

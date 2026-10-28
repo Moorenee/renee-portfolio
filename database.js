@@ -1490,8 +1490,9 @@ class PortfolioDatabase {
           resolve(b64);
           return;
         }
-        // If already tiny (< 60KB), preserve without alteration
-        if (b64.length < 80000) {
+        const isWebp = b64.startsWith('data:image/webp');
+        // If already tiny (< 80KB) AND NOT WebP, preserve without alteration
+        if (!isWebp && b64.length < 80000) {
           resolve(b64);
           return;
         }
@@ -1503,9 +1504,9 @@ class PortfolioDatabase {
           if (isSlice) {
             // CRITICAL FOR ARCHITECTURAL SHEETS & SHOWCASE SLICES:
             // Slices are tall vertical drawings scrolled or enlarged by width.
-            // NEVER downscale by height! Scale only if horizontal width exceeds maxDim (min 1800px)
+            // NEVER downscale by height! Scale only if horizontal width exceeds maxDim (min 2000px)
             // so technical drawings, floorplans, annotations, and typography stay razor-sharp!
-            const maxW = typeof maxDim === 'number' ? Math.max(maxDim, 1800) : 2200;
+            const maxW = typeof maxDim === 'number' ? Math.max(maxDim, 2000) : 2400;
             if (w > maxW) {
               h = Math.round((h * maxW) / w);
               w = maxW;
@@ -1536,7 +1537,7 @@ class PortfolioDatabase {
           // Use true sRGB JPEG to guarantee accurate color fidelity (eliminates WebP YUV blue/cyan chroma shift)
           try {
             const jpegUrl = canvas.toDataURL('image/jpeg', Math.max(quality, 0.88));
-            if (jpegUrl && jpegUrl.length < b64.length) {
+            if (jpegUrl && (isWebp || jpegUrl.length < b64.length)) {
               resolve(jpegUrl);
               return;
             }
@@ -1615,36 +1616,35 @@ class PortfolioDatabase {
     try {
       let cleanData = JSON.parse(JSON.stringify(data));
 
-      // Guard Firestore 1 MiB hard document limit:
-      // Firestore throws "Document exceeds maximum allowed size of 1,048,576 bytes" if payload is too big.
-      // We target <= 720,000 characters to guarantee it ALWAYS fits comfortably.
-      const TARGET_SAFE_SIZE = 720000;
+      // Guard Firestore 1 MiB hard document limit (1,048,576 bytes):
+      // Target <= 920,000 characters to comfortably fit maximum high-res clarity without premature compression
+      const TARGET_SAFE_SIZE = 920000;
       let estSize = JSON.stringify(cleanData).length;
 
       if (estSize > TARGET_SAFE_SIZE) {
         console.info(`[PortfolioDB] Pre-sync payload is ${Math.round(estSize/1024)}KB. Optimizing images for cloud sync...`);
-        // Pass 1: 2400px @ 0.88
-        cleanData = await this._optimizePayloadForCloud(cleanData, 2400, 0.88);
+        // Pass 1: 2400px @ 0.90
+        cleanData = await this._optimizePayloadForCloud(cleanData, 2400, 0.90);
         estSize = JSON.stringify(cleanData).length;
         console.info(`[PortfolioDB] Cloud payload pass 1: ${Math.round(estSize/1024)}KB.`);
 
-        // Pass 2: 2200px @ 0.82
+        // Pass 2: 2200px @ 0.88
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 2200, 0.82);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 2200, 0.88);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 2: ${Math.round(estSize/1024)}KB.`);
         }
 
-        // Pass 3: 2000px @ 0.76
+        // Pass 3: 2000px @ 0.85
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 2000, 0.76);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 2000, 0.85);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 3: ${Math.round(estSize/1024)}KB.`);
         }
 
-        // Pass 4: 1800px @ 0.70 (guarantees write always succeeds while keeping slices at high-res 1800px width)
+        // Pass 4: 2000px @ 0.82 (retains 2000px width so architectural typography stays razor-sharp)
         if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 1800, 0.70);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 2000, 0.82);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 4: ${Math.round(estSize/1024)}KB.`);
         }

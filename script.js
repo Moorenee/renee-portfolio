@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       // Backward compatible checks with about.sectionSettings & profile.showStats & profile.showProfileCard
-      if (key === 'aboutProfileCard' && (p.showProfileCard === false || sv.aboutProfileCard === false)) visible = false;
+      if (key === 'aboutProfileCard' && (p.showProfileCard !== true && sv.aboutProfileCard !== true)) visible = false;
       if (key === 'aboutStats' && (p.showStats === false || !Array.isArray(p.stats) || p.stats.length === 0)) visible = false;
       if (key === 'aboutEducation' && ((a.sectionSettings && a.sectionSettings.education && a.sectionSettings.education.enabled === false) || (Array.isArray(a.education) && a.education.length === 0))) visible = false;
       if (key === 'aboutSoftware' && ((a.sectionSettings && a.sectionSettings.software && a.sectionSettings.software.enabled === false) || (Array.isArray(a.software) && a.software.length === 0))) visible = false;
@@ -824,10 +824,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    // Profile card visibility check
-    const showCard = (p.showProfileCard !== false) && 
-                     (a.showProfileCard !== false) && 
-                     (!portfolioData.sectionVisibility || portfolioData.sectionVisibility.aboutProfileCard !== false);
+    // Profile card visibility check (defaults to hidden unless explicitly enabled)
+    const showCard = (p.showProfileCard === true) || 
+                     (portfolioData.sectionVisibility && portfolioData.sectionVisibility.aboutProfileCard === true);
     const profileCardEl = document.getElementById('about-profile-card') || document.querySelector('.about-profile-card');
     if (profileCardEl) {
       profileCardEl.style.display = showCard ? '' : 'none';
@@ -1978,12 +1977,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           card.className = 'portrait-image-card';
           const isAboveFold = idx === 0;
           card.innerHTML = `
-            <div class="portrait-img-box">
+            <div class="portrait-img-box" title="Tap to view enlarged high-resolution details">
               <img src="${imgUrl}" 
                    alt="${project.title || 'Project showcase'}" 
                    loading="${isAboveFold ? 'eager' : 'lazy'}" 
                    fetchpriority="${isAboveFold ? 'high' : 'auto'}"
                    decoding="${isAboveFold ? 'sync' : 'async'}" />
+              <div class="img-enlarge-hint"><span>🔍</span> TAP TO ENLARGE</div>
             </div>
           `;
           portraitImagesStack.appendChild(card);
@@ -3279,10 +3279,20 @@ document.addEventListener('DOMContentLoaded', async () => {
           contentBox.classList.add('zoomed');
           if (zoomText) zoomText.textContent = 'FIT SCREEN';
           if (zoomIcon) zoomIcon.textContent = '🔍';
+          if (window.innerWidth <= 768 && modalImg) {
+            const naturalW = modalImg.naturalWidth || 1800;
+            const targetW = Math.max(1400, Math.min(naturalW, 2600));
+            modalImg.style.width = targetW + 'px';
+            modalImg.style.maxWidth = 'none';
+          }
         } else {
           contentBox.classList.remove('zoomed');
           if (zoomText) zoomText.textContent = 'ZOOM 100% (READ DETAILS)';
           if (zoomIcon) zoomIcon.textContent = '🔍';
+          if (modalImg) {
+            modalImg.style.width = '';
+            modalImg.style.maxWidth = '';
+          }
         }
       }
     }
@@ -3292,6 +3302,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       modalImg.src = src;
       setZoom(false);
       modal.scrollTop = 0;
+      modal.scrollLeft = 0;
       if (captionText && captionText.trim()) {
         modalCaption.textContent = captionText.trim();
         modalCaption.style.display = 'block';
@@ -3306,6 +3317,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     function closeLightbox() {
       modal.style.display = 'none';
       modalImg.src = '';
+      if (modalImg) {
+        modalImg.style.width = '';
+        modalImg.style.maxWidth = '';
+      }
       setZoom(false);
       document.body.classList.remove('lightbox-open');
     }
@@ -3349,9 +3364,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       const detailView = document.getElementById('view-project-detail');
       if (!detailView || !detailView.classList.contains('active')) return;
 
-      const imgTarget = e.target.closest(
-        '.portrait-img-box img, .scroll-gallery-item img, .detail-custom-section-block img, .detail-hero-box img'
-      );
+      let imgTarget = null;
+      if (e.target.tagName === 'IMG' && e.target.closest('#view-project-detail')) {
+        imgTarget = e.target;
+      } else {
+        const box = e.target.closest(
+          '.portrait-img-box, .portrait-image-card, .scroll-gallery-item, .detail-custom-section-block, .detail-hero-box'
+        );
+        if (box) imgTarget = box.querySelector('img');
+      }
+
       if (imgTarget && imgTarget.src) {
         e.preventDefault();
         e.stopPropagation();
