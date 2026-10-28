@@ -62,16 +62,21 @@ async function initAdmin() {
           const ctx = canvas.getContext('2d');
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
+
+          // Pure white backing to prevent transparency bleed-through or dark/blue corruption
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, w, h);
           ctx.drawImage(img, 0, 0, w, h);
-          // Prefer high-quality WebP for tack-sharp detail without JPEG artifacts
+
+          // Use true sRGB JPEG to guarantee accurate color fidelity (eliminates WebP YUV blue/cyan chroma shift)
           try {
-            const webpUrl = canvas.toDataURL('image/webp', quality);
-            if (webpUrl && webpUrl.startsWith('data:image/webp')) {
-              resolve(webpUrl);
+            const jpegUrl = canvas.toDataURL('image/jpeg', Math.max(quality, 0.90));
+            if (jpegUrl && jpegUrl.startsWith('data:image/jpeg')) {
+              resolve(jpegUrl);
               return;
             }
           } catch(we) {}
-          resolve(canvas.toDataURL('image/jpeg', quality));
+          resolve(rawResult);
         };
         img.src = rawResult;
       };
@@ -508,8 +513,8 @@ async function initAdmin() {
     sv('home-email-url-input', h.emailUrl !== undefined ? h.emailUrl : 'mailto:moorenee481@gmail.com');
     sv('home-phone-text-input', h.phoneText !== undefined ? h.phoneText : '+06 10-3687393');
     sv('home-phone-url-input', h.phoneUrl !== undefined ? h.phoneUrl : 'tel:+60103687393');
-    sv('home-behance-text-input', h.behanceText !== undefined ? h.behanceText : 'BEHANCE.NET/RENEEMOO');
-    sv('home-behance-url-input', h.behanceUrl !== undefined ? h.behanceUrl : 'https://behance.net/reneemoo');
+    sv('home-behance-text-input', h.behanceText !== undefined ? h.behanceText : (p.behanceUrl ? p.behanceUrl : ''));
+    sv('home-behance-url-input', h.behanceUrl !== undefined ? h.behanceUrl : (p.behanceUrl ? p.behanceUrl : ''));
     sv('home-enter-text-input', h.enterText !== undefined ? h.enterText : '- ENTER PORTFOLIO ->');
     sv('home-enter-url-input', h.enterUrl !== undefined ? h.enterUrl : '#projects');
   }
@@ -877,30 +882,30 @@ async function initAdmin() {
     if (!currentData.profile) currentData.profile = {};
     const p = currentData.profile;
     const getVal = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
-    const tab2Name = getVal('about-profile-name-tab2');
-    if (tab2Name) p.name = tab2Name;
-    const tab2Phone = getVal('about-profile-phone-tab2');
-    if (tab2Phone) p.phone = tab2Phone;
-    const tab2Email = getVal('about-profile-email-tab2');
-    if (tab2Email) p.email = tab2Email;
-    const tab2Behance = getVal('about-profile-behance-tab2');
-    if (tab2Behance) p.behanceUrl = tab2Behance;
-    const tab2Linktree = getVal('about-profile-linktree-tab2');
-    if (tab2Linktree) p.linktreeUrl = tab2Linktree;
-    const tagsVal = getVal('about-profile-tags-tab2');
-    if (tagsVal) {
-      p.tags = tagsVal.split(',').map(s => s.trim()).filter(Boolean);
+    const tab2NameEl = document.getElementById('about-profile-name-tab2');
+    if (tab2NameEl) p.name = tab2NameEl.value.trim();
+    const tab2PhoneEl = document.getElementById('about-profile-phone-tab2');
+    if (tab2PhoneEl) p.phone = tab2PhoneEl.value.trim();
+    const tab2EmailEl = document.getElementById('about-profile-email-tab2');
+    if (tab2EmailEl) p.email = tab2EmailEl.value.trim();
+    const tab2BehanceEl = document.getElementById('about-profile-behance-tab2');
+    if (tab2BehanceEl) p.behanceUrl = tab2BehanceEl.value.trim();
+    const tab2LinktreeEl = document.getElementById('about-profile-linktree-tab2');
+    if (tab2LinktreeEl) p.linktreeUrl = tab2LinktreeEl.value.trim();
+    const tab2TagsEl = document.getElementById('about-profile-tags-tab2');
+    if (tab2TagsEl) {
+      p.tags = tab2TagsEl.value.split(',').map(s => s.trim()).filter(Boolean);
     }
-    const tab2Headline = getVal('about-profile-headline-tab2');
-    if (tab2Headline) p.headline = tab2Headline;
-    const tab2Bio = getVal('about-profile-bio-tab2');
-    if (tab2Bio) p.shortBio = tab2Bio;
+    const tab2HeadlineEl = document.getElementById('about-profile-headline-tab2');
+    if (tab2HeadlineEl) p.headline = tab2HeadlineEl.value.trim();
+    const tab2BioEl = document.getElementById('about-profile-bio-tab2');
+    if (tab2BioEl) p.shortBio = tab2BioEl.value.trim();
     const photoVal = getVal('about-photo-url-tab2');
     if (photoVal) p.photoUrl = photoVal;
-    const tab2Resume = getVal('about-resume-url');
-    if (tab2Resume) p.resumeUrl = tab2Resume;
-    const tab2ResumeText = getVal('about-resume-btn-text');
-    if (tab2ResumeText) p.resumeBtnText = tab2ResumeText;
+    const tab2ResumeEl = document.getElementById('about-resume-url');
+    if (tab2ResumeEl) p.resumeUrl = tab2ResumeEl.value.trim();
+    const tab2ResumeTextEl = document.getElementById('about-resume-btn-text');
+    if (tab2ResumeTextEl) p.resumeBtnText = tab2ResumeTextEl.value.trim();
 
     const chkProfileTab2 = document.getElementById('about-show-profile-card-tab2');
     if (chkProfileTab2) {

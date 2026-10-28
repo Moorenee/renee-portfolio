@@ -3379,21 +3379,21 @@ body.theme-navy .detail-tag-chip {
 }
 
 .related-link-card {
-  padding: 1.15rem 1.4rem;
+  padding: 0.95rem 1.35rem;
   border: 1px solid var(--border-hairline);
   background-color: #ffffff;
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-family: var(--font-mono);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-dark);
   text-decoration: none;
   transition: all var(--transition-fast);
   box-sizing: border-box;
-  min-height: 52px;
+  min-height: 48px;
 }
 
 .related-link-card .link-card-title {
@@ -3489,6 +3489,7 @@ body.theme-navy .related-link-card:hover {
 .portrait-img-box {
   width: 100%;
   touch-action: pan-y;
+  background-color: #ffffff !important;
 }
 
 .portrait-img-box img {
@@ -3496,6 +3497,7 @@ body.theme-navy .related-link-card:hover {
   width: 100% !important;
   max-width: 100% !important;
   height: auto !important;
+  background-color: #ffffff !important;
   image-rendering: -webkit-optimize-contrast;
   image-rendering: auto;
   transform: translateZ(0);
@@ -3508,6 +3510,7 @@ body.theme-navy .related-link-card:hover {
   line-height: 0 !important;
   font-size: 0 !important;
   width: 100% !important;
+  background-color: #ffffff !important;
 }
 
 .portrait-images-stack.no-gap .portrait-image-card {
@@ -3517,6 +3520,7 @@ body.theme-navy .related-link-card:hover {
   line-height: 0 !important;
   position: relative;
   width: 100% !important;
+  background-color: #ffffff !important;
 }
 
 .portrait-images-stack.no-gap .portrait-img-box {
@@ -3524,6 +3528,7 @@ body.theme-navy .related-link-card:hover {
   margin: 0 !important;
   padding: 0 !important;
   width: 100% !important;
+  background-color: #ffffff !important;
 }
 
 .portrait-images-stack.no-gap img {
@@ -3535,6 +3540,7 @@ body.theme-navy .related-link-card:hover {
   padding: 0 !important;
   border: none !important;
   vertical-align: bottom !important;
+  background-color: #ffffff !important;
   image-rendering: -webkit-optimize-contrast;
   image-rendering: auto;
   transform: translateZ(0);
@@ -3720,6 +3726,20 @@ body.theme-navy .gallery-overlay-badge {
   }
   .gallery-overlay-text {
     font-size: 0.8rem;
+  }
+  .related-links-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.65rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  .related-link-card {
+    padding: 0.75rem 1.1rem !important;
+    min-height: 44px !important;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.09em !important;
+  }
+  .related-link-card .link-card-arrow {
+    font-size: 1rem !important;
   }
 }
 
@@ -4903,18 +4923,38 @@ html, body {
   }
   .related-links-grid {
     grid-template-columns: 1fr !important;
+    gap: 0.5rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  .related-link-card {
+    padding: 0.65rem 0.95rem !important;
+    min-height: 40px !important;
+    font-size: 0.70rem !important;
+    letter-spacing: 0.07em !important;
+  }
+  .related-link-card .link-card-title {
+    font-size: 0.70rem !important;
+    letter-spacing: 0.07em !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
+  .related-link-card .link-card-arrow {
+    font-size: 0.9rem !important;
   }
   .detail-center-btns {
     flex-direction: column !important;
     width: 100% !important;
-    gap: 0.65rem !important;
+    gap: 0.5rem !important;
   }
   .detail-center-btns .nav-case-btn {
     flex: none !important;
     width: 100% !important;
     min-width: 100% !important;
-    height: 48px !important;
-    padding: 12px 10px !important;
+    height: 42px !important;
+    padding: 10px 14px !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.08em !important;
     box-sizing: border-box !important;
   }
   .auth-modal-backdrop, .logout-modal-backdrop {
@@ -5409,7 +5449,7 @@ body.lightbox-open {
   object-fit: contain;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(218, 209, 202, 0.25);
-  background-color: #0b0b0a;
+  background-color: #ffffff;
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
   border-radius: 2px;

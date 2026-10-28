@@ -270,7 +270,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       if (key === 'homeBehance') {
         const behanceVal = (h.behanceText !== undefined && h.behanceText !== null) ? h.behanceText.trim() : (p.behanceUrl ? p.behanceUrl.trim() : '');
-        if (!behanceVal) visible = false;
+        if (!behanceVal || (!p.behanceUrl && behanceVal.toLowerCase().includes('reneemoo'))) visible = false;
       }
       if (key === 'homeEnterPortfolio') {
         const enterVal = (h.enterText !== undefined && h.enterText !== null) ? h.enterText.trim() : 'ENTER PORTFOLIO ->';
@@ -687,18 +687,23 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (phoneBox) phoneBox.style.display = 'none';
     }
 
-    // 3. Behance (Optional)
+    // 3. Behance (Optional - hide completely if blank or toggled off)
+    const isBehanceVisible = (!portfolioData.sectionVisibility || portfolioData.sectionVisibility.homeBehance !== false);
     let behanceVal = '';
-    if (h.behanceText !== undefined && h.behanceText !== null) {
-      behanceVal = h.behanceText.trim();
-    } else if (p.behanceUrl) {
-      behanceVal = p.behanceUrl.trim();
+    if (isBehanceVisible) {
+      if (h.behanceText !== undefined && h.behanceText !== null && h.behanceText.trim()) {
+        behanceVal = h.behanceText.trim();
+      } else if (p.behanceUrl && p.behanceUrl.trim()) {
+        behanceVal = p.behanceUrl.trim();
+      } else if (h.behanceUrl && h.behanceUrl.trim()) {
+        behanceVal = h.behanceUrl.trim();
+      }
     }
     if (!p.behanceUrl && behanceVal.toLowerCase().includes('reneemoo')) {
       behanceVal = '';
     }
 
-    if (behanceVal) {
+    if (isBehanceVisible && behanceVal) {
       if (behanceBox) behanceBox.style.display = 'flex';
       if (behanceCell) {
         behanceCell.textContent = behanceVal.replace(/^https?:\/\//i, '').toUpperCase();
@@ -3430,9 +3435,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.PortfolioDB && window.PortfolioDB.getData) {
     window.PortfolioDB.getData().then(freshData => {
       if (freshData) {
+        const isAdminSession = typeof window !== 'undefined' && !!(sessionStorage.getItem('renee_admin_authenticated') || localStorage.getItem('renee_admin_authenticated'));
         const prevTime = (portfolioData && portfolioData._lastUpdated) || 0;
         const freshTime = freshData._lastUpdated || 0;
-        if (freshTime > prevTime || !portfolioData) {
+        if (!isAdminSession || freshTime > prevTime || !portfolioData) {
           portfolioData = freshData;
           try { renderAll(); } catch(e) {}
           const hash = window.location.hash.replace('#', '');

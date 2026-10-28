@@ -15,7 +15,7 @@ const CLOUD_DOC = 'live_data';
 
 // Default initial data matching user's exact portfolio sheets
 const DEFAULT_PORTFOLIO_DATA = {
-    "_lastUpdated":  1793175000000,
+    "_lastUpdated":  1700000000000,
     "headers":  {
                     "projects":  {
                                      "description":  "Seventeen works across academic study, competitions and professional practice.",
@@ -166,7 +166,7 @@ const DEFAULT_PORTFOLIO_DATA = {
                               "aboutHeader":  true,
                               "homeEmail":  true,
                               "aboutProfileCard":  false,
-                              "homeBehance":  true,
+                              "homeBehance":  false,
                               "aboutPersonal":  true,
                               "aboutSkillsTags":  true,
                               "projectsGrid":  true,
@@ -205,7 +205,7 @@ const DEFAULT_PORTFOLIO_DATA = {
                  "rightDiscipline":  "BACHELOR IN INTERACTIVE SPATIAL DESIGN (HONS)",
                  "enterUrl":  "#projects",
                  "copyrightText":  "2026",
-                 "behanceUrl":  "https://behance.net/reneemoo",
+                 "behanceUrl":  "",
                  "emailUrl":  "mailto:moorenee481@gmail.com",
                  "disciplineSub":  "INTERACTIVE SPATIAL DESIGN\nTAYLOR\u0027S UNIVERSITY",
                  "rightYears":  "2024 - 2026",
@@ -1280,6 +1280,7 @@ class PortfolioDatabase {
       if (docSnap && docSnap.exists) {
         const cloudPayload = docSnap.data();
         if (cloudPayload && cloudPayload.data && cloudPayload.data.profile && Array.isArray(cloudPayload.data.projects)) {
+          this.cloudFetched = true;
           const cloudData = this._ensureSchemaIntegrity(cloudPayload.data);
           const localUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
           const cloudUpdated = (cloudPayload.data && cloudPayload.data._lastUpdated)
@@ -1329,29 +1330,33 @@ class PortfolioDatabase {
       try {
         await Promise.race([
           this.syncCloudInBackground(),
-          new Promise(r => setTimeout(r, 600))
+          new Promise(r => setTimeout(r, 1400))
         ]);
       } catch(e) {}
     }
     try {
-      // 1. Check IndexedDB for the most complete, updated dataset
-      const idbData = await idbGet('current_portfolio_v3');
-      if (idbData && idbData.profile && Array.isArray(idbData.projects)) {
-        const idbUpdated = idbData._lastUpdated || 0;
-        const memUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
-        if (idbUpdated >= memUpdated) {
-          this.memoryData = this._ensureSchemaIntegrity(idbData);
+      // 1. Check IndexedDB only if cloud data wasn't already successfully retrieved
+      if (!this.cloudFetched) {
+        const idbData = await idbGet('current_portfolio_v3');
+        if (idbData && idbData.profile && Array.isArray(idbData.projects)) {
+          const idbUpdated = idbData._lastUpdated || 0;
+          const memUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
+          if (idbUpdated >= memUpdated) {
+            this.memoryData = this._ensureSchemaIntegrity(idbData);
+          }
         }
       }
-      // 2. Check LocalStorage if newer
-      const localStr = localStorage.getItem(DB_KEY);
-      if (localStr) {
-        const parsed = JSON.parse(localStr);
-        if (parsed && parsed.profile && Array.isArray(parsed.projects)) {
-          const localUpdated = (parsed && parsed._lastUpdated) || 0;
-          const memUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
-          if (localUpdated > memUpdated) {
-            this.memoryData = this._ensureSchemaIntegrity(parsed);
+      // 2. Check LocalStorage if newer (or if admin has local unsaved work)
+      if (!this.cloudFetched || isAdminSession) {
+        const localStr = localStorage.getItem(DB_KEY);
+        if (localStr) {
+          const parsed = JSON.parse(localStr);
+          if (parsed && parsed.profile && Array.isArray(parsed.projects)) {
+            const localUpdated = (parsed && parsed._lastUpdated) || 0;
+            const memUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
+            if (localUpdated > memUpdated) {
+              this.memoryData = this._ensureSchemaIntegrity(parsed);
+            }
           }
         }
       }
@@ -1453,6 +1458,7 @@ class PortfolioDatabase {
 
             // On visitor devices: always apply cloud updates in real-time!
             if (!isLocalNewer || !isAdminSession) {
+              this.cloudFetched = true;
               console.info('[PortfolioDB] Real-time cloud sync applied.');
               const incoming = this._ensureSchemaIntegrity(cloudPayload.data);
               this.memoryData = this._mergePreservingHighResImages(this.memoryData, incoming);
@@ -1521,16 +1527,15 @@ class PortfolioDatabase {
           const ctx = canvas.getContext('2d');
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
+          
+          // Pure white backing to prevent transparency bleed-through or dark/blue corruption
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0, w, h);
+
+          // Use true sRGB JPEG to guarantee accurate color fidelity (eliminates WebP YUV blue/cyan chroma shift)
           try {
-            const webpUrl = canvas.toDataURL('image/webp', quality);
-            if (webpUrl && webpUrl.startsWith('data:image/webp') && webpUrl.length < b64.length) {
-              resolve(webpUrl);
-              return;
-            }
-          } catch(e) {}
-          try {
-            const jpegUrl = canvas.toDataURL('image/jpeg', quality);
+            const jpegUrl = canvas.toDataURL('image/jpeg', Math.max(quality, 0.88));
             if (jpegUrl && jpegUrl.length < b64.length) {
               resolve(jpegUrl);
               return;
@@ -1642,6 +1647,20 @@ class PortfolioDatabase {
           cleanData = await this._optimizePayloadForCloud(cleanData, 1800, 0.70);
           estSize = JSON.stringify(cleanData).length;
           console.info(`[PortfolioDB] Cloud payload pass 4: ${Math.round(estSize/1024)}KB.`);
+        }
+
+        // Pass 5: 1600px @ 0.65
+        if (estSize > TARGET_SAFE_SIZE) {
+          cleanData = await this._optimizePayloadForCloud(cleanData, 1600, 0.65);
+          estSize = JSON.stringify(cleanData).length;
+          console.info(`[PortfolioDB] Cloud payload pass 5: ${Math.round(estSize/1024)}KB.`);
+        }
+
+        // Pass 6: 1400px @ 0.60 (failsafe against Firestore 1MB ceiling)
+        if (estSize > TARGET_SAFE_SIZE) {
+          cleanData = await this._optimizePayloadForCloud(cleanData, 1400, 0.60);
+          estSize = JSON.stringify(cleanData).length;
+          console.info(`[PortfolioDB] Cloud payload pass 6: ${Math.round(estSize/1024)}KB.`);
         }
       }
 
