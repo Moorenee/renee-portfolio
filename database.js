@@ -1320,6 +1320,27 @@ class PortfolioDatabase {
         if (cloudPayload && cloudPayload.data && cloudPayload.data.profile && Array.isArray(cloudPayload.data.projects)) {
           this.cloudFetched = true;
           const cloudData = this._ensureSchemaIntegrity(cloudPayload.data);
+
+          // Hydrate individual project media documents from Firestore if present
+          try {
+            const projDocsSnap = await this.firestore.collection(CLOUD_COLLECTION).get();
+            if (projDocsSnap && !projDocsSnap.empty) {
+              projDocsSnap.forEach(snap => {
+                if (snap.id && snap.id.startsWith('project_')) {
+                  const pMedia = snap.data();
+                  if (pMedia && pMedia.projectId) {
+                    const targetP = cloudData.projects.find(p => p.id === pMedia.projectId);
+                    if (targetP) {
+                      if (Array.isArray(pMedia.images) && pMedia.images.length > 0) targetP.images = pMedia.images;
+                      if (Array.isArray(pMedia.gallery) && pMedia.gallery.length > 0) targetP.gallery = pMedia.gallery;
+                      if (Array.isArray(pMedia.customSections) && pMedia.customSections.length > 0) targetP.customSections = pMedia.customSections;
+                    }
+                  }
+                }
+              });
+            }
+          } catch (e) {}
+
           const localUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
           const cloudUpdated = (cloudPayload.data && cloudPayload.data._lastUpdated)
             ? Number(cloudPayload.data._lastUpdated)
@@ -1679,15 +1700,15 @@ class PortfolioDatabase {
       return { success: true, queued: true };
     }
 
-    // Rate-limit throttle: Firestore strictly enforces max 1 write/sec per document
-    const now = Date.now();
-    const timeSinceLast = now - (this._lastCloudWrite || 0);
-    if (timeSinceLast < 1200) {
-      await new Promise(resolve => setTimeout(resolve, 1200 - timeSinceLast));
-    }
-
     this._isCloudWriteInFlight = true;
     try {
+      // Rate-limit throttle: Firestore strictly enforces max 1 write/sec per document
+      const now = Date.now();
+      const timeSinceLast = now - (this._lastCloudWrite || 0);
+      if (timeSinceLast < 1200) {
+        await new Promise(resolve => setTimeout(resolve, 1200 - timeSinceLast));
+      }
+
       let cleanData = JSON.parse(JSON.stringify(data));
 
       // Guard Firestore 1 MiB hard document limit (1,048,576 bytes):
@@ -1724,6 +1745,26 @@ class PortfolioDatabase {
         updatedAt: serverTs,
         clientTimestamp: clientIso
       });
+
+      // Also persist dedicated media documents for each project with media slices
+      try {
+        if (Array.isArray(cleanData.projects)) {
+          for (const p of cleanData.projects) {
+            if (p && p.id && ((p.images && p.images.length > 0) || (p.gallery && p.gallery.length > 0) || (p.customSections && p.customSections.length > 0))) {
+              try {
+                await this.firestore.collection(CLOUD_COLLECTION).doc('project_' + p.id).set({
+                  projectId: p.id,
+                  images: p.images || [],
+                  gallery: p.gallery || [],
+                  customSections: p.customSections || [],
+                  updatedAt: serverTs
+                });
+              } catch(pErr) {}
+            }
+          }
+        }
+      } catch(batchErr) {}
+
       this._lastCloudWrite = Date.now();
       console.info('[PortfolioDB] Successfully committed payload to Google Firebase Cloud Firestore!');
       return { success: true };
