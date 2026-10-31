@@ -52,11 +52,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function navigateTo(viewId, param = null) {
-    const isViewChange = (currentActiveViewId !== viewId);
+    const isViewChange = (currentActiveViewId !== viewId) || (viewId === 'project-detail' && currentActiveProjectId !== param);
     currentActiveViewId = viewId;
 
     const earlyStyle = document.getElementById('early-route-style');
     if (earlyStyle) earlyStyle.remove();
+
+    // Close any open lightbox when navigating between pages
+    if (window._closeActiveLightbox) {
+      try { window._closeActiveLightbox(); } catch(e) {}
+    }
 
     pageViews.forEach(view => view.classList.remove('active'));
 
@@ -74,10 +79,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     if (viewId === 'project-detail' && param) {
-      currentActiveProjectId = param;
       if (portfolioData) {
         try {
-          renderProjectDetail(param);
+          renderProjectDetail(param, !isViewChange);
         } catch(err) {
           console.warn('renderProjectDetail safe catch:', err);
         }
@@ -113,6 +117,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     document.body.classList.toggle('on-home', viewId === 'home');
+    if (window._checkHomeCanvasState) {
+      try { window._checkHomeCanvasState(); } catch(e) {}
+    }
 
     // Only scroll to top if the view actually CHANGED (e.g. from home to projects), never on refresh or background data sync!
     if (!isInitialLoad && isViewChange) {
@@ -270,7 +277,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       if (key === 'homeBehance') {
         const behanceVal = (h.behanceText !== undefined && h.behanceText !== null) ? h.behanceText.trim() : (p.behanceUrl ? p.behanceUrl.trim() : '');
-        if (!behanceVal || (!p.behanceUrl && behanceVal.toLowerCase().includes('reneemoo'))) visible = false;
+        if (!behanceVal) visible = false;
       }
       if (key === 'homeEnterPortfolio') {
         const enterVal = (h.enterText !== undefined && h.enterText !== null) ? h.enterText.trim() : 'ENTER PORTFOLIO ->';
@@ -385,6 +392,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   window.addEventListener('hashchange', handleHashChange);
+  // Instant synchronous initial route execution at 0ms:
+  try {
+    handleHashChange();
+  } catch(e) {}
 
   // Active Filter States
   let activeMainSection = 'all';    // 'all' | 'competition' | 'internship' | 'academic'
@@ -653,9 +664,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (p.email) {
       emailVal = p.email.trim();
     }
-    if (!p.email && emailVal.toUpperCase().includes('MOORENEE481@GMAIL.COM')) {
-      emailVal = '';
-    }
 
     if (emailVal) {
       if (emailBox) emailBox.style.display = 'flex';
@@ -674,9 +682,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       phoneVal = h.phoneText.trim();
     } else if (p.phone) {
       phoneVal = p.phone.trim();
-    }
-    if (!p.phone && phoneVal.includes('10-3687393')) {
-      phoneVal = '';
     }
 
     if (phoneVal) {
@@ -700,9 +705,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else if (h.behanceUrl && h.behanceUrl.trim()) {
         behanceVal = h.behanceUrl.trim();
       }
-    }
-    if (!p.behanceUrl && behanceVal.toLowerCase().includes('reneemoo')) {
-      behanceVal = '';
     }
 
     if (isBehanceVisible && behanceVal) {
@@ -1921,7 +1923,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return {
           type: 'gdrive',
           fileId: fileId,
-          cdnUrl: `https://lh3.googleusercontent.com/d/${fileId}`,
+          cdnUrl: `https://lh3.googleusercontent.com/d/${fileId}=s0`,
           previewUrl: `https://drive.google.com/file/d/${fileId}/preview`,
           caption: caption
         };
@@ -1975,7 +1977,146 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
   }
 
-  function renderProjectDetail(projectId) {
+  /* ================= PINCH-TO-ZOOM & PAN (UP TO 200%) FOR MOBILE DEVICES ================= */
+  function enablePinchZoom(containerEl, imgEl) {
+    if (!containerEl || !imgEl) return;
+    if (containerEl._hasPinchZoom) return;
+    containerEl._hasPinchZoom = true;
+
+    let currentScale = 1;
+    let panX = 0;
+    let panY = 0;
+
+    let isPinching = false;
+    let isPanning = false;
+    let startDist = 0;
+    let startScale = 1;
+    let startTouchX = 0;
+    let startTouchY = 0;
+    let startPanX = 0;
+    let startPanY = 0;
+    let lastTapTime = 0;
+
+    function updateTransform(withTransition = false) {
+      imgEl.style.transition = withTransition ? 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
+      imgEl.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${currentScale})`;
+      if (currentScale > 1.02) {
+        containerEl.style.zIndex = '50';
+        containerEl.style.overflow = 'visible';
+      } else {
+        containerEl.style.zIndex = '';
+        containerEl.style.overflow = '';
+      }
+    }
+
+    function resetZoom() {
+      currentScale = 1;
+      panX = 0;
+      panY = 0;
+      updateTransform(true);
+    }
+
+    // Double tap to toggle 100% <-> 200%
+    containerEl.addEventListener('touchend', (e) => {
+      if (e.touches.length > 0) return;
+      const now = Date.now();
+      if (now - lastTapTime < 280) {
+        e.preventDefault();
+        if (currentScale > 1.1) {
+          resetZoom();
+        } else {
+          currentScale = 2.0; // Zoom to 200%
+          panX = 0;
+          panY = 0;
+          updateTransform(true);
+        }
+        lastTapTime = 0;
+        return;
+      }
+      lastTapTime = now;
+    }, { passive: false });
+
+    containerEl.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        isPinching = true;
+        isPanning = false;
+        startDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        startScale = currentScale;
+        startPanX = panX;
+        startPanY = panY;
+      } else if (e.touches.length === 1 && currentScale > 1.02) {
+        isPanning = true;
+        startTouchX = e.touches[0].clientX;
+        startTouchY = e.touches[0].clientY;
+        startPanX = panX;
+        startPanY = panY;
+      }
+    }, { passive: true });
+
+    containerEl.addEventListener('touchmove', (e) => {
+      if (isPinching && e.touches.length === 2) {
+        e.preventDefault(); // Stop native page pinch
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (startDist > 0) {
+          const factor = dist / startDist;
+          currentScale = Math.max(1.0, Math.min(2.0, startScale * factor));
+          const maxPanX = (imgEl.offsetWidth * (currentScale - 1)) / 2;
+          const maxPanY = (imgEl.offsetHeight * (currentScale - 1)) / 2;
+          panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
+          panY = Math.max(-maxPanY, Math.min(maxPanY, panY));
+          updateTransform(false);
+        }
+      } else if (isPanning && currentScale > 1.02 && e.touches.length === 1) {
+        e.preventDefault(); // Stop vertical scroll while actively panning zoomed image
+        const dx = e.touches[0].clientX - startTouchX;
+        const dy = e.touches[0].clientY - startTouchY;
+        const maxPanX = (imgEl.offsetWidth * (currentScale - 1)) / 2;
+        const maxPanY = (imgEl.offsetHeight * (currentScale - 1)) / 2;
+        panX = Math.max(-maxPanX, Math.min(maxPanX, startPanX + dx));
+        panY = Math.max(-maxPanY, Math.min(maxPanY, startPanY + dy));
+        updateTransform(false);
+      }
+    }, { passive: false });
+
+    containerEl.addEventListener('touchend', (e) => {
+      if (e.touches.length === 0) {
+        isPinching = false;
+        isPanning = false;
+        if (currentScale < 1.05) {
+          resetZoom();
+        } else {
+          const maxPanX = (imgEl.offsetWidth * (currentScale - 1)) / 2;
+          const maxPanY = (imgEl.offsetHeight * (currentScale - 1)) / 2;
+          panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
+          panY = Math.max(-maxPanY, Math.min(maxPanY, panY));
+          updateTransform(true);
+        }
+      } else if (e.touches.length === 1 && isPinching) {
+        isPinching = false;
+        if (currentScale > 1.02) {
+          isPanning = true;
+          startTouchX = e.touches[0].clientX;
+          startTouchY = e.touches[0].clientY;
+          startPanX = panX;
+          startPanY = panY;
+        }
+      }
+    }, { passive: true });
+
+    containerEl.addEventListener('touchcancel', () => {
+      isPinching = false;
+      isPanning = false;
+      if (currentScale < 1.05) resetZoom();
+    });
+  }
+
+  function renderProjectDetail(projectId, preserveScroll = false) {
     if (!portfolioData || !portfolioData.projects) return;
     const projs = portfolioData.projects || [];
     const currentIndex = findProjectIndex(projs, projectId);
@@ -1985,11 +2126,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.location.hash = 'projects';
       return;
     }
+    const isNewProject = (currentActiveProjectId !== (project.id || project.index || projectId));
     currentActiveProjectId = project.id || project.index || projectId;
 
-    try {
-      window.scrollTo({ top: 0, behavior: 'instant' });
-    } catch(e) {}
+    if (!preserveScroll && isNewProject && !isInitialLoad) {
+      try {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      } catch(e) {}
+    }
 
     if (autoScrollInterval) {
       clearInterval(autoScrollInterval);
@@ -2098,6 +2242,9 @@ document.addEventListener('DOMContentLoaded', async () => {
               ${media.caption ? `<div class="portrait-embed-caption">${media.caption}</div>` : ''}
             `;
             portraitImagesStack.appendChild(card);
+            const gBox = card.querySelector('.portrait-img-box');
+            const gImg = card.querySelector('img');
+            if (gBox && gImg) enablePinchZoom(gBox, gImg);
           } else {
             const card = document.createElement('div');
             card.className = 'portrait-image-card';
@@ -2113,6 +2260,9 @@ document.addEventListener('DOMContentLoaded', async () => {
               ${media.caption ? `<div class="portrait-embed-caption">${media.caption}</div>` : ''}
             `;
             portraitImagesStack.appendChild(card);
+            const pBox = card.querySelector('.portrait-img-box');
+            const pImg = card.querySelector('img');
+            if (pBox && pImg) enablePinchZoom(pBox, pImg);
           }
         });
       } else {
@@ -2581,24 +2731,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
 
-  // Re-sync instantly when user switches back to this tab
+  // Re-sync seamlessly when user switches back to this tab (never resets scroll or causes page jump)
   async function refreshLiveState() {
     if (!window.PortfolioDB) return;
     try {
-      if (window.PortfolioDB.syncCloudInBackground) {
-        try { await window.PortfolioDB.syncCloudInBackground(); } catch(e) {}
-      }
       const fresh = await window.PortfolioDB.getData();
       if (fresh) {
-        portfolioData = fresh;
-        renderAll();
-        const hash = window.location.hash.replace('#', '');
-        const detailView = document.getElementById('view-project-detail');
-        const isDetailActive = detailView && detailView.classList.contains('active');
-        if (hash.startsWith('project/')) {
-          try { renderProjectDetail(hash.split('/')[1]); } catch(e) {}
-        } else if (isDetailActive && currentActiveProjectId) {
-          try { renderProjectDetail(currentActiveProjectId); } catch(e) {}
+        const curUp = (portfolioData && portfolioData._lastUpdated) || 0;
+        const freshUp = fresh._lastUpdated || 0;
+        // ONLY re-render if data has strictly been updated since current render
+        if (freshUp > curUp) {
+          const savedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+          portfolioData = fresh;
+          renderAll();
+          const hash = window.location.hash.replace('#', '');
+          const detailView = document.getElementById('view-project-detail');
+          const isDetailActive = detailView && detailView.classList.contains('active');
+          if (hash.startsWith('project/')) {
+            try { renderProjectDetail(hash.split('/')[1], true); } catch(e) {}
+          } else if (isDetailActive && currentActiveProjectId) {
+            try { renderProjectDetail(currentActiveProjectId, true); } catch(e) {}
+          }
+          if (savedScrollY > 0) {
+            window.scrollTo({ top: savedScrollY, behavior: 'instant' });
+          }
         }
       }
     } catch(e) {}
@@ -2952,18 +3108,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         ctx.restore();
       }
 
-      animationFrameId = requestAnimationFrame(draw);
+      const isHome = document.body.classList.contains('on-home') || !window.location.hash || window.location.hash === '#home' || window.location.hash === '#';
+      if (isHome) {
+        animationFrameId = requestAnimationFrame(draw);
+      } else {
+        animationFrameId = null;
+      }
     }
 
     function checkHomeCanvas() {
       const isHome = document.body.classList.contains('on-home') || !window.location.hash || window.location.hash === '#home' || window.location.hash === '#';
       if (isHome && !animationFrameId) {
-        draw();
+        animationFrameId = requestAnimationFrame(draw);
+      } else if (!isHome && animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
       }
     }
     window.addEventListener('hashchange', checkHomeCanvas, { passive: true });
+    window._checkHomeCanvasState = checkHomeCanvas;
 
-    draw();
+    checkHomeCanvas();
   }
 
   // G. Center Architectural Compass 3D Spatial Tilt & Needle Tracking
@@ -3401,25 +3566,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function setZoom(zoomed) {
       isZoomed = zoomed;
-      if (contentBox) {
+      if (contentBox && modalImg) {
         if (isZoomed) {
           contentBox.classList.add('zoomed');
-          if (zoomText) zoomText.textContent = 'FIT SCREEN';
+          if (zoomText) zoomText.textContent = 'FIT SCREEN (100%)';
           if (zoomIcon) zoomIcon.textContent = '🔍';
-          if (window.innerWidth <= 768 && modalImg) {
-            const naturalW = modalImg.naturalWidth || 1800;
-            const targetW = Math.max(1400, Math.min(naturalW, 2600));
-            modalImg.style.width = targetW + 'px';
-            modalImg.style.maxWidth = 'none';
-          }
+          modalImg.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+          modalImg.style.transform = 'translate3d(0, 0, 0) scale(2)';
         } else {
           contentBox.classList.remove('zoomed');
-          if (zoomText) zoomText.textContent = 'ZOOM 100% (READ DETAILS)';
+          if (zoomText) zoomText.textContent = 'ZOOM 200% (READ DETAILS)';
           if (zoomIcon) zoomIcon.textContent = '🔍';
-          if (modalImg) {
-            modalImg.style.width = '';
-            modalImg.style.maxWidth = '';
-          }
+          modalImg.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+          modalImg.style.transform = 'translate3d(0, 0, 0) scale(1)';
         }
       }
     }
@@ -3439,18 +3598,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       modal.style.setProperty('display', 'flex', 'important');
       document.body.classList.add('lightbox-open');
+      enablePinchZoom(contentBox, modalImg);
     }
 
     function closeLightbox() {
       modal.style.setProperty('display', 'none', 'important');
       modalImg.src = '';
       if (modalImg) {
-        modalImg.style.width = '';
-        modalImg.style.maxWidth = '';
+        modalImg.style.transform = '';
+        modalImg.style.transition = '';
       }
       setZoom(false);
       document.body.classList.remove('lightbox-open');
     }
+
+    window._closeActiveLightbox = closeLightbox;
 
     if (zoomBtn) {
       zoomBtn.addEventListener('click', (e) => {
@@ -3474,7 +3636,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     modal.addEventListener('click', (e) => {
-      // Clicking backdrop closes enlarged view; clicking image toggles zoom
+      // Clicking backdrop closes enlarged view
       if (e.target === modal || e.target === contentBox) {
         closeLightbox();
       }
@@ -3523,89 +3685,69 @@ document.addEventListener('DOMContentLoaded', async () => {
   initImageLightbox();
 
   // ================= 9. COMPLETE INITIAL BOOT & REAL-TIME SYNC =================
-  // 1. Race to load IndexedDB data & cloud sync (up to 1200ms)
-  // Ensures returning & new visitor devices fetch latest cloud update BEFORE initial render!
-  if (window.PortfolioDB && window.PortfolioDB.initPromise) {
-    try {
-      await Promise.race([
-        window.PortfolioDB.initPromise,
-        new Promise(res => setTimeout(res, 1200))
-      ]);
-    } catch(e) {}
-  }
-
-  // 2. Hydrate local memory database
+  // 1. Immediately hydrate local memory database and render at 0ms (no 2.5s blocking wait!)
   portfolioData = (window.PortfolioDB && window.PortfolioDB.getImmediateData)
     ? window.PortfolioDB.getImmediateData()
     : ((window.PortfolioDB && window.PortfolioDB.memoryData) ? window.PortfolioDB.memoryData : null);
 
-  // 3. Render all pages and components with 100% updated data
+  // 2. Render all pages and components with available local data immediately (0ms)
   if (portfolioData) {
     try { renderAll(); } catch(e) { console.warn('Initial renderAll error:', e); }
   }
 
-  // 4. Safely switch to active route (e.g. project-detail or home)
+  // 3. Ensure requested route is fully active
   handleHashChange();
 
-  // 5. Instantly reveal the page - remove anti-FOUC veil & early-route style
+  // 4. Instantly reveal the page - remove anti-FOUC veil & early-route style
   document.documentElement.classList.remove('anti-fouc');
   const earlyStyle = document.getElementById('early-route-style');
   if (earlyStyle) earlyStyle.remove();
   isInitialLoad = false;
 
+  // 5. In background: let cloud sync run without blocking UI or route navigation
+  if (window.PortfolioDB && window.PortfolioDB.initPromise) {
+    window.PortfolioDB.initPromise.then(cloudData => {
+      if (cloudData) {
+        const curUp = (portfolioData && portfolioData._lastUpdated) || 0;
+        const freshUp = cloudData._lastUpdated || 0;
+        if (freshUp > curUp) {
+          portfolioData = cloudData;
+          try { renderAll(); } catch(e) {}
+          const hash = window.location.hash.replace('#', '');
+          const detailView = document.getElementById('view-project-detail');
+          const isDetailActive = detailView && detailView.classList.contains('active');
+          if (hash.startsWith('project/')) {
+            try { renderProjectDetail(hash.split('/')[1], true); } catch(e) {}
+          } else if (isDetailActive && currentActiveProjectId) {
+            try { renderProjectDetail(currentActiveProjectId, true); } catch(e) {}
+          }
+        }
+      }
+    }).catch(e => console.warn('Background cloud init notice:', e));
+  }
+
   // 6. Subscribe to real-time database updates from Cloud Firestore, Admin, and other tabs
   if (window.PortfolioDB && window.PortfolioDB.subscribe) {
     window.PortfolioDB.subscribe((newData) => {
       if (!newData) return;
-      const isAdminSession = typeof window !== 'undefined' && !!(sessionStorage.getItem('renee_admin_authenticated') || localStorage.getItem('renee_admin_authenticated'));
-      
-      const curTime = (portfolioData && portfolioData._lastUpdated) || 0;
-      const newTime = (newData && newData._lastUpdated) || 0;
-
-      // Skip redundant re-renders if incoming data timestamp is not newer
-      if (portfolioData && newTime <= curTime) {
-        return;
-      }
-      
-      // On admin editing device: avoid overwriting newer local unsaved edits
-      if (isAdminSession && newTime < curTime && portfolioData) {
-        return;
-      }
-      portfolioData = newData;
-      try { renderAll(); } catch(e) {}
-      const hash = window.location.hash.replace('#', '');
-      const detailView = document.getElementById('view-project-detail');
-      const isDetailActive = detailView && detailView.classList.contains('active');
-      if (hash.startsWith('project/')) {
-        try { renderProjectDetail(hash.split('/')[1]); } catch(e) {}
-      } else if (isDetailActive && currentActiveProjectId) {
-        try { renderProjectDetail(currentActiveProjectId); } catch(e) {}
-      }
-    });
-  }
-
-  // 7. Background fresh data verification
-  if (window.PortfolioDB && window.PortfolioDB.getData) {
-    window.PortfolioDB.getData().then(freshData => {
-      if (freshData) {
-        const isAdminSession = typeof window !== 'undefined' && !!(sessionStorage.getItem('renee_admin_authenticated') || localStorage.getItem('renee_admin_authenticated'));
-        const prevTime = (portfolioData && portfolioData._lastUpdated) || 0;
-        const freshTime = freshData._lastUpdated || 0;
-        if (!isAdminSession || freshTime > prevTime || !portfolioData) {
-          portfolioData = freshData;
-          try { renderAll(); } catch(e) {}
-          const hash = window.location.hash.replace('#', '');
-          if (hash.startsWith('project/')) {
-            try { renderProjectDetail(hash.split('/')[1]); } catch(e) {}
-          }
+      const curUp = (portfolioData && portfolioData._lastUpdated) || 0;
+      const freshUp = newData._lastUpdated || 0;
+      if (freshUp > curUp) {
+        portfolioData = newData;
+        try { renderAll(); } catch(e) {}
+        const hash = window.location.hash.replace('#', '');
+        const detailView = document.getElementById('view-project-detail');
+        const isDetailActive = detailView && detailView.classList.contains('active');
+        if (hash.startsWith('project/')) {
+          try { renderProjectDetail(hash.split('/')[1], true); } catch(e) {}
+        } else if (isDetailActive && currentActiveProjectId) {
+          try { renderProjectDetail(currentActiveProjectId, true); } catch(e) {}
         }
       }
-    }).catch(err => {
-      console.warn('Async getData notice:', err);
     });
   }
 
-  // 8. Log visitor count to Firebase if cloud enabled (ignores admin self-views)
+  // 7. Log visitor count to Firebase if cloud enabled (ignores admin self-views)
   if (window.PortfolioDB && window.PortfolioDB.recordVisit) {
     window.PortfolioDB.recordVisit();
   }

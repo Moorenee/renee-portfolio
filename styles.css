@@ -979,12 +979,13 @@ button.drawer-link.drawer-logout-btn {
 }
 
 #view-home.page-view.active {
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100vh - var(--header-height));
-  min-height: calc(100dvh - var(--header-height));
-  height: auto;
-  overflow: visible;
+  display: flex !important;
+  flex-direction: column !important;
+  height: calc(100vh - var(--header-height, 56px)) !important;
+  height: calc(100dvh - var(--header-height, 56px)) !important;
+  max-height: calc(100dvh - var(--header-height, 56px)) !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
   animation: pageViewFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -1008,23 +1009,13 @@ button.drawer-link.drawer-logout-btn {
   }
 }
 
+/* Homepage 100vh Screen Constraint: Across all devices (desktop, laptop, tablet, phone) */
 body.on-home {
-  min-height: 100vh;
-  min-height: 100dvh;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-@media (min-width: 901px) and (min-height: 680px) {
-  #view-home.page-view.active {
-    height: calc(100vh - var(--header-height));
-    max-height: calc(100vh - var(--header-height));
-    overflow: hidden;
-  }
-  body.on-home {
-    height: 100vh !important;
-    overflow: hidden !important;
-  }
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+  position: relative !important;
 }
 
 body.on-home .site-header {
@@ -1032,6 +1023,7 @@ body.on-home .site-header {
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   border-bottom: 1px solid var(--border-hairline);
+  flex-shrink: 0 !important;
 }
 
 body.theme-navy.on-home .site-header {
@@ -1044,26 +1036,21 @@ body.on-home .site-footer {
   display: none !important;
 }
 
-body.on-home #view-home.page-view.active,
-body.on-home .home-paper-stage,
-body.on-home .home-grid-container,
-body.on-home .home-grid-content,
-body.on-home .home-center-hero {
-  overflow: visible;
-}
-
 /* ================= 3. VIEW 1: HOME (ARCHITECTURAL GRID) ================= */
 .home-paper-stage {
-  flex: 1 1 100%;
-  width: 100%;
-  max-width: 1540px;
-  margin: 0 auto;
-  height: 100%;
+  flex: 1 1 100% !important;
+  width: 100% !important;
+  max-width: 1540px !important;
+  margin: 0 auto !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  box-sizing: border-box !important;
   position: relative;
   background-color: var(--bg-paper);
-  padding: 1.5rem 2rem;
-  display: flex;
-  flex-direction: column;
+  padding: clamp(0.5rem, 1.5vh, 1.25rem) clamp(0.75rem, 2vw, 1.5rem) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
 }
 
 /* Background Spatial Canvas (Plus Symbol Animation Only) */
@@ -1079,14 +1066,19 @@ body.on-home .home-center-hero {
 
 /* Inset Border Grid Box */
 .home-grid-container {
-  flex: 1 1 100%;
-  width: 100%;
-  height: 100%;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
   border: 1px solid var(--border-hairline);
   position: relative;
   z-index: 2;
-  display: flex;
-  flex-direction: column;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
 }
 
 /* Background Column Lines: superseded by 3-column architectural grid */
@@ -1096,13 +1088,15 @@ body.on-home .home-center-hero {
 
 /* Home Grid Content: Exactly 3 Columns (1fr 2fr 1fr = 25% 50% 25%) aligning with the 4 even cells below */
 .home-grid-content {
-  flex: 1 1 100%;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
   position: relative;
   z-index: 2;
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
   align-items: stretch;
   padding: 0;
+  overflow: hidden !important;
 }
 
 /* Left Info Column: Column 1 (25% width), right border aligns with bottom Cell 1 */
@@ -3489,6 +3483,7 @@ body.theme-navy .related-link-card:hover {
   width: 100%;
   position: relative;
   touch-action: pan-y;
+  background-color: #ffffff !important;
 }
 
 .portrait-img-box {
@@ -4593,30 +4588,38 @@ html, body {
     display: flex !important;
     flex-direction: column !important;
     flex: 1 1 auto !important;
-    padding: 0.75rem 0.75rem !important;
+    padding: clamp(0.35rem, 1vh, 0.75rem) clamp(0.5rem, 1.5vw, 1rem) !important;
     box-sizing: border-box !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
   }
   .home-grid-container {
     display: flex !important;
     flex-direction: column !important;
     flex: 1 1 auto !important;
-    height: auto !important;
-    min-height: calc(100dvh - var(--header-height) - 1.5rem) !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
     justify-content: space-between !important;
     box-sizing: border-box !important;
+    overflow: hidden !important;
   }
   .home-grid-content {
     display: flex !important;
     flex-direction: column !important;
     flex: 1 1 auto !important;
+    min-height: 0 !important;
     width: 100% !important;
+    justify-content: space-between !important;
+    overflow: hidden !important;
     gap: 0;
   }
   .home-left-col {
     grid-column: auto;
     border-right: none;
     border-bottom: 1px solid var(--border-hairline);
-    padding: 0.85rem 1.25rem;
+    padding: clamp(0.35rem, 0.8vh, 0.65rem) clamp(0.6rem, 2vw, 1rem) !important;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -4624,6 +4627,8 @@ html, body {
     width: 100%;
     background: rgba(255, 255, 255, 0.4);
     text-align: left;
+    min-height: unset !important;
+    flex-shrink: 0 !important;
   }
   .home-left-col .home-des-by {
     display: none;
@@ -4651,31 +4656,33 @@ html, body {
     grid-column: auto;
     border-right: none;
     border-bottom: 1px solid var(--border-hairline);
-    padding: 2.5rem 1rem;
+    padding: clamp(0.2rem, 1vh, 1rem) 0.5rem !important;
     flex: 1 1 auto !important;
-    min-height: 260px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    overflow: hidden !important;
   }
   .hero-wordmark-top,
   .hero-wordmark-bottom {
-    font-size: clamp(3.2rem, 14vw, 5.2rem);
-    line-height: 0.88;
-    letter-spacing: -2px;
+    font-size: clamp(2.2rem, 7.5vh, 4.4rem) !important;
+    line-height: 0.88 !important;
+    letter-spacing: -1.5px !important;
   }
   .hero-center-compass {
-    width: clamp(280px, 75vw, 420px);
-    height: clamp(280px, 75vw, 420px);
+    width: clamp(140px, 28vh, 280px) !important;
+    height: clamp(140px, 28vh, 280px) !important;
+    max-width: 70vw !important;
+    max-height: 70vw !important;
   }
   .home-right-col {
     grid-column: auto;
     border-right: none;
     border-bottom: 1px solid var(--border-hairline);
-    padding: 0.85rem 1.25rem;
+    padding: clamp(0.35rem, 0.8vh, 0.65rem) clamp(0.6rem, 2vw, 1rem) !important;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -4683,6 +4690,8 @@ html, body {
     width: 100%;
     background: rgba(255, 255, 255, 0.4);
     text-align: left;
+    min-height: unset !important;
+    flex-shrink: 0 !important;
   }
   .home-right-discipline {
     font-size: 10px;
@@ -4700,20 +4709,21 @@ html, body {
     color: #FFFFFF !important;
   }
   .home-bottom-grid-bar {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    width: 100%;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
     border-top: none;
+    flex-shrink: 0 !important;
   }
   .bottom-cell {
     border-right: 1px solid var(--border-hairline);
     border-bottom: 1px solid var(--border-hairline);
-    padding: 0.95rem 1rem;
+    padding: clamp(0.35rem, 0.8vh, 0.75rem) 0.5rem !important;
     display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;
-    min-height: 56px;
+    min-height: unset !important;
   }
   .bottom-cell:nth-child(2n) {
     border-right: none;
@@ -4948,30 +4958,38 @@ html, body {
     display: flex !important;
     flex-direction: column !important;
     flex: 1 1 auto !important;
-    min-height: calc(100dvh - var(--header-height) - 1rem) !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
     justify-content: space-between !important;
   }
   .home-grid-content {
     display: flex !important;
     flex-direction: column !important;
     flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
   }
   .home-center-hero {
     flex: 1 1 auto !important;
-    min-height: 220px !important;
-    padding: 1.5rem 0.5rem !important;
+    min-height: 0 !important;
+    padding: clamp(0.2rem, 1vh, 0.75rem) 0.5rem !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    overflow: hidden !important;
   }
   .hero-wordmark-top,
   .hero-wordmark-bottom {
-    font-size: clamp(2.7rem, 14vw, 3.8rem) !important;
+    font-size: clamp(2rem, 6.5vh, 3.8rem) !important;
     letter-spacing: -1.5px !important;
   }
   .hero-center-compass {
-    width: clamp(240px, 76vw, 320px) !important;
-    height: clamp(240px, 76vw, 320px) !important;
+    width: clamp(120px, 24vh, 260px) !important;
+    height: clamp(120px, 24vh, 260px) !important;
+    max-width: 65vw !important;
+    max-height: 65vw !important;
   }
   .home-bottom-grid-bar {
     grid-template-columns: 1fr !important;
@@ -5113,20 +5131,41 @@ html, body {
 
 /* --- Height-Constrained Displays (Laptops with toolbars, landscape mobile: max-height: 680px) --- */
 @media (max-height: 680px) {
-  body.on-home {
-    height: auto !important;
-    min-height: 100vh !important;
-    overflow-y: auto !important;
-  }
   #view-home.page-view.active {
-    height: auto !important;
-    min-height: calc(100vh - 52px) !important;
-    max-height: none !important;
-    overflow: visible !important;
+    height: calc(100vh - 52px) !important;
+    height: calc(100dvh - 52px) !important;
+    max-height: calc(100dvh - 52px) !important;
+    overflow: hidden !important;
+  }
+  .home-paper-stage {
+    padding: clamp(0.2rem, 0.8vh, 0.5rem) clamp(0.4rem, 1.2vw, 0.75rem) !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+  .home-grid-container {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
   }
   .home-center-hero {
-    padding: 2.25rem 1rem !important;
-    min-height: 240px !important;
+    padding: clamp(0.15rem, 0.6vh, 0.5rem) 0.5rem !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  .hero-center-compass {
+    width: clamp(100px, 26vh, 220px) !important;
+    height: clamp(100px, 26vh, 220px) !important;
+  }
+  .hero-wordmark-top,
+  .hero-wordmark-bottom {
+    font-size: clamp(1.8rem, 6vh, 3.2rem) !important;
+    line-height: 0.88 !important;
+  }
+  .bottom-cell {
+    padding: clamp(0.2rem, 0.6vh, 0.4rem) 0.5rem !important;
+    min-height: unset !important;
   }
   .auth-modal-card, .logout-modal-card {
     max-height: 88dvh !important;

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * MOO RENEE — Database & State Storage Layer (v3)
  * Uses IndexedDB with LocalStorage fallback & cross-tab synchronization.
  * Supports persistent saving, JSON export/import, and automatic default seeding.
@@ -1027,7 +1027,7 @@ class PortfolioDatabase {
     const incomingTime = Number(incomingData._lastUpdated || 0);
 
     // Whenever incoming cloud data is at least as new as local data,
-    // unconditionally accept the incoming data so deleted items and edits are fully respected!
+    // unconditionally accept incoming data so deleted items and edits are fully respected!
     if (incomingTime >= localTime) {
       return JSON.parse(JSON.stringify(incomingData));
     }
@@ -1042,7 +1042,7 @@ class PortfolioDatabase {
       }
     }
 
-    // Preserve high-res project covers, continuous showcase slices, gallery exhibits, and custom sections
+    // Preserve high-res project covers and images for existing projects only (NEVER resurrect deleted projects or removed items)
     if (Array.isArray(localData.projects) && Array.isArray(merged.projects)) {
       const localMap = {};
       localData.projects.forEach(lp => { if (lp && lp.id) localMap[lp.id] = lp; });
@@ -1052,95 +1052,41 @@ class PortfolioDatabase {
         const lp = localMap[mp.id];
         if (!lp) return;
 
-        // Preserve coverImage
-        if (lp.coverImage) {
-          if (!mp.coverImage || (lp.coverImage.startsWith('data:image') && lp.coverImage.length > (mp.coverImage || '').length)) {
-            mp.coverImage = lp.coverImage;
-          }
+        // Preserve coverImage only if incoming cover is missing
+        if (lp.coverImage && !mp.coverImage) {
+          mp.coverImage = lp.coverImage;
         }
 
-        // Preserve showcase slices (images)
-        if (Array.isArray(lp.images) && lp.images.length > 0) {
-          if (!Array.isArray(mp.images) || mp.images.length === 0) {
-            // Incoming has 0 images, local has images: ALWAYS preserve all local images!
-            mp.images = JSON.parse(JSON.stringify(lp.images));
-          } else {
-            // Incoming has images: update matching indices with higher-res copies, and append any extra local slices
-            lp.images.forEach((lImg, idx) => {
-              if (!lImg) return;
-              const lUrl = typeof lImg === 'string' ? lImg : (lImg.url || '');
-              if (idx < mp.images.length) {
-                const mImg = mp.images[idx];
-                const mUrl = typeof mImg === 'string' ? mImg : (mImg ? mImg.url || '' : '');
-                if (lUrl.startsWith('data:image') && (!mUrl || lUrl.length > mUrl.length)) {
-                  if (typeof mImg === 'string') {
-                    mp.images[idx] = lUrl;
-                  } else if (mImg && typeof mImg === 'object') {
-                    mImg.url = lUrl;
-                  }
-                }
-              } else {
-                // Local had more slices than incoming: keep the extra local slices!
-                mp.images.push(JSON.parse(JSON.stringify(lImg)));
+        // Only fill image if incoming image at index is missing
+        if (Array.isArray(lp.images) && lp.images.length > 0 && Array.isArray(mp.images)) {
+          lp.images.forEach((lImg, idx) => {
+            if (!lImg || idx >= mp.images.length) return;
+            const lUrl = typeof lImg === 'string' ? lImg : (lImg.url || '');
+            const mImg = mp.images[idx];
+            const mUrl = typeof mImg === 'string' ? mImg : (mImg ? mImg.url || '' : '');
+            if (lUrl && !mUrl) {
+              if (typeof mImg === 'string') {
+                mp.images[idx] = lUrl;
+              } else if (mImg && typeof mImg === 'object') {
+                mImg.url = lUrl;
               }
-            });
-          }
-        }
-
-        // Preserve gallery
-        if (Array.isArray(lp.gallery) && lp.gallery.length > 0) {
-          if (!Array.isArray(mp.gallery) || mp.gallery.length === 0) {
-            mp.gallery = JSON.parse(JSON.stringify(lp.gallery));
-          } else {
-            lp.gallery.forEach((lGal, idx) => {
-              if (!lGal) return;
-              const lUrl = typeof lGal === 'string' ? lGal : (lGal.url || '');
-              if (idx < mp.gallery.length) {
-                const mGal = mp.gallery[idx];
-                const mUrl = typeof mGal === 'string' ? mGal : (mGal ? mGal.url || '' : '');
-                if (lUrl.startsWith('data:image') && (!mUrl || lUrl.length > mUrl.length)) {
-                  if (typeof mGal === 'string') {
-                    mp.gallery[idx] = lUrl;
-                  } else if (mGal && typeof mGal === 'object') {
-                    mGal.url = lUrl;
-                  }
-                }
-              } else {
-                mp.gallery.push(JSON.parse(JSON.stringify(lGal)));
-              }
-            });
-          }
-        }
-
-        // Preserve customSections
-        if (Array.isArray(lp.customSections) && lp.customSections.length > 0) {
-          if (!Array.isArray(mp.customSections) || mp.customSections.length === 0) {
-            mp.customSections = JSON.parse(JSON.stringify(lp.customSections));
-          } else {
-            lp.customSections.forEach((lSec, idx) => {
-              if (!lSec) return;
-              if (idx < mp.customSections.length) {
-                const mSec = mp.customSections[idx];
-                if (mSec && lSec.imageUrl && (!mSec.imageUrl || (lSec.imageUrl.startsWith('data:image') && lSec.imageUrl.length > mSec.imageUrl.length))) {
-                  mSec.imageUrl = lSec.imageUrl;
-                }
-              } else {
-                mp.customSections.push(JSON.parse(JSON.stringify(lSec)));
-              }
-            });
-          }
-        }
-      });
-
-      // Also preserve any newly created projects that exist locally but haven't synced yet
-      const mergedIds = new Set(merged.projects.map(p => p && p.id).filter(Boolean));
-      localData.projects.forEach(lp => {
-        if (lp && lp.id && !mergedIds.has(lp.id)) {
-          merged.projects.push(JSON.parse(JSON.stringify(lp)));
+            }
+          });
         }
       });
     }
     return merged;
+  }
+
+  async deleteProjectFromCloud(projectId) {
+    if (!this.firestore) this.initCloud();
+    if (!this.firestore || !this.isCloudEnabled || !projectId) return;
+    try {
+      await this.firestore.collection(CLOUD_COLLECTION).doc('project_' + projectId).delete();
+      console.info(`[PortfolioDB] Deleted project_${projectId} document from Cloud Firestore.`);
+    } catch(err) {
+      console.warn(`[PortfolioDB] Notice deleting project_${projectId} from Cloud:`, err);
+    }
   }
 
   initCloud() {
@@ -1197,7 +1143,7 @@ class PortfolioDatabase {
         }
       }
 
-      // 2. Read LocalStorage cache if present and newer
+      // 2. Read LocalStorage cache ONLY if strictly newer than IndexedDB (e.g. locUp > curUp + 1000)
       try {
         const localStr = localStorage.getItem(DB_KEY);
         if (localStr) {
@@ -1205,7 +1151,7 @@ class PortfolioDatabase {
           if (parsed && parsed.profile && Array.isArray(parsed.projects)) {
             const locUp = parsed._lastUpdated || 0;
             const curUp = (this.memoryData && this.memoryData._lastUpdated) || 0;
-            if (locUp >= curUp) {
+            if (locUp > (curUp + 1000)) {
               this.memoryData = this._ensureSchemaIntegrity(parsed);
             }
           }
@@ -1330,7 +1276,7 @@ class PortfolioDatabase {
           if (parsed && parsed.profile && Array.isArray(parsed.projects)) {
             const localUpdated = (parsed && parsed._lastUpdated) || 0;
             const memUpdated = (this.memoryData && this.memoryData._lastUpdated) || 0;
-            if (localUpdated > memUpdated) {
+            if (localUpdated > (memUpdated + 1000)) {
               this.memoryData = this._ensureSchemaIntegrity(parsed);
             }
           }

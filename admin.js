@@ -32,21 +32,32 @@ async function initAdmin() {
   }
 
   // Base64 helper for image uploads with high-resolution clarity and crisp rendering
-  function fileToBase64(file, maxWidth = 2200, quality = 0.84) {
+  function fileToBase64(file, maxWidth = 2600, quality = 0.92) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = error => reject(error);
       reader.onload = (e) => {
         const rawResult = e.target.result;
-        if (file.type === 'image/svg+xml') {
+        // 1. If file is SVG, GIF, or under 2.5MB:
+        // PRESERVE THE PRISTINE ORIGINAL FILE!
+        // No canvas re-encoding, no compression, no color shifts, no blue distortion!
+        if (file.type === 'image/svg+xml' || file.type === 'image/gif' || file.size <= 2621440) {
           resolve(rawResult);
           return;
         }
+
+        // 2. Only resize large camera files (> 2.5MB) to keep memory safe
         const img = new Image();
         img.onerror = () => resolve(rawResult);
         img.onload = () => {
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
+
+          // If dimensions are already within maxWidth and file <= 4MB, preserve pristine original
+          if (w <= maxWidth && h <= maxWidth && file.size <= 4194304) {
+            resolve(rawResult);
+            return;
+          }
 
           if (w > maxWidth) {
             h = Math.round((h * maxWidth) / w);
@@ -55,7 +66,7 @@ async function initAdmin() {
           const canvas = document.createElement('canvas');
           canvas.width = Math.max(1, w);
           canvas.height = Math.max(1, h);
-          const ctx = canvas.getContext('2d');
+          const ctx = canvas.getContext('2d', { colorSpace: 'srgb' });
           ctx.imageSmoothingEnabled = true;
           ctx.imageSmoothingQuality = 'high';
 
@@ -64,12 +75,14 @@ async function initAdmin() {
           ctx.fillRect(0, 0, w, h);
           ctx.drawImage(img, 0, 0, w, h);
 
-          // Use true sRGB JPEG to guarantee accurate color fidelity (eliminates WebP YUV blue/cyan chroma shift)
+          // Preserve PNG if original was PNG, otherwise high-quality sRGB JPEG
+          const isPng = file.type === 'image/png';
           try {
-            const outQuality = typeof quality === 'number' ? quality : 0.84;
-            const jpegUrl = canvas.toDataURL('image/jpeg', outQuality);
-            if (jpegUrl && jpegUrl.startsWith('data:image/jpeg')) {
-              resolve(jpegUrl);
+            const outType = isPng ? 'image/png' : 'image/jpeg';
+            const outQuality = typeof quality === 'number' ? quality : 0.92;
+            const resUrl = isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', outQuality);
+            if (resUrl && resUrl.startsWith('data:image')) {
+              resolve(resUrl);
               return;
             }
           } catch(we) {}
@@ -215,14 +228,64 @@ async function initAdmin() {
     btn.addEventListener('click', handleLogoutClick);
   });
 
+  // Dedicated handler for SAVE & EXIT button: saves everything permanently to database & cloud, then returns to site
+  const btnSaveAndExit = document.getElementById('btn-save-and-exit');
+  if (btnSaveAndExit) {
+    btnSaveAndExit.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const originalText = btnSaveAndExit.textContent;
+      btnSaveAndExit.disabled = true;
+      btnSaveAndExit.textContent = 'SAVING & SYNCHRONIZING...';
+      try {
+        if (activeProject) {
+          try {
+            syncActiveProjectLive(false);
+            closeProjectEditor();
+          } catch(err) {}
+        }
+        collectIdentityData();
+        collectAboutHeaderAndProfile();
+        collectColumnTitles();
+        collectHeadersData();
+
+        const ok = await executeSave('ALL CHANGES');
+        if (ok) {
+          showToast('✓ SAVED TO CLOUD & LIVE WEBSITE! REDIRECTING...');
+          setTimeout(() => {
+            window.location.href = 'index.html#home';
+          }, 350);
+        } else {
+          btnSaveAndExit.disabled = false;
+          btnSaveAndExit.textContent = originalText;
+        }
+      } catch(err) {
+        console.error('Save & Exit error:', err);
+        btnSaveAndExit.disabled = false;
+        btnSaveAndExit.textContent = originalText;
+        showToast('⚠️ ERROR: ' + err.message, true);
+      }
+    });
+  }
+
   // Dedicated handler for EXIT TO SITE button: saves any pending edits and returns to index.html without destroying session
   const btnViewSite = document.getElementById('btn-view-site');
   if (btnViewSite) {
     btnViewSite.addEventListener('click', async (e) => {
       e.preventDefault();
-      if (hasUnsavedChanges) {
+      btnViewSite.textContent = 'SAVING...';
+      try {
+        if (activeProject) {
+          try {
+            syncActiveProjectLive(false);
+            closeProjectEditor();
+          } catch(err) {}
+        }
+        collectIdentityData();
+        collectAboutHeaderAndProfile();
+        collectColumnTitles();
+        collectHeadersData();
         await executeSave('CHANGES');
-      }
+      } catch(err) {}
       window.location.href = 'index.html#home';
     });
   }
@@ -2154,6 +2217,10 @@ async function initAdmin() {
 
   function syncActiveProjectLive(shouldBroadcast = true) {
     if (!activeProject) return;
+    // Guard: Only scrape modal DOM if the project editor modal is actually open and rendered!
+    const isModalOpen = projectModal && (projectModal.classList.contains('open') || projectModal.classList.contains('active'));
+    if (!isModalOpen) return;
+
     const tEl = document.getElementById('edit-proj-title');
     if (tEl && tEl.value.trim()) activeProject.title = tEl.value.trim();
     const dEl = document.getElementById('edit-proj-date');
@@ -2202,111 +2269,121 @@ async function initAdmin() {
     // 1. Scrape Related Links from modal DOM
     const linksWrap = document.getElementById('modal-related-links-container');
     if (linksWrap) {
-      const scrapedLinks = [];
-      linksWrap.querySelectorAll('.editor-dynamic-row').forEach(row => {
-        const inps = row.querySelectorAll('.editor-input');
-        if (inps && inps.length >= 2) {
-          const lTitle = inps[0].value.trim().toUpperCase();
-          const lUrl = inps[1].value.trim();
-          if (lTitle || lUrl) {
-            scrapedLinks.push({ title: lTitle || 'RELATED LINK', url: lUrl });
+      const rows = linksWrap.querySelectorAll('.editor-dynamic-row');
+      if (rows.length > 0) {
+        const scrapedLinks = [];
+        rows.forEach(row => {
+          const inps = row.querySelectorAll('.editor-input');
+          if (inps && inps.length >= 2) {
+            const lTitle = inps[0].value.trim().toUpperCase();
+            const lUrl = inps[1].value.trim();
+            if (lTitle || lUrl) {
+              scrapedLinks.push({ title: lTitle || 'RELATED LINK', url: lUrl });
+            }
           }
-        }
-      });
-      activeProject.relatedLinks = scrapedLinks;
+        });
+        activeProject.relatedLinks = scrapedLinks;
+      }
     }
 
     // 2. Scrape Showcase Image Slices from modal DOM
     const imgsWrap = document.getElementById('modal-images-container');
     if (imgsWrap) {
-      const scrapedImgs = [];
-      imgsWrap.querySelectorAll('.editor-dynamic-row').forEach(row => {
-        const inps = row.querySelectorAll('.editor-input');
-        if (inps && inps.length >= 2) {
-          const imgUrl = inps[0].value.trim();
-          const imgCaption = inps[1].value.trim();
-          if (imgUrl) {
-            scrapedImgs.push({ url: imgUrl, caption: imgCaption });
+      const rows = imgsWrap.querySelectorAll('.editor-dynamic-row');
+      if (rows.length > 0) {
+        const scrapedImgs = [];
+        rows.forEach(row => {
+          const inps = row.querySelectorAll('.editor-input');
+          if (inps && inps.length >= 2) {
+            const imgUrl = inps[0].value.trim();
+            const imgCaption = inps[1].value.trim();
+            if (imgUrl) {
+              scrapedImgs.push({ url: imgUrl, caption: imgCaption });
+            }
           }
-        }
-      });
-      activeProject.images = scrapedImgs;
+        });
+        activeProject.images = scrapedImgs;
+      }
     }
 
     // 3. Scrape Gallery from modal DOM
     const galWrap = document.getElementById('modal-gallery-container');
     if (galWrap) {
-      const scrapedGal = [];
-      // Support new rich gallery cards
-      galWrap.querySelectorAll('.gal-item-card').forEach(card => {
-        const urlInp = card.querySelector('.gal-url-input');
-        const textInp = card.querySelector('.gal-text-input');
-        const url = urlInp ? urlInp.value.trim() : '';
-        const text = textInp ? textInp.value.trim() : '';
-        if (url) {
-          scrapedGal.push({ url, text });
-        }
-      });
-      // Fallback for legacy rows if present
-      if (scrapedGal.length === 0) {
-        galWrap.querySelectorAll('.editor-dynamic-row').forEach(row => {
-          const inp = row.querySelector('.editor-input');
-          if (inp && inp.value.trim()) {
-            scrapedGal.push({ url: inp.value.trim(), text: '' });
+      const galCards = galWrap.querySelectorAll('.gal-item-card');
+      const galRows = galWrap.querySelectorAll('.editor-dynamic-row');
+      if (galCards.length > 0 || galRows.length > 0) {
+        const scrapedGal = [];
+        galCards.forEach(card => {
+          const urlInp = card.querySelector('.gal-url-input');
+          const textInp = card.querySelector('.gal-text-input');
+          const url = urlInp ? urlInp.value.trim() : '';
+          const text = textInp ? textInp.value.trim() : '';
+          if (url) {
+            scrapedGal.push({ url, text });
           }
         });
+        if (scrapedGal.length === 0) {
+          galRows.forEach(row => {
+            const inp = row.querySelector('.editor-input');
+            if (inp && inp.value.trim()) {
+              scrapedGal.push({ url: inp.value.trim(), text: '' });
+            }
+          });
+        }
+        activeProject.gallery = scrapedGal;
       }
-      activeProject.gallery = scrapedGal;
     }
 
     // 4. Scrape Custom Project Sections from modal DOM
     const secContainer = document.getElementById('modal-project-custom-sections-container');
     if (secContainer) {
       const cards = secContainer.querySelectorAll('.custom-section-edit-card, .custom-sec-card');
-      const scrapedSecs = [];
-      cards.forEach((card, cIdx) => {
-        const titleInp = card.querySelector('.sec-title-input');
-        const textInp = card.querySelector('.sec-text-input');
-        const imgUrlInp = card.querySelector('.sec-img-url-input');
-        const captionInp = card.querySelector('.sec-img-caption-input');
-        const linkTextInp = card.querySelector('.sec-link-text-input');
-        const linkUrlInp = card.querySelector('.sec-link-url-input');
-        const heightSelect = card.querySelector('.sec-height-select');
-        const speedSelect = card.querySelector('.sec-speed-select');
-        const activeLinkModeBtn = card.querySelector('.btn-link-mode-toggle.active');
-        const activeTypePill = card.querySelector('.sec-type-pill.active');
+      if (cards.length > 0) {
+        const scrapedSecs = [];
+        cards.forEach((card, cIdx) => {
+          const titleInp = card.querySelector('.sec-title-input');
+          const textInp = card.querySelector('.sec-text-input');
+          const imgUrlInp = card.querySelector('.sec-img-url-input');
+          const captionInp = card.querySelector('.sec-img-caption-input');
+          const linkTextInp = card.querySelector('.sec-link-text-input');
+          const linkUrlInp = card.querySelector('.sec-link-url-input');
+          const heightSelect = card.querySelector('.sec-height-select');
+          const speedSelect = card.querySelector('.sec-speed-select');
+          const activeLinkModeBtn = card.querySelector('.btn-link-mode-toggle.active');
+          const activeTypePill = card.querySelector('.sec-type-pill.active');
 
-        const title = titleInp ? titleInp.value.trim() : '';
-        const text = textInp ? textInp.value.trim() : '';
-        const imageUrl = imgUrlInp ? imgUrlInp.value.trim() : '';
-        const imageCaption = captionInp ? captionInp.value.trim() : '';
-        const linkText = linkTextInp ? linkTextInp.value.trim() : '';
-        const linkUrl = linkUrlInp ? linkUrlInp.value.trim() : '';
-        const embedHeight = heightSelect ? (parseInt(heightSelect.value, 10) || 620) : 620;
-        const autoScrollSpeed = speedSelect ? (parseFloat(speedSelect.value) || 1) : 1;
-        const linkMode = activeLinkModeBtn ? activeLinkModeBtn.dataset.mode : 'embed';
-        const contentType = activeTypePill ? activeTypePill.dataset.type : 'mixed';
+          const title = titleInp ? titleInp.value.trim() : '';
+          const text = textInp ? textInp.value.trim() : '';
+          const imageUrl = imgUrlInp ? imgUrlInp.value.trim() : '';
+          const imageCaption = captionInp ? captionInp.value.trim() : '';
+          const linkText = linkTextInp ? linkTextInp.value.trim() : '';
+          const linkUrl = linkUrlInp ? linkUrlInp.value.trim() : '';
+          const embedHeight = heightSelect ? (parseInt(heightSelect.value, 10) || 620) : 620;
+          const autoScrollSpeed = speedSelect ? (parseFloat(speedSelect.value) || 1) : 1;
+          const linkMode = activeLinkModeBtn ? activeLinkModeBtn.dataset.mode : 'embed';
+          const contentType = activeTypePill ? activeTypePill.dataset.type : 'mixed';
 
-        const existingSec = (activeProject.customSections && activeProject.customSections[cIdx]) || {};
-        const id = existingSec.id || `sec_${activeProject.id || 'p'}_${cIdx + 1}`;
+          const existingSec = (activeProject.customSections && activeProject.customSections[cIdx]) || {};
+          const id = existingSec.id || `sec_${activeProject.id || 'p'}_${cIdx + 1}`;
 
-        scrapedSecs.push({
-          id,
-          title: title || `SECTION 0${cIdx + 1}`,
-          contentType,
-          text,
-          content: text,
-          imageUrl,
-          imageCaption,
-          linkText,
-          linkUrl,
-          linkMode: linkMode === 'button_only' ? 'button_only' : 'embed',
-          autoScroll: true,
-          autoScrollSpeed,
-          embedHeight
+          scrapedSecs.push({
+            id,
+            title: title || `SECTION 0${cIdx + 1}`,
+            contentType,
+            text,
+            content: text,
+            imageUrl,
+            imageCaption,
+            linkText,
+            linkUrl,
+            linkMode: linkMode === 'button_only' ? 'button_only' : 'embed',
+            autoScroll: true,
+            autoScrollSpeed,
+            embedHeight
+          });
         });
-      });
-      activeProject.customSections = scrapedSecs;
+        activeProject.customSections = scrapedSecs;
+      }
     }
 
     // Synchronize to currentData.projects immediately!
@@ -2359,7 +2436,7 @@ async function initAdmin() {
       const file = e.target.files && e.target.files[0];
       if (file) {
         try {
-          const b64 = await fileToBase64(file, 2200, 0.84);
+          const b64 = await fileToBase64(file, 2600, 0.92);
           if (coverUrlInp) coverUrlInp.value = b64;
           if (coverPrevImg) {
             coverPrevImg.src = b64;
@@ -2552,17 +2629,16 @@ async function initAdmin() {
       const isImg = img.url && !isEmbed;
 
       row.innerHTML = `
-        <div class="slice-thumb-box" style="width: 50px; height: 50px; background:#e0ded8; overflow:hidden; flex-shrink:0; cursor:pointer; position:relative; border:1px solid #d5d2c8; display:flex; align-items:center; justify-content:center;" title="Click to browse image file or view embed status">
+        <div class="slice-thumb-box" style="width: 52px; height: 52px; background:#e0ded8; overflow:hidden; flex-shrink:0; cursor:pointer; position:relative; border:1px solid #d5d2c8; display:flex; align-items:center; justify-content:center;" title="Click to browse image file or view embed status">
           <img src="${isImg ? img.url : ''}" style="width:100%;height:100%;object-fit:cover;${isImg ? '' : 'display:none;'}" />
           <span class="slice-thumb-badge" style="font-size:0.58rem; color:${isEmbed ? '#112250' : '#888'}; font-weight:${isEmbed ? '700' : '400'}; font-family:var(--font-mono); text-align:center; position:absolute; inset:0; display:${isImg ? 'none' : 'flex'}; align-items:center; justify-content:center; background:${isEmbed ? '#e8ebf5' : 'transparent'};">${isEmbed ? 'EMBED' : 'FILE'}</span>
           <input type="file" class="slice-row-file" accept="image/*" style="display:none;" />
         </div>
-        <input type="text" class="editor-input slice-url-inp" style="flex: 2;" placeholder="Image URL, Google Drive link, <iframe> embed code, or upload file..." value="${img.url || ''}" />
-        <label class="editor-btn-xs" style="cursor:pointer; margin:0; padding:4px 8px; font-size:0.7rem; flex-shrink:0; display:inline-flex; align-items:center;">
-          Upload
+        <input type="text" class="editor-input slice-url-inp" style="flex: 3;" placeholder="Image URL, Google Drive link, <iframe> embed code, or upload file..." value="${img.url || ''}" />
+        <label class="editor-btn-xs" style="cursor:pointer; margin:0; padding:6px 12px; font-size:0.75rem; flex-shrink:0; display:inline-flex; align-items:center;">
+          Upload File...
           <input type="file" class="slice-row-file-btn" accept="image/*" style="display:none;" />
         </label>
-        <input type="text" class="editor-input slice-caption-inp" style="flex: 1.5;" placeholder="Optional Slice Caption" value="${img.caption || ''}" />
         <button type="button" class="btn-del-row" title="Remove Slice">&times;</button>
       `;
 
@@ -2570,16 +2646,16 @@ async function initAdmin() {
       const fileInp1 = row.querySelector('.slice-row-file');
       const fileInp2 = row.querySelector('.slice-row-file-btn');
       const urlInp = row.querySelector('.slice-url-inp');
-      const captionInp = row.querySelector('.slice-caption-inp');
       const thumbImg = row.querySelector('img');
       const thumbSpan = row.querySelector('.slice-thumb-badge');
 
       const handleSliceFile = async (file) => {
         if (!file) return;
         try {
-          showToast('Optimizing slice image in high quality...');
-          const b64 = await fileToBase64(file, 2200, 0.84);
+          showToast('Processing slice image in high quality...');
+          const b64 = await fileToBase64(file, 2600, 0.92);
           img.url = b64;
+          img.caption = ''; // Remove filename to ensure no filename is shown
           urlInp.value = b64;
           thumbImg.src = b64;
           thumbImg.style.display = 'block';
@@ -2589,7 +2665,7 @@ async function initAdmin() {
             thumbSpan.style.background = 'transparent';
           }
           syncActiveProjectLive();
-          showToast('Slice image updated!');
+          showToast('Slice image updated in high resolution!');
         } catch(e) {
           showToast('Failed to process image');
         }
@@ -2635,11 +2711,6 @@ async function initAdmin() {
         syncActiveProjectLive();
       });
 
-      captionInp.addEventListener('input', ev => {
-        img.caption = ev.target.value;
-        syncActiveProjectLive();
-      });
-
       row.querySelector('.btn-del-row').addEventListener('click', () => {
         activeProject.images.splice(idx, 1);
         renderModalImages();
@@ -2656,7 +2727,7 @@ async function initAdmin() {
       const url = prompt('Enter Image URL, Google Drive link, Figma/Canva embed, or <iframe> embed code:');
       if (url && url.trim()) {
         activeProject.images = activeProject.images || [];
-        activeProject.images.push({ url: url.trim(), caption: `Installation View 0${activeProject.images.length + 1}` });
+        activeProject.images.push({ url: url.trim(), caption: '' });
         renderModalImages();
         syncActiveProjectLive();
       }
@@ -2697,8 +2768,8 @@ async function initAdmin() {
         showToast(`Processing ${files.length} high-res image slice(s)...`);
         activeProject.images = activeProject.images || [];
         for (const file of files) {
-          const b64 = await fileToBase64(file, 2200, 0.84);
-          activeProject.images.push({ url: b64, caption: file.name.replace(/\.[^/.]+$/, '') });
+          const b64 = await fileToBase64(file, 2600, 0.92);
+          activeProject.images.push({ url: b64, caption: '' });
         }
         renderModalImages();
         syncActiveProjectLive();
@@ -2713,9 +2784,9 @@ async function initAdmin() {
       if (files.length > 0) {
         showToast(`Processing ${files.length} high-res image slice(s)...`);
         for (const file of files) {
-          const b64 = await fileToBase64(file, 2200, 0.84);
+          const b64 = await fileToBase64(file, 2600, 0.92);
           activeProject.images = activeProject.images || [];
-          activeProject.images.push({ url: b64, caption: file.name.replace(/\.[^/.]+$/, '') });
+          activeProject.images.push({ url: b64, caption: '' });
         }
         renderModalImages();
         syncActiveProjectLive();
@@ -2798,8 +2869,8 @@ async function initAdmin() {
         if (file) {
           try {
             showToast('Loading gallery photo in high quality...');
-            const b64 = await fileToBase64(file, 1600, 0.86);
-            const currentText = textInp.value.trim() || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+            const b64 = await fileToBase64(file, 2400, 0.90);
+            const currentText = textInp.value.trim() || '';
             activeProject.gallery[idx] = {
               url: b64,
               text: currentText
@@ -2925,11 +2996,10 @@ async function initAdmin() {
     activeProject.gallery = Array.isArray(activeProject.gallery) ? activeProject.gallery : [];
     for (const file of files) {
       try {
-        const b64 = await fileToBase64(file, 1600, 0.86);
-        const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        const b64 = await fileToBase64(file, 2400, 0.90);
         activeProject.gallery.push({
           url: b64,
-          text: cleanName
+          text: ''
         });
       } catch(err) {
         console.error('Failed to process gallery file:', err);
@@ -3366,9 +3436,13 @@ async function initAdmin() {
     btnDelFinalConfirm.addEventListener('click', async () => {
       if (!pendingDeleteProj) return;
       const title = pendingDeleteProj.title;
-      currentData.projects = currentData.projects.filter(p => p.id !== pendingDeleteProj.id);
+      const delId = pendingDeleteProj.id;
+      currentData.projects = currentData.projects.filter(p => p.id !== delId);
       closeDeleteModal();
       renderProjectsGrid();
+      if (window.PortfolioDB && window.PortfolioDB.deleteProjectFromCloud) {
+        try { await window.PortfolioDB.deleteProjectFromCloud(delId); } catch(e) {}
+      }
       await executeSave(`PROJECT "${title}" DELETED`);
     });
   }

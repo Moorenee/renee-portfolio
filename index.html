@@ -28,12 +28,14 @@
       } else if (['about', 'projects', 'contact'].indexOf(h) !== -1) {
         v = h;
       }
-      if (v !== 'home') {
-        var style = document.createElement('style');
-        style.id = 'early-route-style';
+      var style = document.createElement('style');
+      style.id = 'early-route-style';
+      if (v === 'home') {
+        style.textContent = '#view-home { display: flex !important; opacity: 1 !important; }';
+      } else {
         style.textContent = '#view-home { display: none !important; opacity: 0 !important; } #view-' + v + ' { display: block !important; opacity: 1 !important; }';
-        document.head.appendChild(style);
       }
+      document.head.appendChild(style);
 
       // Safety fallback timer: only remove anti-fouc after 2500ms if script.js fails to initialize
       setTimeout(function() {
@@ -362,7 +364,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="styles.css?v=20261028_2000" />
+  <link rel="stylesheet" href="styles.css?v=20261031_1700" />
 </head>
 <body class="site-body">
 
@@ -451,7 +453,7 @@
   <main class="app-viewport" id="app-viewport">
 
     <!-- ================= VIEW 1: HOME (ARCHITECTURAL 100VH GRID) ================= -->
-    <section class="page-view active" id="view-home">
+    <section class="page-view" id="view-home">
       <div class="home-paper-stage">
         
         <!-- Inset Architectural Grid Container -->
@@ -1404,9 +1406,9 @@
   <!-- Storage and Application Scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js?v=20261028_2000"></script>
-  <script src="database.js?v=20261028_2000"></script>
-  <script src="script.js?v=20261028_2000"></script>
+  <script src="firebase-config.js?v=20261031_1700"></script>
+  <script src="database.js?v=20261031_1700"></script>
+  <script src="script.js?v=20261031_1700"></script>
   <!-- Vercel Web Analytics (Active automatically upon enabling Analytics in Vercel dashboard) -->
   <script defer src="/_vercel/insights/script.js"></script>
 </body>
