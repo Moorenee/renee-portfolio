@@ -3108,12 +3108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         ctx.restore();
       }
 
-      const isHome = document.body.classList.contains('on-home') || !window.location.hash || window.location.hash === '#home' || window.location.hash === '#';
-      if (isHome) {
-        animationFrameId = requestAnimationFrame(draw);
-      } else {
-        animationFrameId = null;
-      }
+      animationFrameId = requestAnimationFrame(draw);
     }
 
     function checkHomeCanvas() {
