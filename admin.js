@@ -250,10 +250,11 @@ async function initAdmin() {
 
         const ok = await executeSave('ALL CHANGES');
         if (ok) {
+          btnSaveAndExit.textContent = '✓ CLOUD SYNCHRONIZED!';
           showToast('✓ SAVED TO CLOUD & LIVE WEBSITE! REDIRECTING...');
           setTimeout(() => {
             window.location.href = 'index.html#home';
-          }, 350);
+          }, 750);
         } else {
           btnSaveAndExit.disabled = false;
           btnSaveAndExit.textContent = originalText;
@@ -533,12 +534,14 @@ async function initAdmin() {
 
       if (saveRes && saveRes.cloudSynced) {
         showToast(`✓ ${label.toUpperCase()} SAVED TO CLOUD & LIVE WEBSITE!`);
+        return true;
       } else if (saveRes && saveRes.cloudError) {
         showToast(`⚠️ SAVED LOCALLY, BUT CLOUD FAILED: ${saveRes.cloudError}`, true);
+        return false;
       } else {
         showToast(`✓ ${label.toUpperCase()} SAVED PERMANENTLY!`);
+        return true;
       }
-      return true;
     } catch(err) {
       console.error('Save error:', err);
       showToast('⚠️ ERROR SAVING: ' + err.message, true);
@@ -2293,23 +2296,24 @@ async function initAdmin() {
       if (rows.length > 0) {
         const scrapedImgs = [];
         rows.forEach(row => {
-          const inps = row.querySelectorAll('.editor-input');
-          if (inps && inps.length >= 2) {
-            const imgUrl = inps[0].value.trim();
-            const imgCaption = inps[1].value.trim();
-            if (imgUrl) {
-              scrapedImgs.push({ url: imgUrl, caption: imgCaption });
-            }
+          const urlInp = row.querySelector('.slice-url-inp') || row.querySelector('.editor-input');
+          const capInp = row.querySelector('.slice-caption-inp');
+          const imgUrl = urlInp ? urlInp.value.trim() : '';
+          const imgCaption = capInp ? capInp.value.trim() : '';
+          if (imgUrl) {
+            scrapedImgs.push({ url: imgUrl, caption: imgCaption });
           }
         });
-        activeProject.images = scrapedImgs;
+        if (scrapedImgs.length > 0 || rows.length === 0) {
+          activeProject.images = scrapedImgs;
+        }
       }
     }
 
     // 3. Scrape Gallery from modal DOM
     const galWrap = document.getElementById('modal-gallery-container');
     if (galWrap) {
-      const galCards = galWrap.querySelectorAll('.gal-item-card');
+      const galCards = galWrap.querySelectorAll('.gal-item-card, .gal-card');
       const galRows = galWrap.querySelectorAll('.editor-dynamic-row');
       if (galCards.length > 0 || galRows.length > 0) {
         const scrapedGal = [];
@@ -2330,7 +2334,9 @@ async function initAdmin() {
             }
           });
         }
-        activeProject.gallery = scrapedGal;
+        if (scrapedGal.length > 0 || (galCards.length === 0 && galRows.length === 0)) {
+          activeProject.gallery = scrapedGal;
+        }
       }
     }
 

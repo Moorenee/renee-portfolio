@@ -1549,10 +1549,13 @@ class PortfolioDatabase {
     if (!this.firestore) this.initCloud();
     if (!this.firestore || !this.isCloudEnabled) return { success: false, error: 'Firebase Cloud is not connected' };
 
-    // If another cloud write is already running, queue this data and return
+    // If another cloud write is already running, wait for it to complete so we commit the authoritative latest state
     if (this._isCloudWriteInFlight) {
-      this._pendingCloudSave = data;
-      return { success: true, queued: true };
+      let waitCount = 0;
+      while (this._isCloudWriteInFlight && waitCount < 30) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        waitCount++;
+      }
     }
 
     this._isCloudWriteInFlight = true;
@@ -1560,33 +1563,11 @@ class PortfolioDatabase {
       // Rate-limit throttle: Firestore strictly enforces max 1 write/sec per document
       const now = Date.now();
       const timeSinceLast = now - (this._lastCloudWrite || 0);
-      if (timeSinceLast < 1200) {
-        await new Promise(resolve => setTimeout(resolve, 1200 - timeSinceLast));
+      if (timeSinceLast < 1000) {
+        await new Promise(resolve => setTimeout(resolve, 1000 - timeSinceLast));
       }
 
       let cleanData = JSON.parse(JSON.stringify(data));
-
-      // Guard Firestore 1 MiB hard document limit (1,048,576 bytes):
-      // Safe threshold is 920,000 characters (900 KB).
-      const TARGET_SAFE_SIZE = 920000;
-      let estSize = JSON.stringify(cleanData).length;
-
-      if (estSize > TARGET_SAFE_SIZE) {
-        console.info(`[PortfolioDB] Pre-sync payload is ${Math.round(estSize/1024)}KB. Performing smart optimization...`);
-        // Pass 1: 1900px @ 0.82
-        cleanData = await this._optimizePayloadForCloud(cleanData, 1900, 0.82);
-        estSize = JSON.stringify(cleanData).length;
-        console.info(`[PortfolioDB] Cloud payload pass 1: ${Math.round(estSize/1024)}KB.`);
-
-        // Pass 2 (fallback if still near limit): 1600px @ 0.76
-        if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 1600, 0.76);
-          estSize = JSON.stringify(cleanData).length;
-          console.info(`[PortfolioDB] Cloud payload pass 2: ${Math.round(estSize/1024)}KB.`);
-        }
-      }
-
-      // Strip administrative session flags so visitor devices don't mistakenly assume they are admins
       delete cleanData._savedFromAdmin;
 
       const clientIso = new Date().toISOString();
@@ -1594,31 +1575,64 @@ class PortfolioDatabase {
         ? firebase.firestore.FieldValue.serverTimestamp()
         : clientIso;
 
-      // Overwrite completely without { merge: true } so old deleted projects and obsolete fields are fully purged
+      // 1. Persist dedicated media documents for each project with media slices FIRST
+      // Each document in Firestore has its own 1 MiB limit, preserving high-res images!
+      if (Array.isArray(cleanData.projects)) {
+        for (const p of cleanData.projects) {
+          if (p && p.id) {
+            try {
+              await this.firestore.collection(CLOUD_COLLECTION).doc('project_' + p.id).set({
+                projectId: p.id,
+                images: p.images || [],
+                gallery: p.gallery || [],
+                customSections: p.customSections || [],
+                updatedAt: serverTs
+              });
+            } catch(pErr) {
+              console.warn(`[PortfolioDB] Notice saving project_${p.id} to Cloud:`, pErr);
+            }
+          }
+        }
+      }
+
+      // 2. Guard Firestore 1 MiB hard document limit (1,048,576 bytes) for the live_data catalog document:
+      const TARGET_SAFE_SIZE = 880000;
+      let estSize = JSON.stringify(cleanData).length;
+
+      if (estSize > TARGET_SAFE_SIZE) {
+        console.info(`[PortfolioDB] Pre-sync payload is ${Math.round(estSize/1024)}KB. Performing smart optimization...`);
+        // Pass 1: 1800px @ 0.80
+        cleanData = await this._optimizePayloadForCloud(cleanData, 1800, 0.80);
+        estSize = JSON.stringify(cleanData).length;
+        console.info(`[PortfolioDB] Cloud payload pass 1: ${Math.round(estSize/1024)}KB.`);
+
+        // Pass 2 (fallback if still near limit): 1400px @ 0.74
+        if (estSize > TARGET_SAFE_SIZE) {
+          cleanData = await this._optimizePayloadForCloud(cleanData, 1400, 0.74);
+          estSize = JSON.stringify(cleanData).length;
+          console.info(`[PortfolioDB] Cloud payload pass 2: ${Math.round(estSize/1024)}KB.`);
+        }
+
+        // Pass 3 (fallback): If still exceeding 880KB, streamline images in live_data catalog
+        // (Full media slices are already safely stored in project_${p.id} individual documents above!)
+        if (estSize > TARGET_SAFE_SIZE) {
+          console.info(`[PortfolioDB] Streamlining live_data catalog payload (${Math.round(estSize/1024)}KB) - full media preserved in individual project documents.`);
+          for (const p of cleanData.projects) {
+            if (estSize <= TARGET_SAFE_SIZE) break;
+            if (Array.isArray(p.images) && p.images.length > 0) {
+              p.images = [];
+              estSize = JSON.stringify(cleanData).length;
+            }
+          }
+        }
+      }
+
+      // 3. Overwrite live_data in Firestore completely without { merge: true } so old deleted projects and obsolete fields are fully purged
       await this.firestore.collection(CLOUD_COLLECTION).doc(CLOUD_DOC).set({
         data: cleanData,
         updatedAt: serverTs,
         clientTimestamp: clientIso
       });
-
-      // Also persist dedicated media documents for each project with media slices
-      try {
-        if (Array.isArray(cleanData.projects)) {
-          for (const p of cleanData.projects) {
-            if (p && p.id) {
-              try {
-                await this.firestore.collection(CLOUD_COLLECTION).doc('project_' + p.id).set({
-                  projectId: p.id,
-                  images: p.images || [],
-                  gallery: p.gallery || [],
-                  customSections: p.customSections || [],
-                  updatedAt: serverTs
-                });
-              } catch(pErr) {}
-            }
-          }
-        }
-      } catch(batchErr) {}
 
       this._lastCloudWrite = Date.now();
       console.info('[PortfolioDB] Successfully committed payload to Google Firebase Cloud Firestore!');
@@ -1628,11 +1642,6 @@ class PortfolioDatabase {
       return { success: false, error: err.message || String(err) };
     } finally {
       this._isCloudWriteInFlight = false;
-      if (this._pendingCloudSave) {
-        const nextData = this._pendingCloudSave;
-        this._pendingCloudSave = null;
-        setTimeout(() => { this.saveToCloud(nextData); }, 1200);
-      }
     }
   }
 
