@@ -3562,36 +3562,100 @@ document.addEventListener('DOMContentLoaded', async () => {
     const modalImg = document.getElementById('lightbox-img');
     const modalCaption = document.getElementById('lightbox-caption');
     const closeBtn = document.getElementById('lightbox-close-btn');
-    const zoomBtn = document.getElementById('lightbox-zoom-btn');
-    const zoomText = document.getElementById('lightbox-zoom-text');
-    const zoomIcon = document.getElementById('lightbox-zoom-icon');
+
+    // Flexible zoom controls
+    const zoomInBtn = document.getElementById('lightbox-zoom-in-btn');
+    const zoomOutBtn = document.getElementById('lightbox-zoom-out-btn');
+    const zoomFitBtn = document.getElementById('lightbox-zoom-fit-btn');
+    const zoomBadge = document.getElementById('lightbox-zoom-level');
+    const legacyZoomBtn = document.getElementById('lightbox-zoom-btn');
+
     if (!modal || !modalImg) return;
 
-    let isZoomed = false;
+    let currentScale = 1.0;
+    let panX = 0;
+    let panY = 0;
 
-    function setZoom(zoomed) {
-      isZoomed = zoomed;
-      if (contentBox && modalImg) {
-        if (isZoomed) {
-          contentBox.classList.add('zoomed');
-          if (zoomText) zoomText.textContent = 'FIT SCREEN (100%)';
-          if (zoomIcon) zoomIcon.textContent = '🔍';
-          modalImg.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
-          modalImg.style.transform = 'translate3d(0, 0, 0) scale(3.5)'; // Zoom 350% for maximum clarity
-        } else {
-          contentBox.classList.remove('zoomed');
-          if (zoomText) zoomText.textContent = 'ZOOM IN (READ DETAILS)';
-          if (zoomIcon) zoomIcon.textContent = '🔍';
-          modalImg.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
-          modalImg.style.transform = 'translate3d(0, 0, 0) scale(1)';
-        }
+    // Mouse drag-pan state (Laptop & Desktop)
+    let isMouseDown = false;
+    let startMouseX = 0;
+    let startMouseY = 0;
+    let startPanX = 0;
+    let startPanY = 0;
+    let didDrag = false;
+
+    // Touch pinch-pan state (Mobile & Tablet)
+    let isTouchPinching = false;
+    let isTouchPanning = false;
+    let touchStartDist = 0;
+    let touchStartScale = 1;
+    let touchStartPanX = 0;
+    let touchStartPanY = 0;
+    let touchStartClientX = 0;
+    let touchStartClientY = 0;
+
+    function clampPan(scale, x, y) {
+      if (scale <= 1.02) return { x: 0, y: 0 };
+      const vpW = window.innerWidth;
+      const vpH = window.innerHeight;
+      
+      const naturalW = modalImg.naturalWidth || 1200;
+      const naturalH = modalImg.naturalHeight || 800;
+      const maxDisplayW = vpW * 0.92;
+      const maxDisplayH = vpH * 0.82;
+      
+      const fitRatio = Math.min(maxDisplayW / naturalW, maxDisplayH / naturalH, 1.0);
+      const baseW = naturalW * fitRatio;
+      const baseH = naturalH * fitRatio;
+      
+      const scaledW = baseW * scale;
+      const scaledH = baseH * scale;
+
+      const maxPanX = Math.max(0, (scaledW - vpW) / 2 + 120);
+      const maxPanY = Math.max(0, (scaledH - vpH) / 2 + 120);
+
+      return {
+        x: Math.max(-maxPanX, Math.min(maxPanX, x)),
+        y: Math.max(-maxPanY, Math.min(maxPanY, y))
+      };
+    }
+
+    function applyTransform(withTransition = false) {
+      modalImg.style.transition = withTransition ? 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
+      modalImg.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${currentScale})`;
+      
+      if (zoomBadge) {
+        zoomBadge.textContent = Math.round(currentScale * 100) + '%';
       }
+
+      if (currentScale > 1.05) {
+        modal.classList.add('is-zoomed');
+        contentBox.classList.add('zoomed');
+      } else {
+        modal.classList.remove('is-zoomed');
+        contentBox.classList.remove('zoomed');
+      }
+    }
+
+    function setScale(targetScale, withTransition = true) {
+      currentScale = Math.max(1.0, Math.min(5.0, targetScale));
+      const clamped = clampPan(currentScale, panX, panY);
+      panX = clamped.x;
+      panY = clamped.y;
+      applyTransform(withTransition);
+    }
+
+    function resetZoom(withTransition = true) {
+      currentScale = 1.0;
+      panX = 0;
+      panY = 0;
+      applyTransform(withTransition);
     }
 
     function openLightbox(src, captionText = '') {
       if (!src) return;
       modalImg.src = src;
-      setZoom(false);
+      resetZoom(false);
       modal.scrollTop = 0;
       modal.scrollLeft = 0;
       if (captionText && captionText.trim()) {
@@ -3603,33 +3667,47 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       modal.style.setProperty('display', 'flex', 'important');
       document.body.classList.add('lightbox-open');
-      enablePinchZoom(contentBox, modalImg);
     }
 
     function closeLightbox() {
       modal.style.setProperty('display', 'none', 'important');
       modalImg.src = '';
-      if (modalImg) {
-        modalImg.style.transform = '';
-        modalImg.style.transition = '';
-      }
-      setZoom(false);
+      resetZoom(false);
       document.body.classList.remove('lightbox-open');
     }
 
     window._closeActiveLightbox = closeLightbox;
 
-    if (zoomBtn) {
-      zoomBtn.addEventListener('click', (e) => {
+    // 1. Zoom Buttons (+, -, FIT)
+    if (zoomInBtn) {
+      zoomInBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        setZoom(!isZoomed);
+        setScale(currentScale + 0.5, true);
       });
     }
 
-    if (modalImg) {
-      modalImg.addEventListener('click', (e) => {
+    if (zoomOutBtn) {
+      zoomOutBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        setZoom(!isZoomed);
+        setScale(currentScale - 0.5, true);
+      });
+    }
+
+    if (zoomFitBtn) {
+      zoomFitBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        resetZoom(true);
+      });
+    }
+
+    if (legacyZoomBtn) {
+      legacyZoomBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (currentScale > 1.2) {
+          resetZoom(true);
+        } else {
+          setScale(2.5, true);
+        }
       });
     }
 
@@ -3640,13 +3718,175 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
+    // 2. Mouse Click & Drag-to-Pan (Laptop & Desktop)
+    modal.addEventListener('mousedown', (e) => {
+      if (e.target.closest('.image-lightbox-topbar') || e.target.closest('button')) return;
+      if (currentScale > 1.05) {
+        isMouseDown = true;
+        didDrag = false;
+        modal.classList.add('is-dragging');
+        startMouseX = e.clientX;
+        startMouseY = e.clientY;
+        startPanX = panX;
+        startPanY = panY;
+        e.preventDefault();
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isMouseDown) return;
+      const dx = e.clientX - startMouseX;
+      const dy = e.clientY - startMouseY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        didDrag = true;
+      }
+      const clamped = clampPan(currentScale, startPanX + dx, startPanY + dy);
+      panX = clamped.x;
+      panY = clamped.y;
+      applyTransform(false);
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isMouseDown) {
+        isMouseDown = false;
+        modal.classList.remove('is-dragging');
+      }
+    });
+
+    // 3. Mouse Wheel & Trackpad Pinch Zoom (Laptop & Desktop)
+    modal.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      let delta = -e.deltaY;
+      if (e.ctrlKey) delta *= 3; // Trackpad pinch
+      const factor = delta > 0 ? 1.15 : 0.87;
+      let nextScale = currentScale * factor;
+      nextScale = Math.max(1.0, Math.min(5.0, nextScale));
+
+      if (Math.abs(nextScale - currentScale) > 0.005) {
+        const rect = modalImg.getBoundingClientRect();
+        const offsetX = e.clientX - (rect.left + rect.width / 2);
+        const offsetY = e.clientY - (rect.top + rect.height / 2);
+        const ratio = nextScale / currentScale;
+
+        panX = panX - (offsetX * (ratio - 1)) * 0.35;
+        panY = panY - (offsetY * (ratio - 1)) * 0.35;
+
+        currentScale = nextScale;
+        const clamped = clampPan(currentScale, panX, panY);
+        panX = clamped.x;
+        panY = clamped.y;
+        applyTransform(false);
+      }
+    }, { passive: false });
+
+    // 4. Double-Click to Zoom In / Out at Cursor Point
+    modalImg.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      if (currentScale < 1.8) {
+        const rect = modalImg.getBoundingClientRect();
+        const clickX = e.clientX - (rect.left + rect.width / 2);
+        const clickY = e.clientY - (rect.top + rect.height / 2);
+        currentScale = 2.5;
+        panX = -clickX * 1.2;
+        panY = -clickY * 1.2;
+        const clamped = clampPan(currentScale, panX, panY);
+        panX = clamped.x;
+        panY = clamped.y;
+        applyTransform(true);
+      } else if (currentScale < 3.5) {
+        currentScale = 4.0;
+        const clamped = clampPan(currentScale, panX, panY);
+        panX = clamped.x;
+        panY = clamped.y;
+        applyTransform(true);
+      } else {
+        resetZoom(true);
+      }
+    });
+
+    // 5. Touch Gestures in Lightbox (Phone & Tablet)
+    modal.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        isTouchPinching = true;
+        isTouchPanning = false;
+        touchStartDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        touchStartScale = currentScale;
+        touchStartPanX = panX;
+        touchStartPanY = panY;
+      } else if (e.touches.length === 1 && currentScale > 1.05) {
+        isTouchPanning = true;
+        touchStartClientX = e.touches[0].clientX;
+        touchStartClientY = e.touches[0].clientY;
+        touchStartPanX = panX;
+        touchStartPanY = panY;
+      }
+    }, { passive: true });
+
+    modal.addEventListener('touchmove', (e) => {
+      if (isTouchPinching && e.touches.length === 2) {
+        e.preventDefault();
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (touchStartDist > 0) {
+          const factor = dist / touchStartDist;
+          currentScale = Math.max(1.0, Math.min(5.0, touchStartScale * factor));
+          const clamped = clampPan(currentScale, panX, panY);
+          panX = clamped.x;
+          panY = clamped.y;
+          applyTransform(false);
+        }
+      } else if (isTouchPanning && currentScale > 1.05 && e.touches.length === 1) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - touchStartClientX;
+        const dy = e.touches[0].clientY - touchStartClientY;
+        const clamped = clampPan(currentScale, touchStartPanX + dx, touchStartPanY + dy);
+        panX = clamped.x;
+        panY = clamped.y;
+        applyTransform(false);
+      }
+    }, { passive: false });
+
+    modal.addEventListener('touchend', (e) => {
+      if (e.touches.length === 0) {
+        isTouchPinching = false;
+        isTouchPanning = false;
+        if (currentScale < 1.05) {
+          resetZoom(true);
+        } else {
+          const clamped = clampPan(currentScale, panX, panY);
+          panX = clamped.x;
+          panY = clamped.y;
+          applyTransform(true);
+        }
+      } else if (e.touches.length === 1 && isTouchPinching) {
+        isTouchPinching = false;
+        if (currentScale > 1.05) {
+          isTouchPanning = true;
+          touchStartClientX = e.touches[0].clientX;
+          touchStartClientY = e.touches[0].clientY;
+          touchStartPanX = panX;
+          touchStartPanY = panY;
+        }
+      }
+    }, { passive: true });
+
+    // 6. Click Backdrop to Close
     modal.addEventListener('click', (e) => {
-      // Clicking backdrop closes enlarged view
+      if (didDrag) {
+        didDrag = false;
+        return;
+      }
       if (e.target === modal || e.target === contentBox) {
         closeLightbox();
       }
     });
 
+    // 7. Keyboard Escape to Close
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && modal.style.display === 'flex') {
         closeLightbox();
