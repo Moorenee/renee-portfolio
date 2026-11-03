@@ -94,6 +94,12 @@ class PortfolioDatabase {
     this.isCloudEnabled = false;
     this.cloudProjectId = null;
     this.cloudUnsubscribe = null;
+    try {
+      const rawSigs = typeof localStorage !== 'undefined' ? localStorage.getItem('moo_cloud_media_sigs') : null;
+      this._cloudProjectMediaSigs = rawSigs ? JSON.parse(rawSigs) : {};
+    } catch(e) {
+      this._cloudProjectMediaSigs = {};
+    }
 
     // 1. FAST-BOOT: Instantly populate memoryData synchronously from local storage or default dataset (0ms)
     // This allows getData() and the entire website to render in 0.001 seconds without waiting for the internet!
@@ -655,10 +661,18 @@ class PortfolioDatabase {
                           updatedAny = true;
                         }
                       }
+                      if (this._cloudProjectMediaSigs) {
+                        this._cloudProjectMediaSigs[targetP.id] = this._getProjectMediaSig(targetP);
+                      }
                     }
                   }
                 }
               });
+              try {
+                if (this._cloudProjectMediaSigs && typeof localStorage !== 'undefined') {
+                  localStorage.setItem('moo_cloud_media_sigs', JSON.stringify(this._cloudProjectMediaSigs));
+                }
+              } catch(e) {}
               if (updatedAny) {
                 idbSet('current_portfolio_v3', this.memoryData);
                 this.persistToLocal(this.memoryData);
@@ -1007,21 +1021,38 @@ class PortfolioDatabase {
     return dataToOptimize;
   }
 
+  _getProjectMediaSig(p) {
+    if (!p) return '';
+    const imgs = Array.isArray(p.images) ? p.images : [];
+    const gals = Array.isArray(p.gallery) ? p.gallery : [];
+    const secs = Array.isArray(p.customSections) ? p.customSections : [];
+    const imgKey = imgs.map(i => {
+      const u = typeof i === 'string' ? i : (i ? i.url || '' : '');
+      return u.length + ':' + u.slice(0, 30) + ':' + u.slice(-20);
+    }).join(',');
+    const galKey = gals.map(g => {
+      const u = typeof g === 'string' ? g : (g ? g.url || '' : '');
+      return u.length + ':' + u.slice(0, 30) + ':' + u.slice(-20);
+    }).join(',');
+    const secKey = secs.length + ':' + JSON.stringify(secs).length;
+    return `${p.id}_${imgs.length}_${imgKey}_${galKey}_${secKey}`;
+  }
+
   async saveToCloud(data) {
     if (!this.firestore) this.initCloud();
     if (!this.firestore || !this.isCloudEnabled) return { success: false, error: 'Firebase Cloud is not connected' };
 
-    // If another cloud write is already running, wait for it to complete so we commit the authoritative latest state
-    if (this._isCloudWriteInFlight) {
-      let waitCount = 0;
-      while (this._isCloudWriteInFlight && waitCount < 30) {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        waitCount++;
-      }
+    // If another cloud write is already running, wait briefly for it to complete
+    if (this._cloudWritePromise) {
+      try {
+        await Promise.race([
+          this._cloudWritePromise,
+          new Promise(r => setTimeout(r, 2000))
+        ]);
+      } catch (e) {}
     }
 
-    this._isCloudWriteInFlight = true;
-    try {
+    const cloudTask = (async () => {
       // Rate-limit throttle: Firestore strictly enforces max 1 write/sec per document
       const now = Date.now();
       const timeSinceLast = now - (this._lastCloudWrite || 0);
@@ -1037,48 +1068,75 @@ class PortfolioDatabase {
         ? firebase.firestore.FieldValue.serverTimestamp()
         : clientIso;
 
-      // 1. Persist dedicated media documents for each project concurrently in parallel!
-      // Each document in Firestore has its own 1 MiB limit, preserving high-res images!
+      // 1. High-Speed Dirty Tracking: Only persist dedicated project_* media documents if modified
+      if (!this._cloudProjectMediaSigs) {
+        try {
+          const rawSigs = typeof localStorage !== 'undefined' ? localStorage.getItem('moo_cloud_media_sigs') : null;
+          this._cloudProjectMediaSigs = rawSigs ? JSON.parse(rawSigs) : {};
+        } catch(e) {
+          this._cloudProjectMediaSigs = {};
+        }
+      }
+
       if (Array.isArray(cleanData.projects)) {
-        const projectWrites = cleanData.projects.map(p => {
-          if (!p || !p.id) return Promise.resolve();
-          return this.firestore.collection(CLOUD_COLLECTION).doc('project_' + p.id).set({
-            projectId: p.id,
-            images: p.images || [],
-            gallery: p.gallery || [],
-            customSections: p.customSections || [],
-            updatedAt: serverTs
-          }).catch(pErr => {
-            console.warn(`[PortfolioDB] Notice saving project_${p.id} to Cloud:`, pErr);
-          });
+        const dirtyProjects = cleanData.projects.filter(p => {
+          if (!p || !p.id) return false;
+          const sig = this._getProjectMediaSig(p);
+          return this._cloudProjectMediaSigs[p.id] !== sig;
         });
-        await Promise.all(projectWrites);
+
+        if (dirtyProjects.length > 0) {
+          console.info(`[PortfolioDB] Fast syncing ${dirtyProjects.length} modified project media document(s) to Cloud...`);
+          const projectWrites = dirtyProjects.map(p => {
+            return this.firestore.collection(CLOUD_COLLECTION).doc('project_' + p.id).set({
+              projectId: p.id,
+              images: p.images || [],
+              gallery: p.gallery || [],
+              customSections: p.customSections || [],
+              updatedAt: serverTs
+            }).then(() => {
+              this._cloudProjectMediaSigs[p.id] = this._getProjectMediaSig(p);
+            }).catch(pErr => {
+              console.warn(`[PortfolioDB] Notice saving project_${p.id} to Cloud:`, pErr);
+            });
+          });
+          await Promise.all(projectWrites);
+
+          try {
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem('moo_cloud_media_sigs', JSON.stringify(this._cloudProjectMediaSigs));
+            }
+          } catch(e) {}
+        }
       }
 
       // 2. Guard Firestore 1 MiB hard document limit (1,048,576 bytes) for the live_data catalog document:
-      const TARGET_SAFE_SIZE = 880000;
+      const TARGET_SAFE_SIZE = 820000;
       let estSize = JSON.stringify(cleanData).length;
 
       if (estSize > TARGET_SAFE_SIZE) {
-        console.info(`[PortfolioDB] Pre-sync payload is ${Math.round(estSize/1024)}KB. Performing smart optimization...`);
-        // Pass 1: 1800px @ 0.80
-        cleanData = await this._optimizePayloadForCloud(cleanData, 1800, 0.80);
-        estSize = JSON.stringify(cleanData).length;
-        console.info(`[PortfolioDB] Cloud payload pass 1: ${Math.round(estSize/1024)}KB.`);
-
-        // Pass 2 (fallback if still near limit): 1400px @ 0.74
-        if (estSize > TARGET_SAFE_SIZE) {
-          cleanData = await this._optimizePayloadForCloud(cleanData, 1400, 0.74);
-          estSize = JSON.stringify(cleanData).length;
-          console.info(`[PortfolioDB] Cloud payload pass 2: ${Math.round(estSize/1024)}KB.`);
+        console.info(`[PortfolioDB] Catalog payload is ${Math.round(estSize/1024)}KB. Streamlining catalog (full media preserved in project_* documents)...`);
+        // Projects' full uncompressed media is already safely stored in individual project_* docs!
+        // In the live_data catalog document, retain coverImage and first image preview, omitting redundant massive continuous slices to keep the catalog tiny and instant!
+        for (const p of cleanData.projects) {
+          if (estSize <= TARGET_SAFE_SIZE) break;
+          if (Array.isArray(p.images) && p.images.length > 1) {
+            p.images = [p.images[0]];
+            estSize = JSON.stringify(cleanData).length;
+          }
+          if (estSize > TARGET_SAFE_SIZE && Array.isArray(p.gallery) && p.gallery.length > 0) {
+            p.gallery = [];
+            estSize = JSON.stringify(cleanData).length;
+          }
+          if (estSize > TARGET_SAFE_SIZE && Array.isArray(p.customSections) && p.customSections.length > 0) {
+            p.customSections = [];
+            estSize = JSON.stringify(cleanData).length;
+          }
         }
 
-        // Pass 3 (fallback): If still exceeding 880KB, compress images further instead of wiping them
+        // If STILL over safe size (e.g. extremely large cover images), perform 1 single fast targeted compression pass on covers only
         if (estSize > TARGET_SAFE_SIZE) {
-          console.info(`[PortfolioDB] Compressing live_data catalog payload (${Math.round(estSize/1024)}KB) to safe cloud dimensions...`);
-          cleanData = await this._optimizePayloadForCloud(cleanData, 1100, 0.70);
-          estSize = JSON.stringify(cleanData).length;
-          console.info(`[PortfolioDB] Cloud payload pass 3: ${Math.round(estSize/1024)}KB.`);
+          cleanData = await this._optimizePayloadForCloud(cleanData, 1600, 0.82);
         }
       }
 
@@ -1092,12 +1150,59 @@ class PortfolioDatabase {
       this._lastCloudWrite = Date.now();
       console.info('[PortfolioDB] Successfully committed payload to Google Firebase Cloud Firestore!');
       return { success: true };
+    })();
+
+    this._cloudWritePromise = cloudTask;
+    try {
+      return await cloudTask;
     } catch (err) {
       console.error('Firebase saveToCloud error:', err);
       return { success: false, error: err.message || String(err) };
     } finally {
-      this._isCloudWriteInFlight = false;
+      this._cloudWritePromise = null;
     }
+  }
+
+  async getProjectMedia(projectId) {
+    if (!projectId) return null;
+    const p = (this.memoryData && this.memoryData.projects)
+      ? this.memoryData.projects.find(x => x.id === projectId)
+      : null;
+    if (p && Array.isArray(p.images) && p.images.length > 1) {
+      return { images: p.images, gallery: p.gallery, customSections: p.customSections };
+    }
+    if (!this.firestore) this.initCloud();
+    if (!this.firestore) return null;
+    try {
+      const snap = await this.firestore.collection(CLOUD_COLLECTION).doc('project_' + projectId).get();
+      if (snap && snap.exists) {
+        const pMedia = snap.data();
+        if (pMedia && p) {
+          let changed = false;
+          if (Array.isArray(pMedia.images) && pMedia.images.length > 0) {
+            p.images = pMedia.images;
+            changed = true;
+          }
+          if (Array.isArray(pMedia.gallery) && pMedia.gallery.length > 0) {
+            p.gallery = pMedia.gallery;
+            changed = true;
+          }
+          if (Array.isArray(pMedia.customSections) && pMedia.customSections.length > 0) {
+            p.customSections = pMedia.customSections;
+            changed = true;
+          }
+          if (changed) {
+            await idbSet('current_portfolio_v3', this.memoryData);
+            this.persistToLocal(this.memoryData);
+            this.notifyListeners();
+          }
+        }
+        return pMedia;
+      }
+    } catch (e) {
+      console.warn(`[PortfolioDB] Error fetching project media for ${projectId}:`, e);
+    }
+    return null;
   }
 
   async connectCloud(configInput) {

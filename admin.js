@@ -527,7 +527,7 @@ async function initAdmin() {
       } catch(err) {
         console.warn('Auto-save background notice:', err);
       }
-    }, 2500);
+    }, 6000);
   }
 
   function triggerRealtimeSync(debounceMs = 120) {

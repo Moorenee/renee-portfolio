@@ -2206,6 +2206,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       portraitImagesStack.innerHTML = '';
       const images = project.images || [];
 
+      // If this project has additional media stored in dedicated project document, hydrate on demand
+      if ((!images || images.length <= 1) && window.PortfolioDB && typeof window.PortfolioDB.getProjectMedia === 'function') {
+        window.PortfolioDB.getProjectMedia(project.id).then(fullMedia => {
+          if (fullMedia && Array.isArray(fullMedia.images) && fullMedia.images.length > (project.images ? project.images.length : 0)) {
+            if (currentActiveProjectId === (project.id || project.index)) {
+              renderProjectDetail(project.id, true);
+            }
+          }
+        }).catch(() => {});
+      }
+
       if (project.hasGap) {
         portraitImagesStack.className = 'portrait-images-stack has-gap';
         if (detailPortraitContainer) detailPortraitContainer.classList.remove('no-gap-container');
