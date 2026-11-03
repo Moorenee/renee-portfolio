@@ -3705,7 +3705,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (cloudData) {
         const curUp = (portfolioData && portfolioData._lastUpdated) || 0;
         const freshUp = cloudData._lastUpdated || 0;
-        if (freshUp > curUp) {
+        if (!curUp || freshUp >= curUp) {
           portfolioData = cloudData;
           try { renderAll(); } catch(e) {}
           const hash = window.location.hash.replace('#', '');
@@ -3727,7 +3727,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!newData) return;
       const curUp = (portfolioData && portfolioData._lastUpdated) || 0;
       const freshUp = newData._lastUpdated || 0;
-      if (freshUp > curUp) {
+      if (!curUp || freshUp >= curUp) {
         portfolioData = newData;
         try { renderAll(); } catch(e) {}
         const hash = window.location.hash.replace('#', '');

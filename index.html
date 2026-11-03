@@ -37,9 +37,14 @@
       }
       document.head.appendChild(style);
 
-      // Safety fallback timer: only remove anti-fouc after 2500ms if script.js fails to initialize
+      // Safety fallback timer: ensure target view has active class before lifting early-route-style
       setTimeout(function() {
         document.documentElement.classList.remove('anti-fouc');
+        var hasActive = document.querySelector('.page-view.active');
+        if (!hasActive) {
+          var target = document.getElementById('view-' + v) || document.getElementById('view-home');
+          if (target) target.classList.add('active');
+        }
         var es = document.getElementById('early-route-style');
         if (es) es.remove();
       }, 2500);
@@ -364,7 +369,7 @@
   }
   </script>
 
-  <link rel="stylesheet" href="styles.css?v=20261101_0015" />
+  <link rel="stylesheet" href="styles.css?v=20261101_1330" />
 </head>
 <body class="site-body">
 
@@ -453,7 +458,7 @@
   <main class="app-viewport" id="app-viewport">
 
     <!-- ================= VIEW 1: HOME (ARCHITECTURAL 100VH GRID) ================= -->
-    <section class="page-view" id="view-home">
+    <section class="page-view active" id="view-home">
       <div class="home-paper-stage">
         
         <!-- Inset Architectural Grid Container -->
@@ -1406,9 +1411,9 @@
   <!-- Storage and Application Scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js?v=20261101_0015"></script>
-  <script src="database.js?v=20261101_0015"></script>
-  <script src="script.js?v=20261101_0015"></script>
+  <script src="firebase-config.js?v=20261103_2000"></script>
+  <script src="database.js?v=20261103_2000"></script>
+  <script src="script.js?v=20261103_2000"></script>
   <!-- Vercel Web Analytics (Active automatically upon enabling Analytics in Vercel dashboard) -->
   <script defer src="/_vercel/insights/script.js"></script>
 </body>
