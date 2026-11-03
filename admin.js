@@ -40,37 +40,34 @@ async function initAdmin() {
   }
 
   // Base64 helper for image uploads with high-resolution clarity and crisp rendering
-  function fileToBase64(file, maxWidth = 2400, quality = 0.88) {
+  function fileToBase64(file, maxWidth = 2600, quality = 0.92) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = error => reject(error);
       reader.onload = (e) => {
         const rawResult = e.target.result;
-        // 1. If file is SVG, GIF, or already small (<= 250KB), preserve as-is!
-        if (file.type === 'image/svg+xml' || file.type === 'image/gif' || file.size <= 256000) {
+        // 1. If file is SVG, GIF, or already small (<= 350KB), preserve pristine original!
+        if (file.type === 'image/svg+xml' || file.type === 'image/gif' || file.size <= 358400) {
           resolve(rawResult);
           return;
         }
 
-        // 2. High-Res Canvas Scaler: Enforces max 2400px Retina resolution & keeps base64 under 650KB
-        // so Google Cloud Firestore 1 MiB hard document limit is NEVER exceeded!
+        // 2. High-Res Canvas Scaler: Preserves up to 2800px Retina HD width with high sharpness
         const img = new Image();
         img.onerror = () => resolve(rawResult);
         img.onload = () => {
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
-          const targetMax = Math.min(maxWidth || 2400, 2400);
+          const targetMax = Math.max(2600, maxWidth || 2600);
 
           // If vertical continuous drawing/slice (height > width):
-          // Scale by width so full 2400px Retina sharpness is preserved across the screen!
-          // Never clamp vertical height to 2400 if it crushes the horizontal width into a blurry thumbnail!
-          const isVerticalDrawing = (h > w * 1.15);
+          // Maintain the full 2600px+ width so every CAD dimension, label, and detail is crisp!
+          const isVerticalDrawing = (h > w * 1.05);
           if (isVerticalDrawing) {
             if (w > targetMax) {
               h = Math.round((h * targetMax) / w);
               w = targetMax;
             }
-            // Safeguard against exceeding browser canvas memory limits (max 16384px)
             if (h > 16000) {
               w = Math.round((w * 16000) / h);
               h = 16000;
@@ -100,11 +97,20 @@ async function initAdmin() {
           ctx.drawImage(img, 0, 0, w, h);
 
           try {
-            const outQuality = typeof quality === 'number' ? quality : 0.88;
+            // For line drawings and PNGs, check if PNG fits under 850KB for 100% lossless line-art clarity
+            if (file.type === 'image/png') {
+              const pngUrl = canvas.toDataURL('image/png');
+              if (pngUrl && pngUrl.length <= 850000) {
+                resolve(pngUrl);
+                return;
+              }
+            }
+
+            const outQuality = typeof quality === 'number' ? quality : 0.92;
             let resUrl = canvas.toDataURL('image/jpeg', outQuality);
-            // If still over 750KB, reduce quality slightly to stay safe under 1MB Firestore limit
-            if (resUrl.length > 750000) {
-              resUrl = canvas.toDataURL('image/jpeg', 0.80);
+            // If still over 850KB, reduce quality slightly to stay safe under 1MB Firestore limit
+            if (resUrl.length > 850000) {
+              resUrl = canvas.toDataURL('image/jpeg', 0.86);
             }
             if (resUrl && resUrl.startsWith('data:image')) {
               resolve(resUrl);

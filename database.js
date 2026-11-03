@@ -423,26 +423,18 @@ class PortfolioDatabase {
   // Merges cloud data into local data without degrading high-res images that exist locally
   _mergePreservingHighResImages(localData, incomingData) {
     if (!localData || !incomingData) return incomingData || localData;
-    const localTime = Number(localData._lastUpdated || 0);
-    const incomingTime = Number(incomingData._lastUpdated || 0);
-
-    // Whenever incoming cloud data is at least as new as local data,
-    // unconditionally accept incoming data so deleted items and edits are fully respected!
-    if (incomingTime >= localTime) {
-      return JSON.parse(JSON.stringify(incomingData));
-    }
     const merged = JSON.parse(JSON.stringify(incomingData));
 
-    // Preserve high-res profile photo if local copy has photo and incoming is empty or lower resolution
+    // 1. Preserve high-res profile photo if local copy has higher resolution
     if (localData.profile && localData.profile.photoUrl && merged.profile) {
-      if (!merged.profile.photoUrl ||
-          (localData.profile.photoUrl.startsWith('data:image') &&
-           localData.profile.photoUrl.length > (merged.profile.photoUrl || '').length)) {
-        merged.profile.photoUrl = localData.profile.photoUrl;
+      const lPhoto = localData.profile.photoUrl;
+      const mPhoto = merged.profile.photoUrl || '';
+      if (!mPhoto || (lPhoto.startsWith('data:image') && lPhoto.length > mPhoto.length)) {
+        merged.profile.photoUrl = lPhoto;
       }
     }
 
-    // Preserve high-res project covers and images for existing projects only (NEVER resurrect deleted projects or removed items)
+    // 2. Preserve high-res project covers, slices, gallery, and custom sections
     if (Array.isArray(localData.projects) && Array.isArray(merged.projects)) {
       const localMap = {};
       localData.projects.forEach(lp => { if (lp && lp.id) localMap[lp.id] = lp; });
@@ -452,23 +444,55 @@ class PortfolioDatabase {
         const lp = localMap[mp.id];
         if (!lp) return;
 
-        // Preserve coverImage only if incoming cover is missing
-        if (lp.coverImage && !mp.coverImage) {
+        // Preserve high-res coverImage if local is higher quality/resolution
+        if (lp.coverImage && lp.coverImage.startsWith('data:image')) {
+          if (!mp.coverImage || (mp.coverImage.startsWith('data:image') && lp.coverImage.length > mp.coverImage.length)) {
+            mp.coverImage = lp.coverImage;
+          }
+        } else if (lp.coverImage && !mp.coverImage) {
           mp.coverImage = lp.coverImage;
         }
 
-        // Only fill image if incoming image at index is missing
-        if (Array.isArray(lp.images) && lp.images.length > 0 && Array.isArray(mp.images)) {
-          lp.images.forEach((lImg, idx) => {
-            if (!lImg || idx >= mp.images.length) return;
+        // Preserve high-res slices in images array
+        if (Array.isArray(lp.images) && Array.isArray(mp.images)) {
+          mp.images.forEach((mImg, idx) => {
+            const lImg = lp.images[idx];
+            if (!lImg) return;
             const lUrl = typeof lImg === 'string' ? lImg : (lImg.url || '');
-            const mImg = mp.images[idx];
             const mUrl = typeof mImg === 'string' ? mImg : (mImg ? mImg.url || '' : '');
-            if (lUrl && !mUrl) {
+            if (lUrl.startsWith('data:image')) {
+              // If local image is longer (higher resolution) than incoming compressed preview, keep local high-res!
+              if (!mUrl || (mUrl.startsWith('data:image') && lUrl.length > mUrl.length)) {
+                if (typeof mImg === 'string') {
+                  mp.images[idx] = lUrl;
+                } else if (mImg && typeof mImg === 'object') {
+                  mImg.url = lUrl;
+                }
+              }
+            } else if (lUrl && !mUrl) {
               if (typeof mImg === 'string') {
                 mp.images[idx] = lUrl;
               } else if (mImg && typeof mImg === 'object') {
                 mImg.url = lUrl;
+              }
+            }
+          });
+        }
+
+        // Preserve high-res gallery items
+        if (Array.isArray(lp.gallery) && Array.isArray(mp.gallery)) {
+          mp.gallery.forEach((mItem, idx) => {
+            const lItem = lp.gallery[idx];
+            if (!lItem) return;
+            const lUrl = typeof lItem === 'string' ? lItem : (lItem.url || '');
+            const mUrl = typeof mItem === 'string' ? mItem : (mItem ? mItem.url || '' : '');
+            if (lUrl.startsWith('data:image')) {
+              if (!mUrl || (mUrl.startsWith('data:image') && lUrl.length > mUrl.length)) {
+                if (typeof mItem === 'string') {
+                  mp.gallery[idx] = lUrl;
+                } else if (mItem && typeof mItem === 'object') {
+                  mItem.url = lUrl;
+                }
               }
             }
           });
@@ -599,43 +623,49 @@ class PortfolioDatabase {
           this.cloudFetched = true;
           const cloudData = this._ensureSchemaIntegrity(cloudPayload.data);
 
-          // Fast-track: If live_data already carries images, don't wait for individual project docs.
-          // Otherwise, hydrate individual project media documents asynchronously in background.
-          const needsHydration = cloudData.projects && cloudData.projects.some(p => (!p.images || p.images.length === 0));
-          if (needsHydration) {
-            this.firestore.collection(CLOUD_COLLECTION).get().then(projDocsSnap => {
-              if (projDocsSnap && !projDocsSnap.empty) {
-                let updatedAny = false;
-                projDocsSnap.forEach(snap => {
-                  if (snap.id && snap.id.startsWith('project_')) {
-                    const pMedia = snap.data();
-                    if (pMedia && pMedia.projectId) {
-                      const targetP = (this.memoryData && this.memoryData.projects) ? this.memoryData.projects.find(p => p.id === pMedia.projectId) : null;
-                      if (targetP) {
-                        if ((!targetP.images || targetP.images.length === 0) && Array.isArray(pMedia.images) && pMedia.images.length > 0) {
+          // Background hydration: Load pristine uncompressed media from dedicated project_* Firestore documents
+          this.firestore.collection(CLOUD_COLLECTION).get().then(projDocsSnap => {
+            if (projDocsSnap && !projDocsSnap.empty) {
+              let updatedAny = false;
+              projDocsSnap.forEach(snap => {
+                if (snap.id && snap.id.startsWith('project_')) {
+                  const pMedia = snap.data();
+                  if (pMedia && pMedia.projectId) {
+                    const targetP = (this.memoryData && this.memoryData.projects) ? this.memoryData.projects.find(p => p.id === pMedia.projectId) : null;
+                    if (targetP) {
+                      if (Array.isArray(pMedia.images) && pMedia.images.length > 0) {
+                        const curLen = (targetP.images || []).map(i => (typeof i === 'string' ? i : i.url || '').length).reduce((a,b)=>a+b, 0);
+                        const newLen = pMedia.images.map(i => (typeof i === 'string' ? i : i.url || '').length).reduce((a,b)=>a+b, 0);
+                        if (newLen > curLen || !targetP.images || targetP.images.length === 0) {
                           targetP.images = pMedia.images;
                           updatedAny = true;
                         }
-                        if ((!targetP.gallery || targetP.gallery.length === 0) && Array.isArray(pMedia.gallery) && pMedia.gallery.length > 0) {
+                      }
+                      if (Array.isArray(pMedia.gallery) && pMedia.gallery.length > 0) {
+                        const curLen = (targetP.gallery || []).map(i => (typeof i === 'string' ? i : i.url || '').length).reduce((a,b)=>a+b, 0);
+                        const newLen = pMedia.gallery.map(i => (typeof i === 'string' ? i : i.url || '').length).reduce((a,b)=>a+b, 0);
+                        if (newLen > curLen || !targetP.gallery || targetP.gallery.length === 0) {
                           targetP.gallery = pMedia.gallery;
                           updatedAny = true;
                         }
-                        if ((!targetP.customSections || targetP.customSections.length === 0) && Array.isArray(pMedia.customSections) && pMedia.customSections.length > 0) {
+                      }
+                      if (Array.isArray(pMedia.customSections) && pMedia.customSections.length > 0) {
+                        if (!targetP.customSections || targetP.customSections.length === 0) {
                           targetP.customSections = pMedia.customSections;
                           updatedAny = true;
                         }
                       }
                     }
                   }
-                });
-                if (updatedAny) {
-                  idbSet('current_portfolio_v3', this.memoryData);
-                  this.persistToLocal(this.memoryData);
-                  this.notifyListeners();
                 }
+              });
+              if (updatedAny) {
+                idbSet('current_portfolio_v3', this.memoryData);
+                this.persistToLocal(this.memoryData);
+                this.notifyListeners();
               }
-            }).catch(e => {});
-          }
+            }
+          }).catch(e => {});
 
           const localUpdated = (this.memoryData && Number(this.memoryData._lastUpdated)) || 0;
           const cloudUpdated = (cloudData && Number(cloudData._lastUpdated))
@@ -650,7 +680,7 @@ class PortfolioDatabase {
           }
 
           console.info('[PortfolioDB] Applying freshest Cloud Firestore dataset to local memory...');
-          this.memoryData = this._ensureSchemaIntegrity(cloudData);
+          this.memoryData = this._mergePreservingHighResImages(this.memoryData, this._ensureSchemaIntegrity(cloudData));
           delete this.memoryData._savedFromAdmin;
           await idbSet('current_portfolio_v3', this.memoryData);
           this.persistToLocal(this.memoryData);
@@ -852,12 +882,16 @@ class PortfolioDatabase {
           clearTimeout(timeout);
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
-          if (isSlice) {
-            // Slices are tall vertical drawings scrolled or enlarged by width.
-            const maxW = typeof maxDim === 'number' ? maxDim : 2000;
+          if (isSlice || (h > w * 1.05)) {
+            // Slices & vertical architectural drawings must preserve full width for Retina sharpness!
+            const maxW = typeof maxDim === 'number' ? maxDim : 2400;
             if (w > maxW) {
               h = Math.round((h * maxW) / w);
               w = maxW;
+            }
+            if (h > 16000) {
+              w = Math.round((w * 16000) / h);
+              h = 16000;
             }
           } else {
             if (w > maxDim || h > maxDim) {
