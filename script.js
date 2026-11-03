@@ -1977,11 +1977,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
   }
 
-  /* ================= PINCH-TO-ZOOM & PAN (UP TO 200%) FOR MOBILE DEVICES ================= */
+  /* ================= PINCH-TO-ZOOM & PAN (UP TO 450%) FOR MOBILE DEVICES ================= */
   function enablePinchZoom(containerEl, imgEl) {
     if (!containerEl || !imgEl) return;
     if (containerEl._hasPinchZoom) return;
     containerEl._hasPinchZoom = true;
+
+    const MIN_SCALE = 1.0;
+    const MAX_SCALE = 4.5; // Zoom up to 450% for deep architectural detail inspection
 
     let currentScale = 1;
     let panX = 0;
@@ -2003,9 +2006,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (currentScale > 1.02) {
         containerEl.style.zIndex = '50';
         containerEl.style.overflow = 'visible';
+        containerEl.style.touchAction = 'none'; // Lock browser gestures while actively zoomed
       } else {
         containerEl.style.zIndex = '';
         containerEl.style.overflow = '';
+        containerEl.style.touchAction = ''; // Restore native page scrolling
       }
     }
 
@@ -2016,19 +2021,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       updateTransform(true);
     }
 
-    // Double tap to toggle 100% <-> 200%
+    // Smart 3-stage double tap: 100% -> 250% -> 400% -> 100%
     containerEl.addEventListener('touchend', (e) => {
       if (e.touches.length > 0) return;
       const now = Date.now();
-      if (now - lastTapTime < 280) {
+      if (now - lastTapTime < 300) {
         e.preventDefault();
-        if (currentScale > 1.1) {
-          resetZoom();
-        } else {
-          currentScale = 2.0; // Zoom to 200%
+        if (currentScale < 1.8) {
+          currentScale = 2.5; // Step 1: 250% zoom
           panX = 0;
           panY = 0;
           updateTransform(true);
+        } else if (currentScale < 3.5) {
+          currentScale = 4.0; // Step 2: 400% deep detail zoom
+          panX = 0;
+          panY = 0;
+          updateTransform(true);
+        } else {
+          resetZoom(); // Step 3: return to 100%
         }
         lastTapTime = 0;
         return;
@@ -2065,7 +2075,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         );
         if (startDist > 0) {
           const factor = dist / startDist;
-          currentScale = Math.max(1.0, Math.min(2.0, startScale * factor));
+          currentScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, startScale * factor));
           const maxPanX = (imgEl.offsetWidth * (currentScale - 1)) / 2;
           const maxPanY = (imgEl.offsetHeight * (currentScale - 1)) / 2;
           panX = Math.max(-maxPanX, Math.min(maxPanX, panX));
@@ -3567,10 +3577,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (zoomText) zoomText.textContent = 'FIT SCREEN (100%)';
           if (zoomIcon) zoomIcon.textContent = '🔍';
           modalImg.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
-          modalImg.style.transform = 'translate3d(0, 0, 0) scale(2)';
+          modalImg.style.transform = 'translate3d(0, 0, 0) scale(3.5)'; // Zoom 350% for maximum clarity
         } else {
           contentBox.classList.remove('zoomed');
-          if (zoomText) zoomText.textContent = 'ZOOM 200% (READ DETAILS)';
+          if (zoomText) zoomText.textContent = 'ZOOM IN (READ DETAILS)';
           if (zoomIcon) zoomIcon.textContent = '🔍';
           modalImg.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
           modalImg.style.transform = 'translate3d(0, 0, 0) scale(1)';
