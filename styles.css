@@ -2831,7 +2831,8 @@ body.theme-navy .bottom-cell.cell-enter:hover .enter-portfolio-link {
   height: 100%;
   object-fit: cover;
   image-rendering: -webkit-optimize-contrast;
-  image-rendering: auto;
+  image-rendering: high-quality;
+  transform: translateZ(0);
   transition: transform var(--transition-smooth);
 }
 
@@ -3637,7 +3638,8 @@ body.theme-navy .related-link-card:hover {
   max-width: 100% !important;
   height: auto !important;
   image-rendering: -webkit-optimize-contrast;
-  image-rendering: auto;
+  image-rendering: high-quality;
+  transform: translateZ(0);
   transform: translateZ(0);
   backface-visibility: hidden;
 }

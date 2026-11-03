@@ -61,13 +61,29 @@ async function initAdmin() {
           let h = img.naturalHeight || img.height;
           const targetMax = Math.min(maxWidth || 2400, 2400);
 
-          if (w > targetMax || h > targetMax) {
-            if (w >= h) {
+          // If vertical continuous drawing/slice (height > width):
+          // Scale by width so full 2400px Retina sharpness is preserved across the screen!
+          // Never clamp vertical height to 2400 if it crushes the horizontal width into a blurry thumbnail!
+          const isVerticalDrawing = (h > w * 1.15);
+          if (isVerticalDrawing) {
+            if (w > targetMax) {
               h = Math.round((h * targetMax) / w);
               w = targetMax;
-            } else {
-              w = Math.round((w * targetMax) / h);
-              h = targetMax;
+            }
+            // Safeguard against exceeding browser canvas memory limits (max 16384px)
+            if (h > 16000) {
+              w = Math.round((w * 16000) / h);
+              h = 16000;
+            }
+          } else {
+            if (w > targetMax || h > targetMax) {
+              if (w >= h) {
+                h = Math.round((h * targetMax) / w);
+                w = targetMax;
+              } else {
+                w = Math.round((w * targetMax) / h);
+                h = targetMax;
+              }
             }
           }
 
