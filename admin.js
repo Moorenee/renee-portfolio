@@ -40,28 +40,28 @@ async function initAdmin() {
   }
 
   // Base64 helper for image uploads with high-resolution clarity and crisp rendering
-  function fileToBase64(file, maxWidth = 2600, quality = 0.92) {
+  function fileToBase64(file, maxWidth = 2400, quality = 0.88) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = error => reject(error);
       reader.onload = (e) => {
         const rawResult = e.target.result;
-        // 1. If file is SVG, GIF, or already small (<= 350KB), preserve pristine original!
-        if (file.type === 'image/svg+xml' || file.type === 'image/gif' || file.size <= 358400) {
+        // 1. If file is SVG or GIF, preserve pristine original!
+        if (file.type === 'image/svg+xml' || file.type === 'image/gif') {
           resolve(rawResult);
           return;
         }
 
-        // 2. High-Res Canvas Scaler: Preserves up to 2800px Retina HD width with high sharpness
+        // 2. High-Res Canvas Scaler: Preserves up to 2400px Retina HD width with high sharpness
         const img = new Image();
         img.onerror = () => resolve(rawResult);
         img.onload = () => {
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
-          const targetMax = Math.max(2600, maxWidth || 2600);
+          const targetMax = Math.max(2200, maxWidth || 2200);
 
           // If vertical continuous drawing/slice (height > width):
-          // Maintain the full 2600px+ width so every CAD dimension, label, and detail is crisp!
+          // Maintain full horizontal width so every CAD dimension, label, and detail is crisp!
           const isVerticalDrawing = (h > w * 1.05);
           if (isVerticalDrawing) {
             if (w > targetMax) {
@@ -97,24 +97,59 @@ async function initAdmin() {
           ctx.drawImage(img, 0, 0, w, h);
 
           try {
-            // For line drawings and PNGs, check if PNG fits under 850KB for 100% lossless line-art clarity
+            const MAX_SAFE_B64 = 750000; // Strictly safe under Google Cloud Firestore 1 MiB limit!
+
+            // A. Try lossless PNG first for floor plans & line-art if small
             if (file.type === 'image/png') {
               const pngUrl = canvas.toDataURL('image/png');
-              if (pngUrl && pngUrl.length <= 850000) {
+              if (pngUrl && pngUrl.length <= MAX_SAFE_B64) {
                 resolve(pngUrl);
                 return;
               }
             }
 
-            const outQuality = typeof quality === 'number' ? quality : 0.92;
-            let resUrl = canvas.toDataURL('image/jpeg', outQuality);
-            // If still over 850KB, reduce quality slightly to stay safe under 1MB Firestore limit
-            if (resUrl.length > 850000) {
-              resUrl = canvas.toDataURL('image/jpeg', 0.86);
+            // B. High-Fidelity WebP (crispest edges and text, ~30% smaller than JPEG)
+            const webpQualities = [0.90, 0.85, 0.80, 0.74, 0.68];
+            for (const q of webpQualities) {
+              const testUrl = canvas.toDataURL('image/webp', q);
+              if (testUrl && testUrl.startsWith('data:image/webp') && testUrl.length <= MAX_SAFE_B64) {
+                resolve(testUrl);
+                return;
+              }
             }
-            if (resUrl && resUrl.startsWith('data:image')) {
-              resolve(resUrl);
-              return;
+
+            // C. Fallback to standard sRGB JPEG
+            const jpegQualities = [0.88, 0.82, 0.76, 0.70, 0.64];
+            for (const q of jpegQualities) {
+              const testUrl = canvas.toDataURL('image/jpeg', q);
+              if (testUrl && testUrl.startsWith('data:image/jpeg') && testUrl.length <= MAX_SAFE_B64) {
+                resolve(testUrl);
+                return;
+              }
+            }
+
+            // D. If still larger than MAX_SAFE_B64 (extremely tall drawing), downscale safely
+            let scaleFactor = 0.85;
+            while (scaleFactor >= 0.45) {
+              const cDown = document.createElement('canvas');
+              cDown.width = Math.max(1, Math.round(w * scaleFactor));
+              cDown.height = Math.max(1, Math.round(h * scaleFactor));
+              const ctxDown = cDown.getContext('2d');
+              ctxDown.imageSmoothingEnabled = true;
+              ctxDown.imageSmoothingQuality = 'high';
+              ctxDown.fillStyle = '#FFFFFF';
+              ctxDown.fillRect(0, 0, cDown.width, cDown.height);
+              ctxDown.drawImage(canvas, 0, 0, cDown.width, cDown.height);
+
+              let testUrl = cDown.toDataURL('image/webp', 0.82);
+              if (!testUrl || !testUrl.startsWith('data:image/webp') || testUrl.length > MAX_SAFE_B64) {
+                testUrl = cDown.toDataURL('image/jpeg', 0.78);
+              }
+              if (testUrl && testUrl.length <= MAX_SAFE_B64) {
+                resolve(testUrl);
+                return;
+              }
+              scaleFactor -= 0.15;
             }
           } catch(we) {}
           resolve(rawResult);

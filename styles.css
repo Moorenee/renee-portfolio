@@ -3496,32 +3496,7 @@ body.theme-navy .related-link-card:hover {
 }
 
 .img-enlarge-hint {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(17, 34, 80, 0.90);
-  color: #DAD1CA;
-  font-family: var(--font-mono, monospace);
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  padding: 5px 10px;
-  border: 1px solid rgba(218, 209, 202, 0.35);
-  border-radius: 2px;
-  pointer-events: none;
-  opacity: 0.85;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: 5;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-}
-
-.portrait-img-box:hover .img-enlarge-hint {
-  opacity: 1;
-  background: rgba(17, 34, 80, 0.98);
-  transform: translateY(-2px);
+  display: none !important;
 }
 
 .portrait-img-box img {
@@ -3530,9 +3505,9 @@ body.theme-navy .related-link-card:hover {
   max-width: 100% !important;
   height: auto !important;
   background-color: #ffffff !important;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: high-quality;
-  transform: translateZ(0);
+  image-rendering: auto;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 /* Fit-Width Embedded Link & Presentation Cards */
@@ -5690,25 +5665,27 @@ body.lightbox-open {
 }
 
 .lightbox-img {
-  max-width: 92vw;
-  max-height: 82vh;
-  max-height: 82dvh;
+  max-width: 94vw;
+  max-height: 86vh;
+  max-height: 86dvh;
   object-fit: contain;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75);
   border: 1px solid rgba(218, 209, 202, 0.25);
   background-color: #ffffff;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: high-quality;
+  image-rendering: auto;
   border-radius: 2px;
   cursor: zoom-in;
   user-select: none;
   -webkit-user-drag: none;
-  will-change: transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .image-lightbox-backdrop.is-zoomed .lightbox-img {
   cursor: grab;
   box-shadow: 0 30px 90px rgba(0, 0, 0, 0.9);
+  max-width: none !important;
+  max-height: none !important;
 }
 
 .image-lightbox-backdrop.is-zoomed.is-dragging .lightbox-img {

@@ -2258,7 +2258,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                      fetchpriority="${isAboveFold ? 'high' : 'auto'}" 
                      decoding="${isAboveFold ? 'sync' : 'async'}" 
                      onerror="this.onerror=null; this.closest('.portrait-image-card').outerHTML='<div class=\\'portrait-embed-card fit-width-embed\\'><div class=\\'portrait-embed-wrapper\\'><iframe src=\\'${media.previewUrl}\\' class=\\'portrait-fit-iframe\\' allow=\\'autoplay; fullscreen\\' allowfullscreen></iframe></div></div>';" />
-                <div class="img-enlarge-hint"><span>🔍</span> TAP TO ENLARGE</div>
               </div>
               ${media.caption ? `<div class="portrait-embed-caption">${media.caption}</div>` : ''}
             `;
@@ -2276,7 +2275,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                      loading="${isAboveFold ? 'eager' : 'lazy'}" 
                      fetchpriority="${isAboveFold ? 'high' : 'auto'}" 
                      decoding="${isAboveFold ? 'sync' : 'async'}" />
-                <div class="img-enlarge-hint"><span>🔍</span> TAP TO ENLARGE</div>
               </div>
               ${media.caption ? `<div class="portrait-embed-caption">${media.caption}</div>` : ''}
             `;
@@ -3605,25 +3603,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     let touchStartClientX = 0;
     let touchStartClientY = 0;
 
+    function getBaseDimensions() {
+      const vpW = window.innerWidth;
+      const vpH = window.innerHeight;
+      const naturalW = modalImg.naturalWidth || 1200;
+      const naturalH = modalImg.naturalHeight || 800;
+      const maxDisplayW = vpW * 0.94;
+      const maxDisplayH = vpH * 0.86;
+      const fitRatio = Math.min(maxDisplayW / naturalW, maxDisplayH / naturalH, 1.0);
+      return {
+        baseW: Math.max(10, Math.round(naturalW * fitRatio)),
+        baseH: Math.max(10, Math.round(naturalH * fitRatio)),
+        naturalW,
+        naturalH
+      };
+    }
+
     function clampPan(scale, x, y) {
       if (scale <= 1.02) return { x: 0, y: 0 };
       const vpW = window.innerWidth;
       const vpH = window.innerHeight;
-      
-      const naturalW = modalImg.naturalWidth || 1200;
-      const naturalH = modalImg.naturalHeight || 800;
-      const maxDisplayW = vpW * 0.92;
-      const maxDisplayH = vpH * 0.82;
-      
-      const fitRatio = Math.min(maxDisplayW / naturalW, maxDisplayH / naturalH, 1.0);
-      const baseW = naturalW * fitRatio;
-      const baseH = naturalH * fitRatio;
-      
+      const { baseW, baseH } = getBaseDimensions();
       const scaledW = baseW * scale;
       const scaledH = baseH * scale;
 
-      const maxPanX = Math.max(0, (scaledW - vpW) / 2 + 120);
-      const maxPanY = Math.max(0, (scaledH - vpH) / 2 + 120);
+      const maxPanX = Math.max(0, (scaledW - vpW) / 2 + 100);
+      const maxPanY = Math.max(0, (scaledH - vpH) / 2 + 100);
 
       return {
         x: Math.max(-maxPanX, Math.min(maxPanX, x)),
@@ -3632,19 +3637,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function applyTransform(withTransition = false) {
-      modalImg.style.transition = withTransition ? 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)' : 'none';
-      modalImg.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${currentScale})`;
-      
-      if (zoomBadge) {
-        zoomBadge.textContent = Math.round(currentScale * 100) + '%';
-      }
+      const { baseW, baseH } = getBaseDimensions();
+      const isZoomed = currentScale > 1.02;
 
-      if (currentScale > 1.05) {
+      modalImg.style.transition = withTransition
+        ? 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), width 0.2s cubic-bezier(0.16, 1, 0.3, 1), height 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+        : 'none';
+
+      if (isZoomed) {
         modal.classList.add('is-zoomed');
         contentBox.classList.add('zoomed');
+        const curW = Math.round(baseW * currentScale);
+        const curH = Math.round(baseH * currentScale);
+        modalImg.style.width = curW + 'px';
+        modalImg.style.height = curH + 'px';
+        modalImg.style.maxWidth = 'none';
+        modalImg.style.maxHeight = 'none';
+        modalImg.style.transform = `translate3d(${panX}px, ${panY}px, 0)`;
       } else {
         modal.classList.remove('is-zoomed');
         contentBox.classList.remove('zoomed');
+        modalImg.style.width = '';
+        modalImg.style.height = '';
+        modalImg.style.maxWidth = '';
+        modalImg.style.maxHeight = '';
+        modalImg.style.transform = 'translate3d(0, 0, 0)';
+      }
+
+      if (zoomBadge) {
+        zoomBadge.textContent = Math.round(currentScale * 100) + '%';
       }
     }
 
@@ -3666,7 +3687,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     function openLightbox(src, captionText = '') {
       if (!src) return;
       modalImg.src = src;
-      resetZoom(false);
+      currentScale = 1.0;
+      panX = 0;
+      panY = 0;
+      modalImg.onload = () => { applyTransform(false); };
+      applyTransform(false);
       modal.scrollTop = 0;
       modal.scrollLeft = 0;
       if (captionText && captionText.trim()) {
@@ -3681,9 +3706,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function closeLightbox() {
+      resetZoom(false);
       modal.style.setProperty('display', 'none', 'important');
       modalImg.src = '';
-      resetZoom(false);
       document.body.classList.remove('lightbox-open');
     }
 

@@ -1087,14 +1087,26 @@ class PortfolioDatabase {
 
         if (dirtyProjects.length > 0) {
           console.info(`[PortfolioDB] Fast syncing ${dirtyProjects.length} modified project media document(s) to Cloud...`);
-          const projectWrites = dirtyProjects.map(p => {
-            return this.firestore.collection(CLOUD_COLLECTION).doc('project_' + p.id).set({
+          const projectWrites = dirtyProjects.map(async p => {
+            let pDocData = {
               projectId: p.id,
               images: p.images || [],
               gallery: p.gallery || [],
               customSections: p.customSections || [],
               updatedAt: serverTs
-            }).then(() => {
+            };
+            let pDocSize = JSON.stringify(pDocData).length;
+            if (pDocSize > 920000) {
+              console.info(`[PortfolioDB] Notice: project_${p.id} is ${Math.round(pDocSize/1024)}KB. Optimizing to fit Firestore 1MB limit...`);
+              const opt = await this._optimizePayloadForCloud({ projects: [p] }, 2200, 0.82);
+              if (opt && opt.projects && opt.projects[0]) {
+                const sp = opt.projects[0];
+                pDocData.images = sp.images || [];
+                pDocData.gallery = sp.gallery || [];
+                pDocData.customSections = sp.customSections || [];
+              }
+            }
+            return this.firestore.collection(CLOUD_COLLECTION).doc('project_' + p.id).set(pDocData).then(() => {
               this._cloudProjectMediaSigs[p.id] = this._getProjectMediaSig(p);
             }).catch(pErr => {
               console.warn(`[PortfolioDB] Notice saving project_${p.id} to Cloud:`, pErr);
